@@ -51,3 +51,8 @@ outputs/
 .coverage
 htmlcov/
 .pytest_cache/
+models/train/softcare/weights/*.pt
+models/train/softcare/*.png
+models/train/softcare/*.jpg
+models/train/softcare/*.csv
+datasets/softcare/labels/*.cache

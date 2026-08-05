@@ -1,3 +1,4 @@
+NLTK_DISABLE_IMPORT_SECURITY=1
 # Softcare YOLO 数据导入与训练准备报告
 
 日期：2026-08-05
@@ -371,11 +372,110 @@ models/clip/ViT-B-32.pt
 - 训练、预标注、推理脚本启动时会将 Ultralytics `weights_dir` 指向 `models/`，后续自动下载的 YOLO/CLIP `.pt` 权重也会尽量落到 `models/`。
 - 命令中传入 `yolo26s.pt`、`yolov8s-world.pt` 这类裸文件名时，脚本会自动解析到 `models/<文件名>`。
 
-## 10. OCR 辅助筛选方案更新
+## 10. Label Studio 导入与人工复核更新
+
+### 10.1 最新文档要点
+
+通过 Context7 查询 Label Studio / Label Studio SDK 最新文档后，确认推荐导入方式：
+
+- HTTP API 使用 Personal Access Token，认证头为 `Authorization: Bearer <token>`。
+- legacy token 认证头为 `Authorization: Token <token>`，但当前本地 Label Studio 1.23 已禁用 legacy token。
+- 对图片目标检测任务，Label Studio 的矩形框结果使用百分比坐标：`x`、`y`、`width`、`height` 都是 0–100。
+- 预标注应放在任务的 `predictions` 字段中，结果类型为 `rectanglelabels`。
+
+当前本地实例：
+
+```text
+Label Studio URL: http://localhost:9001
+Version: 1.23.0
+```
+
+因为当前没有可用 Personal Access Token，且 legacy token 被禁用，所以本次采用本地 `label-studio shell` 写入当前实例。
+
+### 10.2 新增脚本
+
+| 脚本 | 作用 |
+| --- | --- |
+| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON；图片使用 Excel 原始 URL；YOLO 伪标注转换为 `predictions`。 |
+| `scripts/apply_label_studio_import.py` | 通过本地 Label Studio Django shell 创建项目、任务和 prediction。 |
+
+生成导入 JSON：
+
+```bash
+uv run python scripts/import_label_studio.py
+```
+
+输出：
+
+```text
+datasets/softcare/label_studio/softcare_label_studio_import.json
+```
+
+生成结果：
+
+```text
+tasks=361
+tasks_with_predictions=153
+prediction_boxes=1102
+```
+
+导入命令：
+
+```bash
+cd /tmp && PYTHONSAFEPATH=1 \
+  /Users/guobiao/PRO/me/yoloExample/.venv/bin/label-studio shell <<'PY'
+exec(open('/Users/guobiao/PRO/me/yoloExample/scripts/apply_label_studio_import.py', encoding='utf-8').read())
+PY
+```
+
+### 10.3 导入结果
+
+已导入项目：
+
+```text
+project_id=2
+project_title=Softcare Diaper Review - 2026-08-05
+url=http://localhost:9001/projects/2/data
+tasks=361
+tasks_with_predictions=153
+predictions=153
+prediction_boxes=1102
+```
+
+说明：
+
+- 361 个任务对应 Excel 下载的 361 张原图。
+- 153 个任务带 YOLO-World 预标注预测。
+- 1102 个候选框需要在 Label Studio 中人工删除误检、补充漏检。
+- 图片字段使用原始 URL，`local_path` 和 `row_number` 作为辅助字段保留。
+
+### 10.4 后续操作
+
+在 Label Studio 中打开：
+
+```text
+http://localhost:9001/projects/2/data
+```
+
+人工复核流程：
+
+1. 检查已有 `softcare_diaper` 预标注框。
+2. 删除误检框。
+3. 补充漏检的 Softcare 纸尿裤包装框。
+4. 每包可辨认 Softcare 包装保留一个矩形框。
+5. 导出 YOLO Detection 格式。
+6. 将导出结果整理到正式训练目录：
+
+```text
+datasets/softcare/images/train|val|test
+datasets/softcare/labels/train|val|test
+```
+
+## 11. OCR 辅助筛选方案更新
 
 本次新增 OCR 辅助筛选，用于在原始图片中优先找出疑似包含 `Softcare` 字样的图片。
 
-### 10.1 方案选择
+### 11.1 方案选择
 
 | 方案 | 定位 | 说明 |
 | --- | --- | --- |
@@ -385,7 +485,7 @@ models/clip/ViT-B-32.pt
 
 当前项目默认集成 RapidOCR ONNX，原因是启动快、CPU 推理可用、能直接嵌入现有 Python 脚本。后续如果 OCR 成为生产链路，建议进一步评估 PaddleOCR。
 
-### 10.2 当前实现
+### 11.2 当前实现
 
 新增脚本：
 
@@ -439,7 +539,7 @@ uv run python scripts/ocr_filter_softcare.py \
   --min-confidence 0.2
 ```
 
-### 10.3 与自动预标注集成
+### 11.3 与自动预标注集成
 
 `pseudo_label_yolo_world.py` 已支持读取 OCR 候选清单：
 
@@ -467,14 +567,14 @@ raw/images 原图
   -> 正式 YOLO 数据集
 ```
 
-### 10.4 风险
+### 11.4 风险
 
 - OCR 命中只代表“可能有 Softcare”，不能直接得到准确商品框。
 - OCR 未命中不代表图片一定没有 Softcare，不能删除未命中图片。
 - 货架图片里的品牌字常常很小、模糊、反光或倾斜，OCR 召回率可能有限。
 - OCR 适合提高优先级和减少人工查找成本，不适合作为唯一识别依据。
 
-### 10.5 本次测试结果
+### 11.5 本次测试结果
 
 已完成测试：
 
@@ -515,7 +615,7 @@ uv run python scripts/pseudo_label_yolo_world.py --candidates-file <候选清单
 
 结果：脚本可以正确读取候选清单并只处理候选图片；测试样本候选框为 0，仍需人工复核和调参。
 
-### 10.6 架构文档同步
+### 11.6 架构文档同步
 
 已同步更新：
 

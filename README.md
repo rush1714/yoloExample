@@ -198,6 +198,48 @@ datasets/softcare/images/train|val|test
 datasets/softcare/labels/train|val|test
 ```
 
+### 方案 C：Label Studio 人工复核
+
+当前本地 Label Studio 运行在：
+
+```text
+http://localhost:9001
+```
+
+本项目提供两个脚本：
+
+| 脚本 | 作用 |
+| --- | --- |
+| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON，图片来自原始 URL，YOLO 伪标注作为 `predictions`。 |
+| `scripts/apply_label_studio_import.py` | 通过本地 `label-studio shell` 写入当前 Label Studio 实例。 |
+
+生成导入 JSON：
+
+```bash
+uv run python scripts/import_label_studio.py
+```
+
+导入到本地 Label Studio：
+
+```bash
+cd /tmp && PYTHONSAFEPATH=1 \
+  /Users/guobiao/PRO/me/yoloExample/.venv/bin/label-studio shell <<'PY'
+exec(open('/Users/guobiao/PRO/me/yoloExample/scripts/apply_label_studio_import.py', encoding='utf-8').read())
+PY
+```
+
+当前已导入项目：
+
+```text
+项目：Softcare Diaper Review - 2026-08-05
+地址：http://localhost:9001/projects/2/data
+任务数：361
+带预标注任务数：153
+候选框数：1102
+```
+
+说明：Label Studio 1.23 默认使用 Personal Access Token 的 `Authorization: Bearer <token>`；当前本地实例没有提供 PAT，且 legacy token 已禁用，因此这里采用本地 `label-studio shell` 导入方式。
+
 ## 数据集校验
 
 训练前先校验图片、标签是否一一对应，以及标签坐标和类别是否合法：
