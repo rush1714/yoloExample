@@ -1,0 +1,9 @@
+[
+  {
+    "image": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/pseudo/images/train/row00002_1d59f9162b2f.webp",
+    "label": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/pseudo/labels/train/row00002_1d59f9162b2f.txt",
+    "split": "train",
+    "box_count": 0,
+    "boxes": []
+  }
+]

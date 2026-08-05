@@ -1,0 +1,2529 @@
+[
+  {
+    "row_number": 2,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5c0b4ad81c98a441dc3b693a87489a0c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00002_78e277790497.webp",
+    "error": ""
+  },
+  {
+    "row_number": 2,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/67cfc8156160c2fd227aef004b771854.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00002_1d59f9162b2f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 3,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b9307e820b73be91545f6ffb23cbd356.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00003_b58cacefd649.webp",
+    "error": ""
+  },
+  {
+    "row_number": 4,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ab14d7220d7adb7d8db15cc3dbcfee0c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00004_9af483ed86ef.webp",
+    "error": ""
+  },
+  {
+    "row_number": 5,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/78e570271321ce7a1cc7d78ae4b806da.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00005_118e88c6282f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 6,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7ee50e76e3a914613c8799cc00bac730.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00006_5c925b7eed28.webp",
+    "error": ""
+  },
+  {
+    "row_number": 6,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8d5b7585ed8a1b731f9853df2674e04b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00006_0e6cd3490cea.webp",
+    "error": ""
+  },
+  {
+    "row_number": 7,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/86de7133d2039030c46f88b4ee5c0d58.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00007_99af0ec01033.webp",
+    "error": ""
+  },
+  {
+    "row_number": 7,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/adcf96ddb831cb4e8398c0900f8d7a65.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00007_20942054fd6a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 8,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2d03c1916fd82d1b0790cc5478e0bd7a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00008_5d335be2a9b5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 8,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/889adbe689cb7602def3ada7e7034d64.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00008_8951ed271377.webp",
+    "error": ""
+  },
+  {
+    "row_number": 9,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2a61dc18921fd250a6311c34e2be6e0e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00009_115ef4114ac7.webp",
+    "error": ""
+  },
+  {
+    "row_number": 10,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6404c43f766a3512829881b7fc97573b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00010_5a94c16fadc0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 11,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4484e036551155f622153828341535d0.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00011_1711e737924b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 12,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3ff22ec0c4d55eb52833cd4e69110146.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00012_e0a99530b7ba.webp",
+    "error": ""
+  },
+  {
+    "row_number": 13,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/df6d1a20fd5a8ffc5a643d9182660379.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00013_6ac065a94755.webp",
+    "error": ""
+  },
+  {
+    "row_number": 14,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b2abc450d7af2a241a5d03047e94dff1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00014_7cb985b70e20.webp",
+    "error": ""
+  },
+  {
+    "row_number": 15,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7b2f1ce1a7b62f34a51761ed2c96e2ef.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00015_2e148699f157.webp",
+    "error": ""
+  },
+  {
+    "row_number": 16,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d55022e766badb82f3d62af17daa3488.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00016_4f6f27ec1e7a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 17,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8e0098d73ce493e7d04a8b140ae4ca60.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00017_7adf459cb9d5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 18,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/11981b7d74951fea700d511e2d8fd446.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00018_21991d65a644.webp",
+    "error": ""
+  },
+  {
+    "row_number": 19,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ad28b2308db9084b6918bf136f78be36.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00019_d145e4820d3e.webp",
+    "error": ""
+  },
+  {
+    "row_number": 19,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f13137f463d9dbdad817f1fb403f73e9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00019_8298c92a81ce.webp",
+    "error": ""
+  },
+  {
+    "row_number": 20,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bed96fe576e171ef70ea759c96b4e32f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00020_9585d0341d57.webp",
+    "error": ""
+  },
+  {
+    "row_number": 21,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d18ce2a98530ca74cfca522ae3af0fa6.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00021_8ed786653a19.webp",
+    "error": ""
+  },
+  {
+    "row_number": 21,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/df459a7a43893458cfca254ff14d5524.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00021_ed7be46635a0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 22,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9d354fd9b8f5247d195a22f97249298b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00022_63dcaf991eb9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 23,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9719f2ce8c999ba0a21f0582758870ef.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00023_f3990890e051.webp",
+    "error": ""
+  },
+  {
+    "row_number": 24,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/591f7da93de2142c53c6cf6338db86ae.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00024_474b009284fc.webp",
+    "error": ""
+  },
+  {
+    "row_number": 24,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6c4bbb65d2e92a23d4a169e45c1e0a8f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00024_bd0e836137a0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 25,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3b53c91c541dd227af8c4488acc07a80.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00025_3bd84ddebf80.webp",
+    "error": ""
+  },
+  {
+    "row_number": 26,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/824119965d855f5e7cc4bc369da84268.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00026_5525c69d24c0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 27,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9a8d23a5d553ca3d01b5d8ef796bb8df.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00027_d1b3dbbca054.webp",
+    "error": ""
+  },
+  {
+    "row_number": 28,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8372200d60b7d0e6f50e21e834ab3c70.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00028_31aba0b9e162.webp",
+    "error": ""
+  },
+  {
+    "row_number": 29,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f55edcd95c7553d3ef3f2ce70b44f7ed.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00029_764318b37967.webp",
+    "error": ""
+  },
+  {
+    "row_number": 30,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3a09c0ccfe2147b810d51a7d3425217e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00030_02ff529f85f0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 30,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/642f2cf8747cda3187ac9bc091426bb2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00030_df608a75317c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 31,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3bcf4e0b01e23aae43dc23d9efe8accf.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00031_8b6f6cba8bb0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 32,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/83a1407d67534499ceb9c408e5799386.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00032_8c44741b9962.webp",
+    "error": ""
+  },
+  {
+    "row_number": 32,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/88619537ae0f5354ca4453efb2c25872.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00032_8d3a1d4154fa.webp",
+    "error": ""
+  },
+  {
+    "row_number": 33,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3cf8afcacbef648bc3a00bd663ca43a9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00033_f8a3ee683953.webp",
+    "error": ""
+  },
+  {
+    "row_number": 34,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/14d38162280429506fd3f9c41430d6c5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00034_c74006569666.webp",
+    "error": ""
+  },
+  {
+    "row_number": 35,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7480c5138e79736e50dacb333ff7477f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00035_7a6c3aca8363.webp",
+    "error": ""
+  },
+  {
+    "row_number": 36,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d92ebe62a0770fda397c4efa7b43e57b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00036_b23b1714ca91.webp",
+    "error": ""
+  },
+  {
+    "row_number": 37,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3f3885c8f33512942f4e14e5c8653a2f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00037_4d1812d2623f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 38,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/66ee5810c0624971b2ae37a29f486a4f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00038_5c9a1ac516cd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 39,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/34ae6a90d7d847b5dbf65f114145758c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00039_769ca7c370a1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 40,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/abd982c36e67fc3e63fb551ab81ea4aa.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00040_dd5b0f77af02.webp",
+    "error": ""
+  },
+  {
+    "row_number": 41,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/819f7b93000fd6b740d8689c73ba92bd.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00041_f3694b712d38.webp",
+    "error": ""
+  },
+  {
+    "row_number": 42,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bff6f59f8508e409be4c51a015c28cc5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00042_0c929810434b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 43,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/67d7e32fb74fe2527a43057b913569d1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00043_0a80c393a4f6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 44,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9d4b6934b9802b2de7e34e1ea499e442.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00044_2d18a52436db.webp",
+    "error": ""
+  },
+  {
+    "row_number": 45,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7a8216458628ecca020f026652f109d1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00045_ac154b4015c2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 46,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ec2a685d1cee523645e66488a3c3e7e0.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00046_29008cd5a9e9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 47,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4b14a67a9b7d14d6a323b477f13413cc.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00047_28ecd3144b6a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 48,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/02aae403404b4679f4ce2f02454be5d4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00048_ca7b78dbed36.webp",
+    "error": ""
+  },
+  {
+    "row_number": 49,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e10a8edc04de5e0fb9152ed135801576.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00049_87b4c7a383ac.webp",
+    "error": ""
+  },
+  {
+    "row_number": 50,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5df14345c3943f1f4304034e569e6bb4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00050_1a9cfcab91af.webp",
+    "error": ""
+  },
+  {
+    "row_number": 50,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d8fbd03cd628dac9f3f14a82945249b5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00050_6e388b1cc7b2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 50,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/fa82b2a1002c8e85ee016eac012a2b12.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00050_a558878db236.webp",
+    "error": ""
+  },
+  {
+    "row_number": 51,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0466180729179d03b7b91659c56cc356.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00051_723187a0c4f2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 51,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/599e3fedd8441f5646bc70e381df90c2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00051_f11498117c91.webp",
+    "error": ""
+  },
+  {
+    "row_number": 51,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f45d10432e13e9f8dea8e76a6b809231.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00051_a521cc9375e2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 52,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4bd197537690a34f89c1393bb37070fe.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00052_e827cce4a570.webp",
+    "error": ""
+  },
+  {
+    "row_number": 52,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/62385a318f996185b84814c89b7d0e27.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00052_267902abc0f0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 52,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/746178301453f922d4607f1296839e79.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00052_aebd127ea7b2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 53,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/24f41f96c23333ba29119867c4b93bf5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00053_68b732c5680a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 53,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8efc5c86d65276f533a470873bbfb148.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00053_9433041b8b5f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 54,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/162fb955053ec62ea0026896d13ce23e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00054_a16e0792798a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 55,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/770ecabba86f95c4000e418e0de56580.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00055_7cace32ec1a7.webp",
+    "error": ""
+  },
+  {
+    "row_number": 56,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b0bc10aa2d21870e4c8d2478fe36e583.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00056_2813dbb5d9d3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 57,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bbfa7d249ed52c56169c02cad1355476.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00057_c14f414f2820.webp",
+    "error": ""
+  },
+  {
+    "row_number": 58,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f2e76681990ef73f67e357eb6b58d6b5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00058_1ee2bc6e8f1c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 59,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/cf69c781539c22f72f6b8e9b76dd65ed.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00059_05da029f6fd2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 60,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4f5ee693b320c2501006f591b4b4108c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00060_4e2696549c5b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 61,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/81027f96cda7cf59c6d0c14f4e5d7d51.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00061_f7cdbf0a4463.webp",
+    "error": ""
+  },
+  {
+    "row_number": 62,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/40df966b79222e65c6bc23d2243f0448.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00062_f8f6cb2b006f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 63,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3e8c12be25629c7dcc6dd9223a95a303.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00063_b3a57d1ed15b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 64,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e08eb0c95740eef19220dfe22368ad6e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00064_2c7fa8e65842.webp",
+    "error": ""
+  },
+  {
+    "row_number": 65,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b56df9fad5b926d80ea5da3848967757.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00065_1981f64cf344.webp",
+    "error": ""
+  },
+  {
+    "row_number": 66,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/67ee8731bb01f022fdb9949f88f00a7e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00066_1b84f1812b4c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 67,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e309d168c535ef7450040f9b64bfdf41.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00067_6b52c8790648.webp",
+    "error": ""
+  },
+  {
+    "row_number": 68,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b31d99d76afc0b3485c6b1254afa61ed.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00068_af0010cdb230.webp",
+    "error": ""
+  },
+  {
+    "row_number": 69,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b8aaddf538144fc6916edecf272c80f1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00069_592ff0848ca1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 70,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/463acfe8e30b3ad18db36717cd91ad7f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00070_4c8b1e2d175f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 71,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/871e65ba0354c70313d3812cc7d01362.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00071_98d6763b9dc6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 72,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3fe57a83b0a26b358613affbfa34e9e3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00072_79db58ab0afd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 73,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e697a4e9d64a3e09475495ecf678e005.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00073_3a175dadabf8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 74,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b0f986a54fd69cba71b40f2b8762db6b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00074_18b3b453dcca.webp",
+    "error": ""
+  },
+  {
+    "row_number": 75,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/c30734591037a0830a3044144fc27e25.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00075_76677b4c55ca.webp",
+    "error": ""
+  },
+  {
+    "row_number": 76,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7b6b79857f0bd5d735ff021585202eed.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00076_42fc816470b2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 77,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/73273dcffd73fbbb3053fe35ef58954d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00077_20155275b59a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 78,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/008d1bfaf634f978d3d847315f2991df.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00078_6b1a31a6c36a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 79,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9c424f46d5ff3287837a78bf2e0aaa18.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00079_533cc72f7ef0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 80,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8026ce5dffd47bd16293f2c1c0a894dd.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00080_f9f1cef54cf0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 81,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d73f5bee6a802dae4179fe6c4d5b4eb5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00081_8086b115a420.webp",
+    "error": ""
+  },
+  {
+    "row_number": 82,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/34e019bc636055a71cbafb571c64eb6a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00082_f7792d92a796.webp",
+    "error": ""
+  },
+  {
+    "row_number": 82,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/75b820c4f2ba6d8ef8ab4feeb2b5d024.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00082_4d56dfe67a7f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 83,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d8e28a3404fe592fb52e334e55ecfd59.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00083_cdf80b1e3c53.webp",
+    "error": ""
+  },
+  {
+    "row_number": 84,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/fc7da7f167e08545f565b95cc5fc22a7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00084_cff8248b75b1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 85,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/35f2c62bb6b915d3807b91eee534693d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00085_6c579ab94b0b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 86,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9695778635f1cd63d71cdbe6e539001a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00086_199f845f4ebe.webp",
+    "error": ""
+  },
+  {
+    "row_number": 86,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ed1c9548a739fe132cd865339b7e0be5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00086_ad43f6077b3f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 87,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/62cdc5070f7c042235113822b989e55a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00087_b2cf36ceb80e.webp",
+    "error": ""
+  },
+  {
+    "row_number": 87,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e287bc4062f3a4777f310360683c489d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00087_d6aadfe136de.webp",
+    "error": ""
+  },
+  {
+    "row_number": 88,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/42a5b6db5a0d539e2d893e72d01e77f3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00088_b44df0e8ae25.webp",
+    "error": ""
+  },
+  {
+    "row_number": 88,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/72177c3a4af9cb3cdb01186983bf5f75.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00088_bb722223d8ac.webp",
+    "error": ""
+  },
+  {
+    "row_number": 88,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ff6d22e055ddd3a5a93ebc2ae5e4e169.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00088_dad7b28796c4.webp",
+    "error": ""
+  },
+  {
+    "row_number": 89,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/34e0e289894eb3cb2ef22d4b347f046b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00089_345b80b481e9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 90,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8957749a06321cf4f937eacd47923273.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00090_2d3952ac8132.webp",
+    "error": ""
+  },
+  {
+    "row_number": 91,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2ab97b53f928dae83f5afbe1929f9ea7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00091_b15f1f8d8b20.webp",
+    "error": ""
+  },
+  {
+    "row_number": 91,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bcc2d8d06e8ddab2fc17b13f715aed8a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00091_ae49ba769e40.webp",
+    "error": ""
+  },
+  {
+    "row_number": 91,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bee088e4b94ea182630e81c5f1450464.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00091_d8aa4f5d40bd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 92,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/c93dffd218791c857eb1dab77768db13.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00092_7504413b4d05.webp",
+    "error": ""
+  },
+  {
+    "row_number": 93,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/18308821126fc5a17a45ebc38104bba8.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00093_0dca99512f42.webp",
+    "error": ""
+  },
+  {
+    "row_number": 94,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/09273791fe8d13a30e86130d98cc5544.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00094_2c1820e972a6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 95,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/47b04f79bf173edca507960668bba4b5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00095_6efa79632c95.webp",
+    "error": ""
+  },
+  {
+    "row_number": 96,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/cbe68e0da8e79510b921da200f3d9fc4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00096_ca08b57b7765.webp",
+    "error": ""
+  },
+  {
+    "row_number": 97,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9f9d2934aebe9edb3f2dc152ecfa3dba.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00097_d3dd8d2a9b9c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 98,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4e9cc0fb4aef091dea6e2e4c8fe3f941.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00098_122dc59eb019.webp",
+    "error": ""
+  },
+  {
+    "row_number": 98,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/af867b66ef838947840b3400060ddb30.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00098_7dacff2403d9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 99,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a8e263d6ab740f7b88cb1f1b3a1824da.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00099_7ae88d5e5d02.webp",
+    "error": ""
+  },
+  {
+    "row_number": 100,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6583ad65a4b4d81d806456a3d039b654.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00100_101718ad5244.webp",
+    "error": ""
+  },
+  {
+    "row_number": 101,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/00d9901f34c4d7952796778f4e7c26bb.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00101_ab7701af7b10.webp",
+    "error": ""
+  },
+  {
+    "row_number": 102,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d14bc471e822515f5a8831f927fe89c6.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00102_914cdb384b9b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 103,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/137d6200b1cc9c907cc9a7421894eb17.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00103_6fd618396455.webp",
+    "error": ""
+  },
+  {
+    "row_number": 104,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4c1a4eb66617652326b84abf15964c5e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00104_64710e51079c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 104,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a69127ba2ada748c675f9ef839d43da9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00104_13311b9c4840.webp",
+    "error": ""
+  },
+  {
+    "row_number": 105,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/508ce6beb56cf958b05dcc32550f9370.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00105_b4ea3e310313.webp",
+    "error": ""
+  },
+  {
+    "row_number": 106,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/193f402a03767774ddf66b428abb0f5c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00106_5b7d22ffcfcb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 107,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/cbeb810f6845650370118bc2d073f12a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00107_2c8f9fc47e32.webp",
+    "error": ""
+  },
+  {
+    "row_number": 108,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/651c527cdf7fa6f3b9affc38b4570baa.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00108_1feae8fda9f6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 109,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a0b3cead2395c6df7d6c1176ef253327.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00109_94ba67f2a7c5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 110,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ba7a6555ed5d4b83ca0e9c7facf5f1e7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00110_46b70c8867c8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 111,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/666e2cff8fb1a9f2dd1ca5ea8d890771.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00111_03c7d1595724.webp",
+    "error": ""
+  },
+  {
+    "row_number": 112,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/82cce27756e98e846d6462610394aefd.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00112_1c8d8d146807.webp",
+    "error": ""
+  },
+  {
+    "row_number": 113,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f1f74bdf7c1557864f996421d801419d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00113_368c06f0cf68.webp",
+    "error": ""
+  },
+  {
+    "row_number": 114,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5cdf65efc0851ab1d7277e311a97abfe.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00114_76921306fe53.webp",
+    "error": ""
+  },
+  {
+    "row_number": 115,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4e8cb35acac2fd0dacac81c9002e2f54.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00115_ca963452b615.webp",
+    "error": ""
+  },
+  {
+    "row_number": 116,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/36cc5978524e02d64a2c0f6ca7b74a9a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00116_8dcd08d6a702.webp",
+    "error": ""
+  },
+  {
+    "row_number": 117,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2854bf908da55595256351695c0da92e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00117_4850c8c93d9d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 118,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2cb64371b37688038d30ec656543ebb9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00118_cd4e19360a9b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 119,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3be52bc01cdb4e555c978a92601383c8.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00119_65ae0da10970.webp",
+    "error": ""
+  },
+  {
+    "row_number": 120,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/26f41eb3f21475527007c20fe25dbb3b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00120_c3374072823e.webp",
+    "error": ""
+  },
+  {
+    "row_number": 121,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/60cfa67d6fe31fbd0776a9bb8f4cbb8a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00121_372545325162.webp",
+    "error": ""
+  },
+  {
+    "row_number": 122,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/565ca964de60f0968de4bc81faadc3fe.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00122_5570a855f9eb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 123,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2f22379470e3a3a27d416b0d36e67c79.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00123_6aa789e2e711.webp",
+    "error": ""
+  },
+  {
+    "row_number": 124,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1d1386af56973aceaa0f92e781f59372.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00124_d59555f8b555.webp",
+    "error": ""
+  },
+  {
+    "row_number": 125,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/20a68320ac76bad7dce263a2080c0450.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00125_dd14d59734b1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 126,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/cba9e052ea9bb67f8e956cc46b6431e8.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00126_64cd218c7341.webp",
+    "error": ""
+  },
+  {
+    "row_number": 127,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/105dbc190b3eced4d0ebb8b323ecd8f5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00127_ec6f183be9eb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 128,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1c17a2cbd1c374fdbef32a5f524ae943.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00128_c62530fd40d3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 129,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d08cc4650cd83dd99d77c2582deaa4bb.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00129_317a0c976a0e.webp",
+    "error": ""
+  },
+  {
+    "row_number": 130,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/acf405ac9991c9ec712d91a6c8afcfce.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00130_6bd58b423f5f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 131,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/74534e07f072d4aa4066df7d57f790df.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00131_b58aeae51d56.webp",
+    "error": ""
+  },
+  {
+    "row_number": 132,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/be9c8586bcf9b3a7282a780ce5ada4a4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00132_0ef47bce6e2d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 133,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/115998631a77a768b98d93feb6ceb639.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00133_d4dc338ff7c4.webp",
+    "error": ""
+  },
+  {
+    "row_number": 133,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1e80be997a4abb742a997eb6c326b611.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00133_6b867ed65f72.webp",
+    "error": ""
+  },
+  {
+    "row_number": 133,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e3a043af715e92c8b3569c1f61fa9cec.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00133_182215ca4382.webp",
+    "error": ""
+  },
+  {
+    "row_number": 134,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/98b4cb9fb9713e8dd7e42937be555e5a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00134_cb82258359cf.webp",
+    "error": ""
+  },
+  {
+    "row_number": 135,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/62c90492fc6732b054d049f43866b630.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00135_fdfa7e52a0c3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 136,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/47de12ae05bf08b37c0b67275050c0ef.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00136_207d01a1ad61.webp",
+    "error": ""
+  },
+  {
+    "row_number": 137,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/05a85cee1238fcffb1256b37a00359d2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00137_d88d1becfeeb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 138,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a0a4951dafa4ed014badc1be29826b0c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00138_98fdb5417708.webp",
+    "error": ""
+  },
+  {
+    "row_number": 139,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3894c38d4a89c4197587f1be317e9df1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00139_4b6d773a56ac.webp",
+    "error": ""
+  },
+  {
+    "row_number": 139,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4952e04802fde98c176abd006c16d1d9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00139_606dfe604e35.webp",
+    "error": ""
+  },
+  {
+    "row_number": 139,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/957f58c44cc1df6c4250671f7ab30e12.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00139_9094106f322f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 139,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9c90ac4819eae568247be350f8cf5a1a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00139_ba8caeea7db3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 139,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e34927a9d4024e3f262c0879963cf4e4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00139_726d91c8b70c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 140,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/63d702989f6b324333415abc2e4f2b8d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00140_231610274228.webp",
+    "error": ""
+  },
+  {
+    "row_number": 141,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ddf581eef2e3d77c2d810f44986affb6.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00141_6d9823dae196.webp",
+    "error": ""
+  },
+  {
+    "row_number": 142,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6480067e00d367feb23c241e68b0f78a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00142_aa9d8ce2fd40.webp",
+    "error": ""
+  },
+  {
+    "row_number": 143,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b3569c358d022e8040ac3a855f104c9f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00143_5ca6083c0464.webp",
+    "error": ""
+  },
+  {
+    "row_number": 144,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b163e89937de89955d4c297fd4406611.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00144_c436ea81e529.webp",
+    "error": ""
+  },
+  {
+    "row_number": 145,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0648049e8c64ffff92cc48b751ae399f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00145_53ceef213521.webp",
+    "error": ""
+  },
+  {
+    "row_number": 146,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/abfa88f6c274390980e47be85a33bb60.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00146_c2f801267527.webp",
+    "error": ""
+  },
+  {
+    "row_number": 147,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/89770b32b6813df204eeafa2e0c87880.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00147_4782303b2762.webp",
+    "error": ""
+  },
+  {
+    "row_number": 147,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d87e3d86b6fac17f501a1c4c93b0f7f9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00147_5c79f4c367ac.webp",
+    "error": ""
+  },
+  {
+    "row_number": 148,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a77f1496b9555f632748313c23ef63c2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00148_fbdfb55da5cf.webp",
+    "error": ""
+  },
+  {
+    "row_number": 149,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f38eea80ba2cb5de6bedeed859829d2d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00149_250decdf4d7b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 150,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e093ec32251e9ed54ec72f510d815be3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00150_df8922941bc5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 151,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0cd29a015baa6d423c659e56a669faf4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00151_704850e9e24a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 152,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5b038c4ce07f48e33c3046403ea982c8.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00152_280979b9866d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 153,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/223df8325da10c35951dae7636014810.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00153_20eee95659dd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 154,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/06912fc851ff42ee175e5ecd23c0661f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00154_2580b61a07f3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 154,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bce1ce5d1b090a3f56ee44f0c4260da1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00154_5609160bbefc.webp",
+    "error": ""
+  },
+  {
+    "row_number": 155,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/24c00aea81ebfeeb3c39424f8bfb8f0d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00155_fb7125e10373.webp",
+    "error": ""
+  },
+  {
+    "row_number": 156,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/23a1ed8edf52cb87ea876fa640a38903.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00156_9517d8d924c4.webp",
+    "error": ""
+  },
+  {
+    "row_number": 157,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f9648121c91acef8e14ee4b21ce5cdf3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00157_713ae05bfd9b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 158,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/15c5cf37ac1ab99fb0ff6128263edd76.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00158_68be1130ae71.webp",
+    "error": ""
+  },
+  {
+    "row_number": 159,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a0fb5b8280a620b4657c6949526da1f2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00159_e15514b442ca.webp",
+    "error": ""
+  },
+  {
+    "row_number": 160,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a3d6a03b6313a4ab0b166c0b64ee040f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00160_71b18ef6b03f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 161,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/59f8eb14541cf22271bda7ee95a87c6d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00161_a69627f22e2c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 162,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4dae85e85d9083f671fa28b7affb5f10.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00162_600c76c1ad85.webp",
+    "error": ""
+  },
+  {
+    "row_number": 163,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3b6c7c4838ecd93631ab77e2a487e8db.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00163_86dfb3b34bcc.webp",
+    "error": ""
+  },
+  {
+    "row_number": 164,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/c7d32183478cef420bbbcc435dcfa6f3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00164_b0f1f8f27ad3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 165,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/15fc19bcedeb05f194073c136fa3bcaf.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00165_e3c075ec0ac0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 166,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d8348dea27f68b4448dc5a92443abd85.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00166_63a2259fb141.webp",
+    "error": ""
+  },
+  {
+    "row_number": 167,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b1d4952e6202f7edaeeb2444efb7d216.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00167_fc1202a40d22.webp",
+    "error": ""
+  },
+  {
+    "row_number": 168,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/be4bca782a95e3a3b7cd15efa0a4d9ba.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00168_0f08f644de32.webp",
+    "error": ""
+  },
+  {
+    "row_number": 169,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/09da8bbd87b27b319e006236793f7301.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00169_1664a02bdb16.webp",
+    "error": ""
+  },
+  {
+    "row_number": 170,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/dd7f4bdb4f05486a699aefe69af0ab22.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00170_e4604cc768fa.webp",
+    "error": ""
+  },
+  {
+    "row_number": 171,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/44975e63ef46947ddf8a79e8a52b22a0.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00171_aa88513b70fd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 172,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5473a0c6b549c29fcdb739c43bde58a6.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00172_799c82aa254d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 173,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/113f56919e11bbd9dd0190aeb00ab779.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00173_6d69e6e32d71.webp",
+    "error": ""
+  },
+  {
+    "row_number": 173,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6908c36a6e1f91972f1cc498aae5f488.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00173_f474a4a7f9a3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 173,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7aaa6fb6fd6d48ad6e2c5a61b350e9dc.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00173_94a9709fa21a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 174,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0e64baaed530b4db08d1234fd92a7d45.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00174_04219d1fefcb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 175,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4046d09966b07dc0dacec50ecd2dfc19.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00175_a2d394d866b8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 175,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/da674463b2e653c299c67b2e1efb0b8c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00175_7e7e5a037937.webp",
+    "error": ""
+  },
+  {
+    "row_number": 176,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/32141bbbed1054375648996e47fc7951.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00176_6baa3851c892.webp",
+    "error": ""
+  },
+  {
+    "row_number": 176,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/87fff50fc97dbc7f656d48190d48bcd0.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00176_6028aa46367a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 177,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/56646540a573f93f6fc7602dd88eec21.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00177_d88a03136976.webp",
+    "error": ""
+  },
+  {
+    "row_number": 177,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a161d121ed9f16325b4a8fe55a92fb9f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00177_39f172296d59.webp",
+    "error": ""
+  },
+  {
+    "row_number": 178,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5ffd9b9a66f851fa50698e8cfe4d2f94.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00178_2db733d8bd50.webp",
+    "error": ""
+  },
+  {
+    "row_number": 179,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7900b20c466d2bacab7734e4489b67b7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00179_15ab83c8f6e9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 179,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8cb994ec0cbff43e05625b72c3c419fa.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00179_029b17fe6f98.webp",
+    "error": ""
+  },
+  {
+    "row_number": 179,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9d0bd26f3318f2a7c63d431ec35fff44.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00179_c55a10cf1e31.webp",
+    "error": ""
+  },
+  {
+    "row_number": 179,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f8e8eba73a012173060348b5e1a8c7b2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00179_b9c6f7d77ea0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 180,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d8eb0ebb93cfe94910d15fea78600ab9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00180_0cf39e205ec8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 181,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/759b7d748d8a276b942758ef6d71b8fb.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00181_391a076538c0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 182,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1f3df00ce5b120f2c415bfb40dd2d7c4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00182_eaf3aa854fa8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 183,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b22471d0ad0a5facb466049e884c946b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00183_2db722efb68d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 184,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/c795f2cf24fe5914f8b836fff2a0f976.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00184_72c8ded1511b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 185,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/12351f953cacbfdaddf3d0b2dd05c2e3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00185_d3cf0056f310.webp",
+    "error": ""
+  },
+  {
+    "row_number": 186,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b29c70a101e3b925a7a0887a171ddcaa.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00186_f6deacc77e84.webp",
+    "error": ""
+  },
+  {
+    "row_number": 187,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/eacf1419ad1e47b8350df77a49ba21b4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00187_bed45c0b74c6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 188,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/61382480d6a1e9cad748e1e5a79d9b24.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00188_7478fa0caadf.webp",
+    "error": ""
+  },
+  {
+    "row_number": 188,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ff056237609e7dc2191e5255ef086a62.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00188_cc2095471273.webp",
+    "error": ""
+  },
+  {
+    "row_number": 189,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/cfb16d948f8ec4fea4730705dcff42c4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00189_2fbdb5cbffac.webp",
+    "error": ""
+  },
+  {
+    "row_number": 190,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2201f3b270ebb48d24fb1d2a14a3888d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00190_07a82b1cd878.webp",
+    "error": ""
+  },
+  {
+    "row_number": 191,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/fed936d5b534c7067ff45188ac9958be.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00191_e24dd879d95b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 192,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d7c210b22609d98a8ecd0062ea002337.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00192_1716916c5b9b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 193,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ecf42d8ff49a95e1adef342efd2730cc.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00193_b848620fe2b7.webp",
+    "error": ""
+  },
+  {
+    "row_number": 194,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5924b9bbd375296c72f18e3b4c96c7ab.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00194_94c2cb74cd72.webp",
+    "error": ""
+  },
+  {
+    "row_number": 195,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ba3094ef324c5d0def61c39396c39e89.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00195_489ccdba43f7.webp",
+    "error": ""
+  },
+  {
+    "row_number": 196,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/febc4f67d9efaba4962f2fc287157f2e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00196_ca2fdbc21af3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 197,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b9ae29e2570225a2ce0ff452a92db4af.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00197_ee25677447a2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 198,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1be9e65051af0be71f208307826c5980.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00198_add9cfd19e93.webp",
+    "error": ""
+  },
+  {
+    "row_number": 199,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6be96065d2feb82199d20100b34e4b85.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00199_49225a1ebe58.webp",
+    "error": ""
+  },
+  {
+    "row_number": 200,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ab4b0fac8b82ba6d3dccfd6c43a6b4ad.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00200_440755eed232.webp",
+    "error": ""
+  },
+  {
+    "row_number": 201,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/08b81c8af09fa3606a18f05abb3c54f7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00201_92e27eb15324.webp",
+    "error": ""
+  },
+  {
+    "row_number": 202,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d02690b4ab8b96c42008a8b74ca5b1db.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00202_7ee9232a66ff.webp",
+    "error": ""
+  },
+  {
+    "row_number": 203,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0236bed9564099d178da75b3a0a68f7b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00203_09d6f4de8dac.webp",
+    "error": ""
+  },
+  {
+    "row_number": 204,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/18627fd39cbdea16b6c23ddb726210d5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00204_b7a696dac5b9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 205,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/36fa50428b6bbd59917fa42b8a033aa7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00205_e3f81cbf614e.webp",
+    "error": ""
+  },
+  {
+    "row_number": 206,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/851f5de510155caa13c083d5f4b9ea15.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00206_5fd562d95144.webp",
+    "error": ""
+  },
+  {
+    "row_number": 207,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/468635390b23f83a93e22f36634163ab.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00207_af28fcc9f7bf.webp",
+    "error": ""
+  },
+  {
+    "row_number": 208,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8c6906d75477246f83cd34ebe93b741e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00208_0d481723b758.webp",
+    "error": ""
+  },
+  {
+    "row_number": 208,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d5edc7842170824ec14fa937cab49bb5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00208_ffe29408f600.webp",
+    "error": ""
+  },
+  {
+    "row_number": 209,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2166ab828b605a608e16561571d74e9d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00209_af405c2e11c0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 210,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a585c38f424645483052406261a5fca7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00210_fb126bff94c0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 211,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9100ec36e3dcb261a2b235efed98251c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00211_07e4e67ca3c3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 212,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/51e2882b0f2b4d174de833ac84e6b0d4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00212_c2d07d03c457.webp",
+    "error": ""
+  },
+  {
+    "row_number": 212,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/924720807a829796bb73b7f2625fc06b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00212_a8617485414b.webp",
+    "error": ""
+  },
+  {
+    "row_number": 213,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/172a4e00bdbd98a2a3a8558589cfb223.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00213_60b6468e8e64.webp",
+    "error": ""
+  },
+  {
+    "row_number": 213,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8c8eb824b006e421833b32656a1e1a20.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00213_adad78806623.webp",
+    "error": ""
+  },
+  {
+    "row_number": 214,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a55e4a38075455c39d7f5440248b4d92.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00214_b53bafcace10.webp",
+    "error": ""
+  },
+  {
+    "row_number": 215,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3000fb133f6ea75dc2531ad0daf4ef13.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00215_6584b8054f1e.webp",
+    "error": ""
+  },
+  {
+    "row_number": 216,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1d3cfbe5f9e35312de81572e548a19c3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00216_3ed74d4fd23d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 217,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0564b268dd3d0b246604b413ad3b3fe4.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00217_e6f5c7e2cfca.webp",
+    "error": ""
+  },
+  {
+    "row_number": 218,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/04c60bc946b950a9c295a9e5fd7ee97b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00218_79368c0fdf18.webp",
+    "error": ""
+  },
+  {
+    "row_number": 218,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/eb234887efd5296993701bae6fceb64c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00218_d2903d28f376.webp",
+    "error": ""
+  },
+  {
+    "row_number": 219,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/89d63e4cb3887e32be85f52d435178fa.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00219_03a68c93be72.webp",
+    "error": ""
+  },
+  {
+    "row_number": 220,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a9388e0b7c681eecc0b95d301bb1a7cb.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00220_f226d03e3973.webp",
+    "error": ""
+  },
+  {
+    "row_number": 221,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/bc423fb01672a394e9b1c14634dd880e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00221_9c8455715539.webp",
+    "error": ""
+  },
+  {
+    "row_number": 222,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2e8a64e318b083c7593cb1d57f0bbc82.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00222_154d174c9b79.webp",
+    "error": ""
+  },
+  {
+    "row_number": 223,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/77d6768e25e27292c9c25b14d66aa16d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00223_00397dbdec93.webp",
+    "error": ""
+  },
+  {
+    "row_number": 224,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/27b10947bb79b8f19c89484d9e7f97b7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00224_b760b87de097.webp",
+    "error": ""
+  },
+  {
+    "row_number": 224,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2d8bc56375eeaf51bdb45e4729e6a47a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00224_00312dae4624.webp",
+    "error": ""
+  },
+  {
+    "row_number": 225,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7b92d2d0ba368ec6557f129a8faa9557.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00225_cd926a76c6dd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 226,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/007f12f570170c0953113be6ad8acb86.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00226_0f33ce2c49bb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 226,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/274e5c8055756940ec56ee96ef298835.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00226_a0efdc39cedb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 227,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2d54453333e24f9f509a57fd3e334882.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00227_26927c3bf5de.webp",
+    "error": ""
+  },
+  {
+    "row_number": 227,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/62fb0945a10cfa93efa2acd915639c5c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00227_215866717674.webp",
+    "error": ""
+  },
+  {
+    "row_number": 228,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8042159c221cbe7a63f10a19b2f6fbfc.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00228_1c45fd6b2660.webp",
+    "error": ""
+  },
+  {
+    "row_number": 229,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/00f9509850c132fe34db50a29eb3a2fe.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00229_9c055e13e3fb.webp",
+    "error": ""
+  },
+  {
+    "row_number": 229,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2c15a18fda67327a6d466cb9df51b6ae.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00229_d14a181987b5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 229,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d48a3525b5a26caf54aac70bf098ca60.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00229_df24461c3ad2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 230,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/09ebe0040b1a28b7a3047b17ff25fb3b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00230_231d2139b2de.webp",
+    "error": ""
+  },
+  {
+    "row_number": 231,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0813cb33acbced67b0bed74c98a3b9de.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00231_a9a9275d742d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 232,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/41adac7508157344319727749e7efb41.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00232_bbcb5f1b8c67.webp",
+    "error": ""
+  },
+  {
+    "row_number": 233,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2a568d58d87a110d594e97af6ebe4367.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00233_721dbdd0f518.webp",
+    "error": ""
+  },
+  {
+    "row_number": 234,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/fc9bbe50570c086d4601ad8e7e70f90a.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00234_4d5bac052c64.webp",
+    "error": ""
+  },
+  {
+    "row_number": 235,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6fe8225db9e112c2dd2670bd221cf775.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00235_266816210832.webp",
+    "error": ""
+  },
+  {
+    "row_number": 236,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9ca628380aba19eb45372f92cd1ef7a1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00236_3fc63fc0534d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 237,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/05bcc870cc60c881bc929438a808049c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00237_6a9a22758152.webp",
+    "error": ""
+  },
+  {
+    "row_number": 238,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/765769634704b1f0bef2e5ee8e72e1c5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00238_457b2a59010c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 239,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3376aaf6b5f442328f6662fcfe631931.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00239_4e6f4f84f6df.webp",
+    "error": ""
+  },
+  {
+    "row_number": 240,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/8571cbd7651768d9cd0d43f119a55f3c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00240_5b27a57817c3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 241,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5a788ebede452a470c5818ac7302e7fd.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00241_022239a3b3a1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 242,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3f4c684df2428d3cee4c7737f4047fd7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00242_7a4a3250954d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 243,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4a2ba076821a2fc331f4e0392eb79994.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00243_fd19fcd436d4.webp",
+    "error": ""
+  },
+  {
+    "row_number": 244,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b42fe12865f5ceee0c6f1c5cef65596e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00244_2260185c05bd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 245,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/916e778ca0327fe1559a9b7280603e36.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00245_e8ddb5ad2307.webp",
+    "error": ""
+  },
+  {
+    "row_number": 246,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/301fe8dfe4eb80f00f83115749fee6c5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00246_07efb3c896d1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 246,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/335f3f70fd1c7088ade9b367e3dd6bef.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00246_64b09a1cc469.webp",
+    "error": ""
+  },
+  {
+    "row_number": 247,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4120a23fe4c4bcbcd8aae9df10bafc9e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00247_0ef943e43cf6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 248,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/fea88c05989d1cd5bcda9efdf2944fd3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00248_32bb750c0236.webp",
+    "error": ""
+  },
+  {
+    "row_number": 249,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5bffd805166e2b82df0c296d2b0dc4ec.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00249_ca540b5697bc.webp",
+    "error": ""
+  },
+  {
+    "row_number": 250,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ef8b959ad2b6c090409d55026f5b6fa1.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00250_64aec6d1a998.webp",
+    "error": ""
+  },
+  {
+    "row_number": 251,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7cf144431c77b71f7af498d07ce5a97b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00251_630642d5a3c2.webp",
+    "error": ""
+  },
+  {
+    "row_number": 252,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/85d2f04d17948b3eb709b12d39dde5de.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00252_a31f2736309c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 253,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5f5b042fb4b743b1f4133ddcd6a38f65.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00253_dad536b56026.webp",
+    "error": ""
+  },
+  {
+    "row_number": 254,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/7c61ca32cee561a3c9cd2942528922ca.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00254_76c004028e07.webp",
+    "error": ""
+  },
+  {
+    "row_number": 255,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2643debaf262087f01684f8765f32100.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00255_1d4e7825d4ba.webp",
+    "error": ""
+  },
+  {
+    "row_number": 256,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a63526fef8a7e918f7f53fb0859bb47c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00256_2c5264f9cd65.webp",
+    "error": ""
+  },
+  {
+    "row_number": 257,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1bcd7f990446b525d4ab15a0c34e0b46.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00257_96f118e8c3d0.webp",
+    "error": ""
+  },
+  {
+    "row_number": 258,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6f1c1cfbf8ee137d30f9ddc764ccaa62.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00258_6a5a15912c57.webp",
+    "error": ""
+  },
+  {
+    "row_number": 259,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ed64a0bc1ba5d24a0c3bf26a18da1b6f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00259_f4d1ef3adb93.webp",
+    "error": ""
+  },
+  {
+    "row_number": 260,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ad66d3a91d9085024f00f582e09dbc77.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00260_8808de167e19.webp",
+    "error": ""
+  },
+  {
+    "row_number": 261,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f70394b386785744e5a7adea10533f82.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00261_141f3d06134f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 262,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a40741ec02a9bef8914478267ce78003.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00262_0a90607cdad4.webp",
+    "error": ""
+  },
+  {
+    "row_number": 263,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/1ca84cc2098b91fe0663d4e04f334619.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00263_60635499be67.webp",
+    "error": ""
+  },
+  {
+    "row_number": 264,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5cfeefbc1a1f91640a8373a21f31e76b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00264_9812b6e657b5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 265,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0a2f635c4b23ad6cc4b9cfe6542f3deb.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00265_1f634b2b0441.webp",
+    "error": ""
+  },
+  {
+    "row_number": 266,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/91a408a501e718e856049c705e39df8c.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00266_98e7546aeeca.webp",
+    "error": ""
+  },
+  {
+    "row_number": 267,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9be20313eee995821de0b29c1d8ff668.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00267_ee1a1c61c735.webp",
+    "error": ""
+  },
+  {
+    "row_number": 268,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/678b051721c3ad5a67f3c5ef86d22d00.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00268_91f4a868c338.webp",
+    "error": ""
+  },
+  {
+    "row_number": 268,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/a80adb53826a1a7699b67cf08e165878.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00268_d90e02355241.webp",
+    "error": ""
+  },
+  {
+    "row_number": 269,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ce84424d28dc070a818c5afab80cf52f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00269_a27a4e3a0810.webp",
+    "error": ""
+  },
+  {
+    "row_number": 270,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/11752e19341bd98f3ccbb51acbdb6ed9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00270_7b11f4ae0cfe.webp",
+    "error": ""
+  },
+  {
+    "row_number": 270,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b319000c32619303eaa52e6b0746ffe8.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00270_330c5213ca21.webp",
+    "error": ""
+  },
+  {
+    "row_number": 271,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5dd4a98046a8087508ca6f150c530a0d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00271_c41991913845.webp",
+    "error": ""
+  },
+  {
+    "row_number": 272,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/0c05dbcc0a1ba82d64c93e443f848ab2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00272_e632d0565fa3.webp",
+    "error": ""
+  },
+  {
+    "row_number": 273,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/55474487b04619a6cd8ca909d21aa273.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00273_769c44b44891.webp",
+    "error": ""
+  },
+  {
+    "row_number": 273,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/f02154edf635a39fc2915fd781b5f7a7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00273_120378fc393f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 274,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5862885c735be32a50dfcec1d776a627.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00274_5f90701feda6.webp",
+    "error": ""
+  },
+  {
+    "row_number": 274,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/c0dc0ad500ec213dd0050ee55afa06af.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00274_d24138d8d59f.webp",
+    "error": ""
+  },
+  {
+    "row_number": 275,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4c6b384aa44276cdc5fa58d39f3db5a6.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00275_6cc4519682c8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 275,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d7e34c78e1abac8e10b79f9b56f82a20.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00275_2b6d7be655cc.webp",
+    "error": ""
+  },
+  {
+    "row_number": 275,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/fee5390b072c739369d9eb50dd6d7b23.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00275_16aa0937f275.webp",
+    "error": ""
+  },
+  {
+    "row_number": 276,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/13879412aa6823f5edd63ed2fc3bd0bd.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00276_a7857cb8c5d1.webp",
+    "error": ""
+  },
+  {
+    "row_number": 276,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/68cb128935fd670f9b9cd28688b53cb8.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00276_6cf6c6243c8c.webp",
+    "error": ""
+  },
+  {
+    "row_number": 277,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5866896633bbda13886f94137bea972b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00277_c5ef90ccd1a8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 278,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/36efdcbb20b0f7c17340364cfe9c1fa7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00278_a682293ac023.webp",
+    "error": ""
+  },
+  {
+    "row_number": 278,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e048b20ac0eadadf4de9a9e7185ab4ca.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00278_832d64604e1d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 279,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4ef244cd8bc9574f6ec0df074f9bb337.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00279_5d7603dda1f9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 280,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/01a22a2f25231eb438abac4abd36cf0d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00280_102e7be12de5.webp",
+    "error": ""
+  },
+  {
+    "row_number": 281,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6b983bd3759a184b309ebc8464cada07.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00281_d9ecfd970bc9.webp",
+    "error": ""
+  },
+  {
+    "row_number": 282,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/c0ca12e0f0b10e6708a98a960b4f95f5.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00282_7d110d267e3d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 283,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/62454473ac27cfb52f65562231dd3c03.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00283_ee4ba7f53ac8.webp",
+    "error": ""
+  },
+  {
+    "row_number": 284,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/11481a60cd4073545d878b3de73f6687.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00284_814cfeeea8b7.webp",
+    "error": ""
+  },
+  {
+    "row_number": 284,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/d47684d006eeb86bf91c2b464a2d7780.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00284_07f294f3d367.webp",
+    "error": ""
+  },
+  {
+    "row_number": 285,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/31726550042278af7e1119f822c0c8d7.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00285_27ad0aaea148.webp",
+    "error": ""
+  },
+  {
+    "row_number": 286,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/3009045c9c3a8a17de34956fcf31705d.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00286_7a49b3264301.webp",
+    "error": ""
+  },
+  {
+    "row_number": 287,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/4a17d215db3e9ae62e5aa09fc9766876.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00287_f58876473f2d.webp",
+    "error": ""
+  },
+  {
+    "row_number": 287,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/814418ef425ae7f1cdf360eda5e63e35.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00287_1d7e65728b17.webp",
+    "error": ""
+  },
+  {
+    "row_number": 287,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ba30520d8be00fb351b2708d21e42fd2.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00287_43b0115e3701.webp",
+    "error": ""
+  },
+  {
+    "row_number": 288,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/2de795950d4e2a0fda265f38c156fb3e.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00288_4998d0996051.webp",
+    "error": ""
+  },
+  {
+    "row_number": 289,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/b9b6b4d9f9548a5fa6737614803cd6d3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00289_b8cb40943833.webp",
+    "error": ""
+  },
+  {
+    "row_number": 290,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/ea02e141f873789fdbfbe7b85bd4cf3f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00290_46d01e88c539.webp",
+    "error": ""
+  },
+  {
+    "row_number": 291,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/6161ee28eef66ffd25bbdab5d610165f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00291_2154e7045383.webp",
+    "error": ""
+  },
+  {
+    "row_number": 292,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/73057dd8e4ee785cf09ccb15f408f5c3.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00292_025b9005f2f4.webp",
+    "error": ""
+  },
+  {
+    "row_number": 293,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/22bbeb742ee8e5f55e62f6999d1f8371.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00293_67200261c115.webp",
+    "error": ""
+  },
+  {
+    "row_number": 293,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9fea25ae403690366fce62c80d6c0529.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00293_9cce3a20a60a.webp",
+    "error": ""
+  },
+  {
+    "row_number": 294,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/48994cfdbfda0627891d559af7c7954f.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00294_696ca015bbdd.webp",
+    "error": ""
+  },
+  {
+    "row_number": 295,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/e4273854bf032a12fba0e81c04ae44f9.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00295_7cbf3e006fff.webp",
+    "error": ""
+  },
+  {
+    "row_number": 296,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/314b5f33662c28c5be8c16f5cd2a09ba.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00296_22bb736456ec.webp",
+    "error": ""
+  },
+  {
+    "row_number": 297,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/9ad3b67e8483a80240aefde364bb8e8b.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00297_61f7ebf7aaed.webp",
+    "error": ""
+  },
+  {
+    "row_number": 298,
+    "url": "https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/5bbac78a495365b04533102e2040e547.webp",
+    "status": "downloaded",
+    "path": "/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/row00298_8ed0a0a06f10.webp",
+    "error": ""
+  }
+]
