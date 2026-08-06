@@ -1,0 +1,111 @@
+{
+  "description": "门店图片 OCR 筛选、YOLO-World 预标注、Label Studio 多标签和 YOLO 多类别训练使用的品牌标识库；数字序号不入库，class_id 保持稳定。为兼容历史单类别 softcare_diaper 标签，SOFTCARE 固定为 class_id=0。",
+  "brands": [
+    {
+      "class_id": 0,
+      "name": "SOFTCARE",
+      "aliases": ["SOFT CARE"]
+    },
+    {
+      "class_id": 1,
+      "name": "KLEESOFT",
+      "aliases": ["KLEE SOFT"]
+    },
+    {
+      "class_id": 2,
+      "name": "DOFFI",
+      "aliases": []
+    },
+    {
+      "name": "★",
+      "aliases": [],
+      "enabled": false,
+      "notes": "图形符号暂不用于 OCR 文本匹配、YOLO-World 文本提示词和 YOLO 类别。"
+    },
+    {
+      "class_id": 3,
+      "name": "LAVITA",
+      "aliases": []
+    },
+    {
+      "class_id": 4,
+      "name": "NICEDAY",
+      "aliases": []
+    },
+    {
+      "class_id": 5,
+      "name": "MOSSE",
+      "aliases": []
+    },
+    {
+      "class_id": 6,
+      "name": "MAYA",
+      "aliases": []
+    },
+    {
+      "class_id": 7,
+      "name": "CLINCLEER",
+      "aliases": []
+    },
+    {
+      "class_id": 8,
+      "name": "VEESPER",
+      "aliases": []
+    },
+    {
+      "class_id": 9,
+      "name": "CUETTIE",
+      "aliases": []
+    },
+    {
+      "class_id": 10,
+      "name": "T-GUARD",
+      "aliases": ["T GUARD"]
+    },
+    {
+      "class_id": 11,
+      "name": "ATHENA",
+      "aliases": []
+    },
+    {
+      "class_id": 12,
+      "name": "MCGEL",
+      "aliases": []
+    },
+    {
+      "class_id": 13,
+      "name": "FASKIT",
+      "aliases": []
+    },
+    {
+      "class_id": 14,
+      "name": "DR.X",
+      "aliases": ["DR X", "DRX"]
+    },
+    {
+      "class_id": 15,
+      "name": "Avril",
+      "aliases": []
+    },
+    {
+      "class_id": 16,
+      "name": "DIAMOND",
+      "aliases": []
+    },
+    {
+      "class_id": 17,
+      "name": "JIEBAI",
+      "aliases": []
+    },
+    {
+      "class_id": 18,
+      "name": "MEDIPOWER",
+      "aliases": []
+    },
+    {
+      "class_id": 19,
+      "name": "KINPOWER",
+      "aliases": []
+    }
+  ]
+}

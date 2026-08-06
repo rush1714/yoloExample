@@ -39,20 +39,20 @@ NLTK_DISABLE_IMPORT_SECURITY=1
 图片保存目录：
 
 ```text
-datasets/softcare/raw/images/
+datasets/multibrand/raw/images/
 ```
 
 下载报告：
 
 ```text
-datasets/softcare/raw/metadata/download_report.csv
-datasets/softcare/raw/metadata/download_report.json
+datasets/multibrand/raw/metadata/download_report.csv
+datasets/multibrand/raw/metadata/download_report.json
 ```
 
 使用命令：
 
 ```bash
-uv run python scripts/import_images_from_excel.py \
+uv run python scripts/data_import/import_images_from_excel.py \
   --excel '/Users/guobiao/Downloads/8e96894159cc584f0c7a27faaa4acc45.xlsx' \
   --column '整改后图片URL' \
   --workers 8
@@ -62,18 +62,18 @@ uv run python scripts/import_images_from_excel.py \
 
 | 文件 | 作用 |
 | --- | --- |
-| `scripts/import_images_from_excel.py` | 从 Excel 指定列读取图片 URL 并下载原图。 |
-| `scripts/pseudo_label_yolo_world.py` | 使用 YOLO-World 开放词汇能力生成候选框伪标注。 |
-| `scripts/train.py` | 训练脚本，默认 baseline 为 `models/yolo26s.pt`，训练输出在 `models/train/`，并自动导出 `models/softcare-best.pt`。 |
-| `scripts/validate_dataset.py` | 校验 YOLO 图片和标签是否一一对应。 |
-| `scripts/predict.py` | 使用训练完成的模型推理并输出 Softcare 包数。 |
+| `scripts/data_import/import_images_from_excel.py` | 从 Excel 指定列读取图片 URL 并下载原图。 |
+| `scripts/pseudo_label/generate_yolo_world.py` | 使用 YOLO-World 开放词汇能力生成候选框伪标注。 |
+| `scripts/training/train.py` | 训练脚本，默认 baseline 为 `models/yolo26s.pt`，训练输出在 `models/train/`，并自动导出 `models/multibrand-best.pt`。 |
+| `scripts/training/validate_dataset.py` | 校验 YOLO 图片和标签是否一一对应。 |
+| `scripts/inference/predict.py` | 使用训练完成的模型推理并输出 Softcare 包数。 |
 
 ### 2.3 新增/更新配置
 
 | 文件 | 作用 |
 | --- | --- |
-| `data/softcare.yaml` | 正式人工标注数据集配置。 |
-| `data/softcare_pseudo.yaml` | 自动预标注数据集配置。 |
+| `data/multibrand.yaml` | 正式人工标注数据集配置。 |
+| `data/multibrand_pseudo.yaml` | 自动预标注数据集配置。 |
 | `pyproject.toml` | 添加 `openpyxl`、`clip` 等依赖。 |
 | `README.md` | 补充 Mac 训练建议、目录说明、Excel 导入和自动预标注流程。 |
 
@@ -82,7 +82,7 @@ uv run python scripts/import_images_from_excel.py \
 你的 MacBook M1 Max 32G 可以训练 YOLO。训练时建议使用 Apple Silicon MPS：
 
 ```bash
-uv run python scripts/train.py --device mps --imgsz 960 --batch -1
+uv run python scripts/training/train.py --device mps --imgsz 960 --batch -1
 ```
 
 模型选择建议如下：
@@ -97,7 +97,7 @@ uv run python scripts/train.py --device mps --imgsz 960 --batch -1
 当前场景中，货架图片里的商品包装通常较小，`imgsz` 往往比模型大小更关键。推荐第一版：
 
 ```bash
-uv run python scripts/train.py \
+uv run python scripts/training/train.py \
   --base-model models/yolo26s.pt \
   --epochs 100 \
   --imgsz 960 \
@@ -108,7 +108,7 @@ uv run python scripts/train.py \
 如果训练太慢，可先降级为：
 
 ```bash
-uv run python scripts/train.py \
+uv run python scripts/training/train.py \
   --base-model yolo26n.pt \
   --epochs 100 \
   --imgsz 640 \
@@ -119,7 +119,7 @@ uv run python scripts/train.py \
 ## 4. 当前目录说明
 
 ```text
-datasets/softcare/
+datasets/multibrand/
 ├── raw/
 │   ├── images/
 │   │   └── 从 Excel 下载的 361 张原始未标注图片
@@ -144,23 +144,23 @@ datasets/softcare/
 
 | 目录 | 含义 | 是否可直接训练 |
 | --- | --- | --- |
-| `datasets/softcare/raw/images/` | Excel 下载的原始图片，没有标签。 | 否 |
-| `datasets/softcare/raw/metadata/` | 下载报告。 | 否 |
-| `datasets/softcare/images/train/` | 正式训练图片。 | 是，需有对应标签 |
-| `datasets/softcare/images/val/` | 训练过程验证图片。 | 是，需有对应标签 |
-| `datasets/softcare/images/test/` | 最终验收测试图片。 | 不参与训练，只评估 |
-| `datasets/softcare/labels/train/` | train 图片对应 YOLO 标签。 | 是 |
-| `datasets/softcare/labels/val/` | val 图片对应 YOLO 标签。 | 是 |
-| `datasets/softcare/labels/test/` | test 图片对应 YOLO 标签。 | 用于评估 |
-| `datasets/softcare/pseudo/` | 自动预标注输出，需人工复核。 | 不建议直接训练 |
+| `datasets/multibrand/raw/images/` | Excel 下载的原始图片，没有标签。 | 否 |
+| `datasets/multibrand/raw/metadata/` | 下载报告。 | 否 |
+| `datasets/multibrand/images/train/` | 正式训练图片。 | 是，需有对应标签 |
+| `datasets/multibrand/images/val/` | 训练过程验证图片。 | 是，需有对应标签 |
+| `datasets/multibrand/images/test/` | 最终验收测试图片。 | 不参与训练，只评估 |
+| `datasets/multibrand/labels/train/` | train 图片对应 YOLO 标签。 | 是 |
+| `datasets/multibrand/labels/val/` | val 图片对应 YOLO 标签。 | 是 |
+| `datasets/multibrand/labels/test/` | test 图片对应 YOLO 标签。 | 用于评估 |
+| `datasets/multibrand/pseudo/` | 自动预标注输出，需人工复核。 | 不建议直接训练 |
 
 关键规则：
 
 - `raw/images/` 只是原始图片，不能直接训练。
 - YOLO 训练要求每张图片都有同名 `.txt` 标签。
 - `pseudo/` 只是候选标签，必须人工检查误检和漏检。
-- 正式训练使用 `data/softcare.yaml`。
-- 自动预标注试验使用 `data/softcare_pseudo.yaml`。
+- 正式训练使用 `data/multibrand.yaml`。
+- 自动预标注试验使用 `data/multibrand_pseudo.yaml`。
 
 ## 5. 没有标注时的自动/半自动标注方案
 
@@ -169,7 +169,7 @@ datasets/softcare/
 建议在 CVAT 中导入：
 
 ```text
-datasets/softcare/raw/images/
+datasets/multibrand/raw/images/
 ```
 
 然后使用 CVAT 的自动标注能力，例如 Grounding DINO / SAM / Segment Anything 插件，先生成候选框，再人工复核。
@@ -190,13 +190,13 @@ datasets/softcare/raw/images/
 本项目已提供脚本：
 
 ```text
-scripts/pseudo_label_yolo_world.py
+scripts/pseudo_label/generate_yolo_world.py
 ```
 
 建议先小批量试跑：
 
 ```bash
-uv run python scripts/pseudo_label_yolo_world.py \
+uv run python scripts/pseudo_label/generate_yolo_world.py \
   --limit 20 \
   --prompt 'softcare diaper package' \
   --prompt 'baby diaper package' \
@@ -209,9 +209,9 @@ uv run python scripts/pseudo_label_yolo_world.py \
 如果候选框质量可以，再全量执行：
 
 ```bash
-uv run python scripts/pseudo_label_yolo_world.py \
-  --raw-dir datasets/softcare/raw/images \
-  --output-root datasets/softcare/pseudo \
+uv run python scripts/pseudo_label/generate_yolo_world.py \
+  --raw-dir datasets/multibrand/raw/images \
+  --output-root datasets/multibrand/pseudo \
   --prompt 'softcare diaper package' \
   --prompt 'baby diaper package' \
   --prompt 'diaper package' \
@@ -245,7 +245,7 @@ uv run python scripts/pseudo_label_yolo_world.py \
 ### 步骤 1：先抽 20 张做自动预标注
 
 ```bash
-uv run python scripts/pseudo_label_yolo_world.py \
+uv run python scripts/pseudo_label/generate_yolo_world.py \
   --limit 20 \
   --prompt 'softcare diaper package' \
   --prompt 'baby diaper package' \
@@ -260,8 +260,8 @@ uv run python scripts/pseudo_label_yolo_world.py \
 检查目录：
 
 ```text
-datasets/softcare/pseudo/images/
-datasets/softcare/pseudo/labels/
+datasets/multibrand/pseudo/images/
+datasets/multibrand/pseudo/labels/
 ```
 
 建议用 CVAT 或 Label Studio 打开，人工完成：
@@ -273,25 +273,25 @@ datasets/softcare/pseudo/labels/
 ### 步骤 3：导出/复制到正式训练目录
 
 ```text
-datasets/softcare/images/train
-datasets/softcare/images/val
-datasets/softcare/images/test
+datasets/multibrand/images/train
+datasets/multibrand/images/val
+datasets/multibrand/images/test
 
-datasets/softcare/labels/train
-datasets/softcare/labels/val
-datasets/softcare/labels/test
+datasets/multibrand/labels/train
+datasets/multibrand/labels/val
+datasets/multibrand/labels/test
 ```
 
 ### 步骤 4：校验正式数据集
 
 ```bash
-uv run python scripts/validate_dataset.py
+uv run python scripts/training/validate_dataset.py
 ```
 
 ### 步骤 5：训练 baseline 模型
 
 ```bash
-uv run python scripts/train.py \
+uv run python scripts/training/train.py \
   --base-model models/yolo26s.pt \
   --epochs 100 \
   --imgsz 960 \
@@ -302,8 +302,8 @@ uv run python scripts/train.py \
 ### 步骤 6：推理验证
 
 ```bash
-uv run python scripts/predict.py \
-  data/samples/softcare-shelf.webp \
+uv run python scripts/inference/predict.py \
+  data/samples/multibrand-shelf.webp \
   --conf 0.35
 ```
 
@@ -366,9 +366,9 @@ models/clip/ViT-B-32.pt
 
 代码同步调整：
 
-- `scripts/train.py` 默认 baseline 为 `models/yolo26s.pt`，训练输出目录改为 `models/train/`，训练完成后自动复制 `best.pt` 到 `models/softcare-best.pt`。
-- `scripts/pseudo_label_yolo_world.py` 默认 YOLO-World 权重改为 `models/yolov8s-world.pt`。
-- `scripts/predict.py` 默认推理权重为 `models/softcare-best.pt`。
+- `scripts/training/train.py` 默认 baseline 为 `models/yolo26s.pt`，训练输出目录改为 `models/train/`，训练完成后自动复制 `best.pt` 到 `models/multibrand-best.pt`。
+- `scripts/pseudo_label/generate_yolo_world.py` 默认 YOLO-World 权重改为 `models/yolov8s-world.pt`。
+- `scripts/inference/predict.py` 默认推理权重为 `models/multibrand-best.pt`。
 - 训练、预标注、推理脚本启动时会将 Ultralytics `weights_dir` 指向 `models/`，后续自动下载的 YOLO/CLIP `.pt` 权重也会尽量落到 `models/`。
 - 命令中传入 `yolo26s.pt`、`yolov8s-world.pt` 这类裸文件名时，脚本会自动解析到 `models/<文件名>`。
 
@@ -396,19 +396,19 @@ Version: 1.23.0
 
 | 脚本 | 作用 |
 | --- | --- |
-| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON；图片使用本地文件服务路径 `/data/local-files/?d=<absolute_path>`；YOLO 伪标注转换为 `predictions`。 |
-| `scripts/apply_label_studio_import.py` | 通过本地 Label Studio Django shell 创建项目、任务、prediction 和 Local Files storage 权限记录。 |
+| `scripts/label_studio/generate_import.py` | 生成 Label Studio 标准任务 JSON；图片使用本地文件服务路径 `/data/local-files/?d=<absolute_path>`；YOLO 伪标注转换为 `predictions`。 |
+| `scripts/label_studio/apply_import.py` | 通过本地 Label Studio Django shell 创建项目、任务、prediction 和 Local Files storage 权限记录。 |
 
 生成导入 JSON：
 
 ```bash
-uv run python scripts/import_label_studio.py
+uv run python scripts/label_studio/generate_import.py
 ```
 
 输出：
 
 ```text
-datasets/softcare/label_studio/softcare_label_studio_import.json
+datasets/multibrand/label_studio/multibrand_label_studio_import.json
 ```
 
 生成结果：
@@ -424,7 +424,7 @@ prediction_boxes=1102
 ```bash
 cd /tmp && PYTHONSAFEPATH=1 \
   /Users/guobiao/PRO/me/yoloExample/.venv/bin/label-studio shell <<'PY'
-exec(open('/Users/guobiao/PRO/me/yoloExample/scripts/apply_label_studio_import.py', encoding='utf-8').read())
+exec(open('/Users/guobiao/PRO/me/yoloExample/scripts/label_studio/apply_import.py', encoding='utf-8').read())
 PY
 ```
 
@@ -469,13 +469,13 @@ http://localhost:9001/projects/2/data
 6. 将导出结果整理到正式训练目录：
 
 ```text
-datasets/softcare/images/train|val|test
-datasets/softcare/labels/train|val|test
+datasets/multibrand/images/train|val|test
+datasets/multibrand/labels/train|val|test
 ```
 
 ## 11. OCR 辅助筛选方案更新
 
-本次新增 OCR 辅助筛选，用于在原始图片中优先找出疑似包含 `Softcare` 字样的图片。
+本次新增 OCR 辅助筛选，用于在原始图片中优先找出疑似包含目标品牌字样的图片。2026-08-06 已进一步增加品牌标识库 `data/brand_keywords.json`，OCR 与 YOLO-World 预标注默认共用该品牌库。
 
 ### 11.1 方案选择
 
@@ -489,30 +489,33 @@ datasets/softcare/labels/train|val|test
 
 ### 11.2 当前实现
 
-新增脚本：
+新增/更新文件：
 
 ```text
-scripts/ocr_filter_softcare.py
+scripts/ocr/filter_brand_candidates.py
+data/brand_keywords.json
 ```
+
+品牌库当前包含：`KLEESOFT`、`SOFTCARE`、`DOFFI`、`LAVITA`、`NICEDAY`、`MOSSE`、`MAYA`、`CLINCLEER`、`VEESPER`、`CUETTIE`、`T-GUARD`、`ATHENA`、`MCGEL`、`FASKIT`、`DR.X`、`Avril`、`DIAMOND`、`JIEBAI`、`MEDIPOWER`、`KINPOWER`。脚本自动忽略用户原始清单中的数字序号、重复项和 `★` 纯符号。
 
 输入：
 
 ```text
-datasets/softcare/raw/images/
+datasets/multibrand/raw/images/
 ```
 
 输出：
 
 ```text
-datasets/softcare/ocr/metadata/ocr_softcare_report.csv
-datasets/softcare/ocr/metadata/ocr_softcare_report.json
-datasets/softcare/ocr/metadata/ocr_candidates.txt
+datasets/multibrand/ocr/metadata/ocr_softcare_report.csv
+datasets/multibrand/ocr/metadata/ocr_softcare_report.json
+datasets/multibrand/ocr/metadata/ocr_candidates.txt
 ```
 
 目录：
 
 ```text
-datasets/softcare/ocr/
+datasets/multibrand/ocr/
 ├── candidates/      # 可选：复制出来的 OCR 命中候选图片
 └── metadata/        # OCR 报告和候选清单
 ```
@@ -520,11 +523,11 @@ datasets/softcare/ocr/
 小样本试跑命令：
 
 ```bash
-uv run python scripts/ocr_filter_softcare.py \
+uv run python scripts/ocr/filter_brand_candidates.py \
+  --raw-dir datasets/multibrand/raw/images \
+  --brand-library data/brand_keywords.json \
   --limit 20 \
   --engine rapidocr \
-  --keyword softcare \
-  --keyword 'soft care' \
   --fuzzy-threshold 60 \
   --min-confidence 0.2
 ```
@@ -532,11 +535,10 @@ uv run python scripts/ocr_filter_softcare.py \
 全量命令：
 
 ```bash
-uv run python scripts/ocr_filter_softcare.py \
-  --raw-dir datasets/softcare/raw/images \
+uv run python scripts/ocr/filter_brand_candidates.py \
+  --raw-dir datasets/multibrand/raw/images \
+  --brand-library data/brand_keywords.json \
   --engine rapidocr \
-  --keyword softcare \
-  --keyword 'soft care' \
   --fuzzy-threshold 60 \
   --min-confidence 0.2
 ```
@@ -546,14 +548,17 @@ uv run python scripts/ocr_filter_softcare.py \
 `pseudo_label_yolo_world.py` 已支持读取 OCR 候选清单：
 
 ```bash
-uv run python scripts/pseudo_label_yolo_world.py \
-  --raw-dir datasets/softcare/raw/images \
-  --output-root datasets/softcare/pseudo \
-  --candidates-file datasets/softcare/ocr/metadata/ocr_candidates.txt \
-  --prompt 'softcare diaper package' \
-  --prompt 'baby diaper package' \
-  --prompt 'diaper package' \
-  --prompt 'package' \
+uv run python scripts/pseudo_label/generate_yolo_world.py \
+  --raw-dir datasets/multibrand/raw/images \
+  --output-root datasets/multibrand/pseudo \
+  --candidates-file datasets/multibrand/ocr/metadata/ocr_candidates.txt \
+  --brand-library data/brand_keywords.json \
+  --brand-filter SOFTCARE \
+  --include-brand-package-prompts \
+  --prompt package \
+  --nms-iou 0.45 \
+  --containment-threshold 0.85 \
+  --max-area-ratio 0.45 \
   --conf 0.03 \
   --imgsz 960
 ```
@@ -562,8 +567,9 @@ uv run python scripts/pseudo_label_yolo_world.py \
 
 ```text
 raw/images 原图
-  -> OCR 筛选 Softcare 候选图
-  -> YOLO-World 只优先处理候选图
+  -> OCR 按品牌标识库筛选候选图
+  -> YOLO-World 默认只用 SOFTCARE 目标品牌提示词并优先处理候选图
+  -> NMS/覆盖过滤/最大面积过滤减少重复框和整图大框
   -> pseudo 候选框
   -> CVAT/Label Studio 人工复核
   -> 正式 YOLO 数据集
@@ -571,8 +577,8 @@ raw/images 原图
 
 ### 11.4 风险
 
-- OCR 命中只代表“可能有 Softcare”，不能直接得到准确商品框。
-- OCR 未命中不代表图片一定没有 Softcare，不能删除未命中图片。
+- OCR 命中只代表“可能有目标品牌”，不能直接得到准确商品框。
+- OCR 未命中不代表图片一定没有目标品牌，不能删除未命中图片。
 - 货架图片里的品牌字常常很小、模糊、反光或倾斜，OCR 召回率可能有限。
 - OCR 适合提高优先级和减少人工查找成本，不适合作为唯一识别依据。
 
@@ -582,7 +588,7 @@ raw/images 原图
 
 ```bash
 uv run python -m compileall -q scripts
-uv run python scripts/ocr_filter_softcare.py --limit 2 --engine rapidocr --keyword softcare --keyword 'soft care' --fuzzy-threshold 60 --min-confidence 0.2
+uv run python scripts/ocr/filter_brand_candidates.py --limit 2 --engine rapidocr --keyword softcare --keyword 'soft care' --fuzzy-threshold 60 --min-confidence 0.2
 ```
 
 OCR 小样本结果：
@@ -598,7 +604,7 @@ row00002_78e277790497.webp: Saftcare，score=78.31
 ```text
 processed=361
 matched=171
-候选清单：datasets/softcare/ocr/metadata/ocr_candidates.txt
+候选清单：datasets/multibrand/ocr/metadata/ocr_candidates.txt
 ```
 
 部分命中样例：
@@ -612,10 +618,28 @@ Soltcare / Saftcare / Softcare / SOFT / SOFT&SA / Kleesoft / esoft
 预标注候选清单集成测试：
 
 ```bash
-uv run python scripts/pseudo_label_yolo_world.py --candidates-file <候选清单> --limit 1 --conf 0.03 --imgsz 640
+uv run python scripts/pseudo_label/generate_yolo_world.py --candidates-file <候选清单> --limit 1 --conf 0.03 --imgsz 640
 ```
 
 结果：脚本可以正确读取候选清单并只处理候选图片；测试样本候选框为 0，仍需人工复核和调参。
+
+2026-08-06 品牌标识库测试：
+
+```text
+ocr_count=20
+contains_digits=False
+contains_star=False
+prompt_count=62
+```
+
+说明：OCR 与预标注脚本均能读取 `data/brand_keywords.json`；纯数字序号、重复品牌和 `★` 纯符号已被过滤。Review 后确认：全品牌提示词会把其它品牌/整排货架也作为 `softcare_diaper` 候选，造成大框覆盖小框和重复框；因此 Makefile 默认使用 `PSEUDO_BRAND_FILTER_ARGS=--brand-filter SOFTCARE`，并增加 `PSEUDO_NMS_IOU`、`PSEUDO_CONTAINMENT`、`PSEUDO_MAX_AREA_RATIO` 过滤重复框和整图大框。
+
+2026-08-06 预标注重复框修复测试：
+
+```text
+修复前：全品牌库 + 品牌包装提示词，小样本 1 张生成 17 个框，包含 LAVITA/NICEDAY 等非目标品牌大框和接近整图框。
+修复后：SOFTCARE 目标品牌过滤 + package + NMS/覆盖/最大面积过滤，小样本 1 张生成 4 个候选框，去除了整图大框和其它品牌大框。
+```
 
 ### 11.6 架构文档同步
 
@@ -643,7 +667,7 @@ README.md
 
 1. **图片改用本地文件服务路径**：`import_label_studio.py` 生成的 JSON 中 `image` 字段改为 `/data/local-files/?d=<absolute_path>`，Label Studio 通过内置的本地文件服务直接提供图片，不再依赖外部 CDN。
 2. **数据库改用 PostgreSQL**：替换默认的 SQLite，提升并发性能和数据可靠性。
-3. **创建 Local Files storage 权限记录**：Label Studio 1.23 的 `/data/local-files/` 端点不仅要求开启本地文件服务，还要求项目绑定对应 Local Files storage；`make ls-apply` 会自动注册 `datasets/softcare/raw/images/`。
+3. **创建 Local Files storage 权限记录**：Label Studio 1.23 的 `/data/local-files/` 端点不仅要求开启本地文件服务，还要求项目绑定对应 Local Files storage；`make ls-apply` 会自动注册 `datasets/multibrand/raw/images/`。
 4. **Makefile 一键启动**：封装所有环境变量和启动参数，简化操作。
 
 ### 12.3 新增文件
@@ -656,8 +680,8 @@ README.md
 
 | 文件 | 变更 |
 | --- | --- |
-| `scripts/import_label_studio.py` | `image` 字段从远程 URL 改为 URL 编码后的 `/data/local-files/?d=<absolute_path>` |
-| `scripts/apply_label_studio_import.py` | 导入时创建 Local Files storage，并为每个任务创建本地文件 storage link，确保图片端点有项目权限 |
+| `scripts/label_studio/generate_import.py` | `image` 字段从远程 URL 改为 URL 编码后的 `/data/local-files/?d=<absolute_path>` |
+| `scripts/label_studio/apply_import.py` | 导入时创建 Local Files storage，并为每个任务创建本地文件 storage link，确保图片端点有项目权限 |
 
 ### 12.5 环境变量配置
 
@@ -676,44 +700,69 @@ POSTGRE_PORT=5432
 
 ### 12.6 Make 命令
 
+当前 Makefile 已按业务顺序补齐 1–7 步主流程，参数都有默认值，并可在命令行覆盖：
+
+| 顺序 | 命令 | 作用 |
+| --- | --- | --- |
+| 1 | `make step-1-import-excel` | 从 Excel 下载原始图片。 |
+| 2 | `make step-2-ocr` | OCR 识别并生成候选清单。 |
+| 3 | `make step-3-pseudo-label` | YOLO-World 预标注。 |
+| 4 | `make step-4-import-ls` | 生成 Label Studio JSON 并导入本地 LS。 |
+| 5 | `make step-5-export-ls-to-train LS_PROJECT_ID=<项目ID>` | 导出 Label Studio JSON 并转换为正式 YOLO 训练集。 |
+| 6 | `make step-6-train` | 校验后训练模型。 |
+| 7 | `make step-7-validate` | 校验正式数据集并执行一次推理验证。 |
+
+常用辅助命令：
+
 | 命令 | 作用 |
 | --- | --- |
-| `make help` | 显示所有可用命令 |
+| `make help` | 显示所有可用命令，并附带常用参数默认值、可选值和调参效果 |
+| `make help-params` | 只显示 Make 参数说明 |
+| `make workflow-to-ls` | 执行步骤 1–4，到 Label Studio 导入完成 |
+| `make workflow-after-ls LS_PROJECT_ID=<项目ID>` | 人工复核后执行步骤 5–7 |
 | `make ls-setup` | 首次初始化 PostgreSQL 数据库并执行迁移 |
 | `make ls-start` | 后台启动 Label Studio（端口 9001，PostgreSQL，本地文件服务），日志写入 `logs/label-studio.log` |
 | `make ls-stop` | 停止 Label Studio，并清理 `logs/label-studio.pid` |
 | `make ls-migrate` | 执行 Django 数据库迁移（首次使用需要） |
 | `make ls-shell` | 进入 Label Studio Django shell |
-| `make ls-import-json` | 生成 Label Studio 导入 JSON（使用本地图片路径） |
-| `make ls-apply` | 通过 Django shell 导入任务，并注册本地图片目录 Local Files storage |
+| `make ls-export LS_PROJECT_ID=<项目ID>` | 从 Label Studio 导出 JSON |
+| `make ls-to-yolo` | 将 Label Studio JSON 转换为 `datasets/multibrand/images|labels/` |
 | `make ls-db-create` | 如果 PostgreSQL 数据库不存在则创建 |
 | `make ls-db-check` | 检查 PostgreSQL 数据库连接 |
+
+关键默认参数：`EXCEL`、`EXCEL_COLUMN`、`RAW_DIR`、`OCR_ENGINE`、`OCR_MIN_CONFIDENCE`、`OCR_FUZZY_THRESHOLD`、`OCR_LIMIT`、`PSEUDO_BRAND_FILTER_ARGS`、`PSEUDO_CONF`、`PSEUDO_NMS_IOU`、`PSEUDO_CONTAINMENT`、`PSEUDO_MAX_AREA_RATIO`、`PSEUDO_LIMIT`、`LS_PROJECT_ID`、`LS_EXPORT_PATH`、`TRAIN_EPOCHS`、`TRAIN_DEVICE`、`PREDICT_SOURCE`。示例：`make step-6-train TRAIN_EPOCHS=50 TRAIN_DEVICE=cpu`。完整说明可执行 `make help-params`。
 
 ### 12.7 首次使用流程
 
 ```bash
-# 1. 创建 PostgreSQL 数据库并执行数据库迁移
+# 0. 创建 PostgreSQL 数据库并执行数据库迁移
 make ls-setup
 
-# 2. 后台启动 Label Studio，日志见 logs/label-studio.log
+# 1-4. Excel 下载 -> OCR -> 预标注 -> 导入 Label Studio
+make workflow-to-ls
+
+# 后台启动 Label Studio，打开 make ls-apply 输出的项目地址做人工复核
 make ls-start
 
 # 可选：查看启动日志
 tail -f logs/label-studio.log
 
-# 3. 另开一个终端，生成导入 JSON（已使用本地图片路径）
-make ls-import-json
-
-# 4. 导入任务、prediction，并注册 Local Files storage
-make ls-apply
+# 人工复核完成后，导出、转换正式训练集、训练和验证
+make workflow-after-ls LS_PROJECT_ID=<项目ID>
 ```
+
+说明：Label Studio shell/start 的工作目录已改为项目内 `.tmp/label-studio/`，不再使用 `/tmp`。
 
 ### 12.8 测试结果
 
 - PostgreSQL 数据库 `labelstudio` 连接正常。
-- 导入 JSON 中 `image` 字段已改为 `/data/local-files/?d=/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/...`。
+- 导入 JSON 中 `image` 字段已改为 `/data/local-files/?d=/Users/guobiao/PRO/me/yoloExample/datasets/multibrand/raw/images/...`。
 - 重新生成 JSON：`tasks=361, tasks_with_predictions=153, prediction_boxes=1102`。
 - Review 后修复 Makefile `ls-stop` 目标中的括号错误，`make help`、`make -n ls-stop`、`make -n ls-apply` 均可正常解析。
-- Review 后确认 Label Studio 1.23 本地文件服务要求 Local Files storage 权限；已更新 `scripts/apply_label_studio_import.py`，导入项目时自动创建 storage 和 storage link。
+- Review 后确认 Label Studio 1.23 本地文件服务要求 Local Files storage 权限；已更新 `scripts/label_studio/apply_import.py`，导入项目时自动创建 storage 和 storage link。
 - 已验证运行时配置：`DJANGO_DB=postgresql`、数据库名 `labelstudio`、`LOCAL_FILES_SERVING_ENABLED=True`、`LOCAL_FILES_DOCUMENT_ROOT=/`。
 - 2026-08-06 更新：`make ls-start` 已改为后台启动，日志写入 `logs/label-studio.log`，PID 写入 `logs/label-studio.pid`；重复执行会提示已有 PID，不会重复启动；`make ls-stop` 会停止进程并清理 PID 文件。
+- 2026-08-06 更新：Makefile 已补齐 1–7 步顺序化目标、`workflow-to-ls` 和 `workflow-after-ls` 组合目标；新增 `scripts/label_studio/export_to_yolo.py`，用于将 Label Studio JSON 导出转换为正式 YOLO 训练集；Label Studio 命令工作目录改为项目内 `.tmp/label-studio/`。
+- 2026-08-06 更新：`make help` 已扩展为同时展示命令和常用参数说明，新增 `make help-params` 单独展示所有关键参数的默认值、可选值和调参影响；Makefile 顶部也补充了逐项中文注释。
+- 2026-08-06 更新：已完成多品牌多类别改造。`data/brand_keywords.json` 成为统一类别来源，新增 `scripts/common/brand_library.py` 和 `scripts/config/write_brand_yolo_yaml.py`；`make brand-yaml` 会生成多品牌 `data/multibrand.yaml`、`data/multibrand_pseudo.yaml`；YOLO-World 预标注按品牌写入不同 class_id；Label Studio 导入项目自动生成 20 个品牌标签；Label Studio 导出转 YOLO 会按品牌标签写多类别标签；推理输出改为 `brand_counts` 和 `total_count`。
+- 2026-08-06 更新：完成多品牌目录重构。数据根目录从 `datasets/softcare/` 迁移为 `datasets/multibrand/`；YAML 从 `data/softcare*.yaml` 迁移为 `data/multibrand*.yaml`；脚本按流程归类到 `scripts/data_import/`、`scripts/ocr/`、`scripts/pseudo_label/`、`scripts/label_studio/`、`scripts/training/`、`scripts/inference/`、`scripts/config/`、`scripts/common/`。

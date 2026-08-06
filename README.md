@@ -1,21 +1,21 @@
-# YOLO Softcare 纸尿裤识别示例
+# YOLO 多品牌包装识别示例
 
-本项目用于本地验证门店照片中的 **Softcare 纸尿裤包装识别与数量统计**，对应 [`设计.md`](设计.md) 的“阶段 1：YOLO 基础陈列识别”。
+本项目用于本地验证门店照片中的 **多品牌纸尿裤/护理用品包装识别与数量统计**，对应 [`设计.md`](设计.md) 的“YOLO 基础陈列识别”。
 
-> 通用 YOLO 预训练模型并不认识 Softcare 品牌或包装；要可靠地统计包数，必须先标注 Softcare 包装并训练专用模型。自动标注只能做“预标注/候选框”，最终仍建议人工复核。
+> 通用 YOLO 预训练模型并不认识这些业务品牌或包装；要可靠地统计各品牌包数，必须先标注品牌包装并训练专用多类别模型。自动标注只能做“预标注/候选框”，最终仍建议人工复核。
 
 ## 识别范围
 
-- 类别：`softcare_diaper`
-- 标注对象：图片中每一包可辨认的 Softcare 纸尿裤包装。
-- 结果：每一个检测框代表一包，`softcare_count` 即检测框总数。
+- 类别来源：`data/brand_keywords.json` 中启用的品牌，当前生成 20 个 YOLO 类别。
+- 标注对象：图片中每一包可辨认的目标品牌包装。
+- 结果：每个检测框代表一包，推理 JSON 会输出 `brand_counts` 和 `total_count`。
 
 ## MacBook M1 Max 32G 训练建议
 
 你的 MacBook M1 Max 32G 可以训练 YOLO 检测模型，训练时使用 Apple Silicon 的 MPS：
 
 ```bash
-uv run python scripts/train.py --device mps --imgsz 960 --batch -1
+uv run python scripts/training/train.py --device mps --imgsz 960 --batch -1
 ```
 
 模型选择建议：
@@ -34,8 +34,8 @@ uv run python scripts/train.py --device mps --imgsz 960 --batch -1
 **需要。** 这是品牌/SKU 级别目标检测，不是 COCO 预训练模型内置类别。
 
 1. 收集不同门店、货架、距离、角度、光照、遮挡条件下的图片；PoC 建议从 300–500 张开始，生产效果通常需要更多真实场景数据。
-2. 每包 Softcare 纸尿裤绘制一个矩形框；被遮挡的包装只要可辨认，也标注其可见部分。
-3. 第一阶段只用一个类别：`softcare_diaper`（类别 ID 为 `0`）。
+2. 每包目标品牌包装绘制一个矩形框；被遮挡的包装只要可辨认，也标注其可见部分。
+3. 类别 ID 由 `data/brand_keywords.json` 的 `class_id` 决定；当前 `SOFTCARE` 固定为 `0`，其它品牌依次映射为 `kleesoft`、`doffi` 等。
 4. 按 `70% / 20% / 10%` 划分训练、验证、测试数据。来自同一原图或连拍序列的图片必须只存在于其中一个划分，避免数据泄漏。
 
 ### 标注工具
@@ -72,11 +72,11 @@ uv sync
 ## 目录说明
 
 ```text
-datasets/softcare/
+datasets/multibrand/
 ├── raw/                         # Excel 下载下来的“原始未标注图片”，不能直接训练
 │   ├── images/                  # 361 张原始图片已下载到这里
 │   └── metadata/                # 下载报告 download_report.csv/json
-├── ocr/                         # OCR Softcare 关键词筛选结果
+├── ocr/                         # OCR 品牌关键词筛选结果
 │   ├── candidates/              # 可选：复制出来的 OCR 命中候选图片
 │   └── metadata/                # OCR 报告和候选清单 ocr_candidates.txt
 ├── images/                      # 人工确认后的正式训练图片
@@ -96,21 +96,22 @@ datasets/softcare/
 关键规则：
 
 - `raw/images/`：只存从 Excel 下载的原图，没有标签，**不能直接训练**。
-- `ocr/...`：OCR 识别 `Softcare` 文字后的候选清单和报告，只用于提高处理优先级；OCR 未命中不代表一定没有 Softcare。
-- `images/...` + `labels/...`：正式训练数据。每张图片必须有一个同名 `.txt` 标签文件。
-- `pseudo/...`：YOLO-World 自动生成的候选标签，可能误检/漏检，只能作为人工复核起点。
-- `data/softcare.yaml`：正式训练数据配置，指向 `datasets/softcare/images` 和 `datasets/softcare/labels`。
-- `data/softcare_pseudo.yaml`：伪标注数据配置，指向 `datasets/softcare/pseudo`，仅建议在人工复核后临时试训。
-- `models/`：统一存放所有 `.pt` 权重，包括预训练模型、YOLO-World、CLIP 和训练完成的 Softcare 模型；训练输出默认在 `models/train/`。命令里写 `yolo26s.pt`、`yolov8s-world.pt` 这类裸文件名时，脚本会自动解析到 `models/<文件名>`。
+- `ocr/...`：OCR 识别品牌库关键词后的候选清单和报告，只用于提高处理优先级；OCR 未命中不代表一定没有目标品牌。
+- `images/...` + `labels/...`：正式训练数据。每张图片必须有一个同名 `.txt` 标签文件，标签中的 class_id 来自 `data/brand_keywords.json`。
+- `pseudo/...`：YOLO-World 自动生成的多品牌候选标签，可能误检/漏检，只能作为人工复核起点。
+- `data/brand_keywords.json`：品牌标识库，是 OCR、预标注、Label Studio 多标签和 YOLO 类别 ID 的统一来源。
+- `data/multibrand.yaml`：正式训练数据配置，指向 `datasets/multibrand/images` 和 `datasets/multibrand/labels`；可由 `make brand-yaml` 根据品牌库生成。
+- `data/multibrand_pseudo.yaml`：伪标注数据配置，指向 `datasets/multibrand/pseudo`；可由 `make brand-yaml` 根据品牌库生成。
+- `models/`：统一存放所有 `.pt` 权重，包括预训练模型、YOLO-World、CLIP 和训练完成的多品牌模型；训练输出默认在 `models/train/`。命令里写 `yolo26s.pt`、`yolov8s-world.pt` 这类裸文件名时，脚本会自动解析到 `models/<文件名>`。
 - `outputs/predict/`：推理 JSON 和带框图片输出。
-- `models/softcare-best.pt`：默认推理模型路径，训练完成后脚本会自动复制 `best.pt` 到这里。
+- `models/multibrand-best.pt`：默认多品牌推理模型路径，训练完成后 Makefile 会把 `best.pt` 复制到这里。
 
 ## 从 Excel 下载原始图片
 
 你的 Excel `/Users/guobiao/Downloads/8e96894159cc584f0c7a27faaa4acc45.xlsx` 中的 `整改后图片URL` 列可以用下面命令导入：
 
 ```bash
-uv run python scripts/import_images_from_excel.py \
+uv run python scripts/data_import/import_images_from_excel.py \
   --excel '/Users/guobiao/Downloads/8e96894159cc584f0c7a27faaa4acc45.xlsx' \
   --column '整改后图片URL' \
   --workers 8
@@ -118,21 +119,35 @@ uv run python scripts/import_images_from_excel.py \
 
 下载结果：
 
-- 原图目录：`datasets/softcare/raw/images/`
-- 下载报告：`datasets/softcare/raw/metadata/download_report.csv`
+- 原图目录：`datasets/multibrand/raw/images/`
+- 下载报告：`datasets/multibrand/raw/metadata/download_report.csv`
 
-## OCR 辅助筛选 Softcare
+## OCR 辅助筛选品牌候选图片
 
-OCR 用来先筛选可能包含 `Softcare` 字样的图片，减少后续自动预标注和人工复核的处理量。当前本地 PoC 默认使用 **RapidOCR ONNX**，它基于 PP-OCR 思路、CPU 推理快、无需额外下载 EasyOCR 检测模型；脚本也保留 `--engine easyocr` 作为备选。如果后续要做生产化服务，建议优先评估 **PaddleOCR / PP-OCR**，它在中文、复杂场景和工程化部署上更成熟。
+OCR 用来先筛选可能包含目标品牌字样的图片，减少后续自动预标注和人工复核的处理量。当前本地 PoC 默认使用 **RapidOCR ONNX**，它基于 PP-OCR 思路、CPU 推理快、无需额外下载 EasyOCR 检测模型；脚本也保留 `--engine easyocr` 作为备选。如果后续要做生产化服务，建议优先评估 **PaddleOCR / PP-OCR**。
+
+品牌标识库位于：
+
+```text
+data/brand_keywords.json
+```
+
+当前包含 `KLEESOFT`、`SOFTCARE`、`DOFFI`、`LAVITA`、`NICEDAY`、`MOSSE`、`MAYA`、`CLINCLEER`、`VEESPER`、`CUETTIE`、`T-GUARD`、`ATHENA`、`MCGEL`、`FASKIT`、`DR.X`、`Avril`、`DIAMOND`、`JIEBAI`、`MEDIPOWER`、`KINPOWER` 等品牌。脚本会自动忽略纯数字序号、重复项和 `★` 这类纯符号；如果品牌有空格、连字符或 OCR 常见写法，可以放到 `aliases` 中。
 
 先小批量试跑：
 
 ```bash
-uv run python scripts/ocr_filter_softcare.py \
+make step-2-ocr OCR_LIMIT=20
+```
+
+等价脚本命令：
+
+```bash
+uv run python scripts/ocr/filter_brand_candidates.py \
+  --raw-dir datasets/multibrand/raw/images \
+  --brand-library data/brand_keywords.json \
   --limit 20 \
   --engine rapidocr \
-  --keyword softcare \
-  --keyword 'soft care' \
   --fuzzy-threshold 60 \
   --min-confidence 0.2
 ```
@@ -140,22 +155,16 @@ uv run python scripts/ocr_filter_softcare.py \
 全量筛选：
 
 ```bash
-uv run python scripts/ocr_filter_softcare.py \
-  --raw-dir datasets/softcare/raw/images \
-  --engine rapidocr \
-  --keyword softcare \
-  --keyword 'soft care' \
-  --fuzzy-threshold 60 \
-  --min-confidence 0.2
+make step-2-ocr
 ```
 
 输出：
 
-- `datasets/softcare/ocr/metadata/ocr_softcare_report.csv`：每张图片的 OCR 命中情况。
-- `datasets/softcare/ocr/metadata/ocr_softcare_report.json`：完整 OCR 文本、置信度和坐标。
-- `datasets/softcare/ocr/metadata/ocr_candidates.txt`：命中 Softcare 的候选图片清单。
+- `datasets/multibrand/ocr/metadata/ocr_softcare_report.csv`：每张图片的 OCR 命中情况。
+- `datasets/multibrand/ocr/metadata/ocr_softcare_report.json`：完整 OCR 文本、置信度和坐标。
+- `datasets/multibrand/ocr/metadata/ocr_candidates.txt`：命中任一品牌关键词的候选图片清单。
 
-注意：OCR 未命中不代表图片一定没有 Softcare，尤其是文字很小、模糊、反光或被遮挡时。OCR 只用于“优先级排序”，不能替代人工标注。
+注意：OCR 命中只代表“可能有目标品牌”，不能直接得到商品框；OCR 未命中也不代表图片一定没有目标品牌。
 
 ## 自动/半自动标注
 
@@ -163,39 +172,55 @@ uv run python scripts/ocr_filter_softcare.py \
 
 ### 方案 A：CVAT 自动标注（推荐）
 
-在 CVAT 中导入 `datasets/softcare/raw/images/`，使用 Grounding DINO / SAM / Segment Anything 插件做预标注，然后人工删除误检、补漏检，最后导出 YOLO Detection 格式。
+在 CVAT 中导入 `datasets/multibrand/raw/images/`，使用 Grounding DINO / SAM / Segment Anything 插件做预标注，然后人工删除误检、补漏检，最后导出 YOLO Detection 格式。
 
 优点：有可视化审核界面，适合真实项目；缺点是需要部署或配置模型。
 
 ### 方案 B：本项目 YOLO-World 预标注脚本
 
-脚本会根据开放词汇提示词生成候选框，并统一写成类别 `softcare_diaper`：
+脚本会根据品牌库生成开放词汇提示词，并按品牌映射到不同 YOLO 类别 ID，不再把所有框统一写成 `softcare_diaper`。OCR 可以用全品牌库做候选图筛选，预标注也默认使用品牌库中全部启用品牌；如果只想临时调试某个品牌，可通过 `PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"` 过滤。
+
+脚本会对同一品牌类别内的 YOLO-World 输出做跨提示词去重和大框过滤：
+- `--nms-iou`：重复框 IoU 去重阈值。
+- `--containment-threshold`：大框覆盖已保留小框超过该比例时丢弃大框。
+- `--max-area-ratio`：丢弃占整图面积过大的候选框。
+
+默认 Make 参数会使用全品牌库、`--include-brand-package-prompts`、`--nms-iou 0.45`、`--containment-threshold 0.85`、`--max-area-ratio 0.45`：
 
 ```bash
-uv run python scripts/pseudo_label_yolo_world.py \
-  --raw-dir datasets/softcare/raw/images \
-  --output-root datasets/softcare/pseudo \
-  --candidates-file datasets/softcare/ocr/metadata/ocr_candidates.txt \
-  --prompt 'softcare diaper package' \
-  --prompt 'baby diaper package' \
-  --prompt 'diaper package' \
-  --prompt 'package' \
+make step-3-pseudo-label
+```
+
+等价脚本命令：
+
+```bash
+uv run python scripts/pseudo_label/generate_yolo_world.py \
+  --raw-dir datasets/multibrand/raw/images \
+  --output-root datasets/multibrand/pseudo \
+  --candidates-file datasets/multibrand/ocr/metadata/ocr_candidates.txt \
+  --brand-library data/brand_keywords.json \
+  --include-brand-package-prompts \
+  --nms-iou 0.45 \
+  --containment-threshold 0.85 \
+  --max-area-ratio 0.45 \
   --conf 0.03 \
   --imgsz 960
 ```
 
 说明：
 
-- `--candidates-file` 可接入 OCR 命中的候选清单，只优先处理疑似 Softcare 图片；如果想全量处理，移除该参数。
-- `softcare` 文字很小或模糊时，开放词汇检测不一定能识别；`package` 会提高召回，但误检会明显增加。
+- `--candidates-file` 可接入 OCR 命中的候选清单，只优先处理疑似品牌图片；如果想全量处理，可执行 `make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0`。
+- `PSEUDO_BRAND_FILTER_ARGS` 默认留空，表示多品牌预标注；如只想调试单品牌，可传 `PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"`。
+- 多品牌模式下额外 `PSEUDO_PROMPT_ARGS` 建议使用 `{brand}` 占位符，例如 `--prompt '{brand} package on shelf'`，否则泛化 prompt 无法安全映射到某个类别。
+- 品牌包装提示词会提高召回，但误检会增加；现在配合 NMS、覆盖过滤和最大面积过滤减少“大框盖小框”和重复框。
 - 该脚本更适合“先找候选框，再人工审核”，不适合直接生成最终训练集。
-- 可以先用 `--limit 20` 试跑，看候选框质量后再全量处理。
+- 可以先用 `PSEUDO_LIMIT=20` 试跑，看候选框质量后再全量处理。
 
 复核完成后，把确认后的图片和标签导出/复制到正式目录：
 
 ```text
-datasets/softcare/images/train|val|test
-datasets/softcare/labels/train|val|test
+datasets/multibrand/images/train|val|test
+datasets/multibrand/labels/train|val|test
 ```
 
 ### 方案 C：Label Studio 人工复核
@@ -206,42 +231,90 @@ datasets/softcare/labels/train|val|test
 http://localhost:9001
 ```
 
-本项目提供 Makefile 封装常用操作：
+本项目提供 Makefile 封装端到端流程，所有参数都有默认值，并可在命令行覆盖，例如 `make step-6-train TRAIN_EPOCHS=50 TRAIN_DEVICE=cpu`。Makefile 不再切换到 `/tmp`，Label Studio shell/start 统一使用项目内临时目录 `.tmp/label-studio/`，运行日志写入 `logs/`。
+
+| 顺序 | 命令 | 作用 |
+| --- | --- | --- |
+| 1 | `make step-1-import-excel` | 从 Excel 的 `整改后图片URL` 列下载原始图片，输出到 `datasets/multibrand/raw/images/`。 |
+| 2 | `make step-2-ocr` | OCR 识别 Softcare 候选图片，输出 `datasets/multibrand/ocr/metadata/ocr_candidates.txt`。 |
+| 3 | `make step-3-pseudo-label` | 使用 YOLO-World 对 OCR 候选图片生成多品牌多类别预标注，输出到 `datasets/multibrand/pseudo/`。 |
+| 4 | `make step-4-import-ls` | 生成 Label Studio 导入 JSON，并导入本地 Label Studio。 |
+| 5 | `make step-5-export-ls-to-train LS_PROJECT_ID=<项目ID>` | 从 Label Studio 导出 JSON，再转换为正式 YOLO 训练集 `datasets/multibrand/images|labels/`。 |
+| 6 | `make step-6-train` | 校验数据集后训练多品牌 YOLO 模型，默认导出 `models/multibrand-best.pt`。 |
+| 7 | `make step-7-validate` | 校验正式数据集，并使用训练模型对 `PREDICT_SOURCE` 做推理验证。 |
+
+常用组合命令：
 
 | 命令 | 作用 |
 | --- | --- |
+| `make workflow-to-ls` | 执行步骤 1–4，到 Label Studio 人工复核前/导入完成。 |
+| `make workflow-after-ls LS_PROJECT_ID=<项目ID>` | 人工复核完成后执行步骤 5–7：导出、转训练集、训练、验证。 |
 | `make ls-setup` | 首次初始化 PostgreSQL 数据库并执行 Label Studio 迁移。 |
 | `make ls-start` | 后台启动 Label Studio（端口 9001，PostgreSQL，本地文件服务），日志写入 `logs/label-studio.log`。 |
 | `make ls-stop` | 停止占用 9001 端口的 Label Studio 进程，并清理 `logs/label-studio.pid`。 |
-| `make ls-import-json` | 生成 Label Studio 导入 JSON，图片使用 `/data/local-files/?d=<absolute_path>`。 |
-| `make ls-apply` | 通过 `label-studio shell` 导入任务，并注册本地图片目录为 Local Files storage。 |
-| `make ls-db-check` | 检查 PostgreSQL 数据库连接。 |
+| `make help` | 查看全部 Make 命令，并输出常用参数默认值、可选值和调参效果。 |
+| `make help-params` | 只查看参数说明。 |
 
 首次使用流程：
 
 ```bash
-# 1. 创建数据库并执行迁移
+# 0. 创建数据库并执行迁移
 make ls-setup
 
-# 2. 后台启动 Label Studio，日志见 logs/label-studio.log
-make ls-start
+# 1-4. 从 Excel 到 Label Studio 导入
+make workflow-to-ls
 
-# 可选：查看启动日志
+# 后台启动 Label Studio，打开输出项目地址做人工复核
+make ls-start
 tail -f logs/label-studio.log
 
-# 3. 另开一个终端，重新生成导入 JSON
-make ls-import-json
+# 人工复核完成后，使用项目 ID 导出、转训练集、训练和验证
+make workflow-after-ls LS_PROJECT_ID=<项目ID>
+```
 
-# 4. 导入任务和 YOLO-World 预标注
+常用参数覆盖示例：
+
+```bash
+# 查看所有参数默认值、可选值和效果说明
+make help-params
+
+# 小样本调试 OCR / 预标注
+make step-2-ocr OCR_LIMIT=20
+make step-3-pseudo-label PSEUDO_LIMIT=20 PSEUDO_CONF=0.03
+
+# 不使用 OCR 候选清单，直接全量预标注
+make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0
+
+# 大框/重复框仍多时，调低最大面积和 NMS 阈值
+make step-3-pseudo-label PSEUDO_MAX_AREA_RATIO=0.30 PSEUDO_NMS_IOU=0.35
+
+# 多品牌默认预标全部启用品牌；只调试 SOFTCARE 时可过滤
+make step-3-pseudo-label PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"
+
+# 训练参数覆盖
+make step-6-train TRAIN_EPOCHS=50 TRAIN_IMGSZ=640 TRAIN_DEVICE=cpu
+
+# 指定 Label Studio 导出文件和清空旧训练集后转换
+make ls-to-yolo LS_EXPORT_PATH=datasets/multibrand/label_studio/exports/label_studio_export.json LS_TO_YOLO_CLEAR=1
+```
+
+核心可配置参数包括：`EXCEL`、`EXCEL_COLUMN`、`RAW_DIR`、`OCR_ENGINE`、`OCR_MIN_CONFIDENCE`、`OCR_FUZZY_THRESHOLD`、`OCR_LIMIT`、`PSEUDO_MODEL`、`PSEUDO_BRAND_FILTER_ARGS`、`PSEUDO_CONF`、`PSEUDO_NMS_IOU`、`PSEUDO_CONTAINMENT`、`PSEUDO_MAX_AREA_RATIO`、`PSEUDO_LIMIT`、`LS_PROJECT_ID`、`LS_EXPORT_PATH`、`TRAIN_EPOCHS`、`TRAIN_IMGSZ`、`TRAIN_DEVICE`、`PREDICT_SOURCE`。完整说明以 `make help-params` 为准。
+
+Label Studio 启停和导入仍可单独执行：
+
+```bash
+make ls-start
+make ls-import-json
 make ls-apply
+make ls-stop
 ```
 
 本项目提供两个导入脚本：
 
 | 脚本 | 作用 |
 | --- | --- |
-| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON；图片使用本地文件服务路径，避免远程 CDN CORS 问题；YOLO 伪标注作为 `predictions`。 |
-| `scripts/apply_label_studio_import.py` | 通过本地 `label-studio shell` 创建项目、任务、prediction，并创建 Local Files storage 权限记录。 |
+| `scripts/label_studio/generate_import.py` | 生成 Label Studio 标准任务 JSON；图片使用本地文件服务路径，避免远程 CDN CORS 问题；YOLO 伪标注作为 `predictions`。 |
+| `scripts/label_studio/apply_import.py` | 通过本地 `label-studio shell` 创建项目、任务、prediction，并创建 Local Files storage 权限记录。 |
 
 当前导入 JSON 结果：
 
@@ -261,72 +334,85 @@ make ls-apply
 候选框数：1102
 ```
 
-说明：Label Studio 1.23 默认使用 Personal Access Token 的 `Authorization: Bearer <token>`；当前本地实例没有提供 PAT，且 legacy token 已禁用，因此这里采用本地 `label-studio shell` 导入方式。Label Studio 的 `/data/local-files/` 端点还要求项目有对应 Local Files storage 权限，所以必须用 `make ls-apply` 或等价脚本注册 `datasets/softcare/raw/images/`。
+说明：Label Studio 1.23 默认使用 Personal Access Token 的 `Authorization: Bearer <token>`；当前本地实例没有提供 PAT，且 legacy token 已禁用，因此这里采用本地 `label-studio shell` 导入方式。Label Studio 的 `/data/local-files/` 端点还要求项目有对应 Local Files storage 权限，所以必须用 `make ls-apply` 或等价脚本注册 `datasets/multibrand/raw/images/`。
 
 ## 数据集校验
 
 训练前先校验图片、标签是否一一对应，以及标签坐标和类别是否合法：
 
 ```bash
-uv run python scripts/validate_dataset.py
+uv run python scripts/training/validate_dataset.py
 ```
 
 ## 下载单张示例图片
 
 ```bash
-uv run python scripts/download_sample.py
+uv run python scripts/data_import/download_sample.py
 ```
 
-该命令会下载给定图片到 `data/samples/softcare-shelf.webp`。此图片只可用于**训练后推理验证**；单张图片不足以训练出可用模型。
+该命令会下载给定图片到 `data/samples/multibrand-shelf.webp`。此图片只可用于**训练后推理验证**；单张图片不足以训练出可用模型。
 
 ## 训练
 
 完成标注并通过数据集校验后执行：
 
 ```bash
-uv run python scripts/train.py \
+make step-6-train
+```
+
+等价脚本命令：
+
+```bash
+uv run python scripts/training/train.py \
+  --data data/multibrand.yaml \
   --base-model models/yolo26s.pt \
   --epochs 100 \
   --imgsz 960 \
   --batch -1 \
-  --device mps
+  --device mps \
+  --name multibrand \
+  --export-model models/multibrand-best.pt
 ```
 
-- Apple Silicon 使用 `--device mps`；没有 GPU 时移除该参数或使用 `--device cpu`。
-- 训练结果默认在 `models/train/softcare/`，原始最佳权重为 `models/train/softcare/weights/best.pt`；脚本会自动复制一份到 `models/softcare-best.pt` 作为默认推理模型。
+- Apple Silicon 使用 `--device mps`；没有 GPU 时设置 `TRAIN_DEVICE=cpu` 或置空。
+- 训练结果默认在 `models/train/multibrand/`，原始最佳权重为 `models/train/multibrand/weights/best.pt`；Makefile 默认复制一份到 `models/multibrand-best.pt` 作为默认推理模型。
 - 商品包装在原图中较小，建议从 `--imgsz 960` 开始；如果速度太慢，可临时降到 `640`。
 
 ## 推理与计数
 
-训练结束后默认使用 `models/softcare-best.pt` 推理。每一个 `softcare_diaper` 检测框算作一包：
+训练结束后默认使用 `models/multibrand-best.pt` 推理。每个品牌检测框算作一包，并按 `brand_counts` 汇总：
 
 ```bash
-uv run python scripts/predict.py \
-  data/samples/softcare-shelf.webp \
+uv run python scripts/inference/predict.py \
+  data/samples/multibrand-shelf.webp \
   --conf 0.35
 ```
 
 也可以直接传入 HTTP(S) 图片 URL：
 
 ```bash
-uv run python scripts/predict.py \
+uv run python scripts/inference/predict.py \
   'https://uat-smdp4cust-cdn.globaltradecoo.com/CustomerComponent/67cfc8156160c2fd227aef004b771854.webp'
 ```
 
 输出包含：
 
-- `outputs/predict/<图片名>.json`：`softcare_count`、置信度和像素级检测框坐标。
+- `outputs/predict/<图片名>.json`：`brand_counts`、`total_count`、置信度和像素级检测框坐标。
 - `outputs/predict/<图片名>-annotated.jpg`：画有检测框的结果图，用于人工复核。
 
 示例 JSON：
 
 ```json
 {
-  "softcare_count": 3,
+  "brand_counts": {
+    "softcare": 3,
+    "kleesoft": 1
+  },
+  "total_count": 4,
   "detections": [
     {
       "class_id": 0,
-      "class_name": "softcare_diaper",
+      "class_name": "softcare",
       "confidence": 0.9214,
       "xyxy": [125.2, 80.1, 340.8, 488.5]
     }
@@ -336,6 +422,6 @@ uv run python scripts/predict.py \
 
 ## 验收与迭代
 
-保留一批从未参与训练的门店照片作为测试集；逐张人工核对真实包数与 `softcare_count`，并评估检测 precision、recall、F1 及计数绝对误差。将漏检、误检、反光、遮挡和远距离小包装等失败样本回流标注后重新训练。
+保留一批从未参与训练的门店照片作为测试集；逐张人工核对各品牌真实包数与 `brand_counts`，并评估各类别 precision、recall、F1 及计数绝对误差。将漏检、误检、反光、遮挡和远距离小包装等失败样本回流标注后重新训练。
 
-当前 Demo 仅实现 Python 模型训练与推理。后续集成时，Python 模型服务应返回本脚本的 JSON；Spring Boot 负责鉴权、图片业务记录与调用模型服务，Vue 3 负责上传、显示带框图片和 `softcare_count`。这与既有的“YOLO 识别 → 规则引擎 → 审核结果”架构一致。
+当前 Demo 仅实现 Python 模型训练与推理。后续集成时，Python 模型服务应返回本脚本的 JSON；Spring Boot 负责鉴权、图片业务记录与调用模型服务，Vue 3 负责上传、显示带框图片、`brand_counts` 和 `total_count`。这与既有的“YOLO 识别 → 规则引擎 → 审核结果”架构一致。

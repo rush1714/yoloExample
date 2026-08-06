@@ -26,16 +26,17 @@ build/
 models/*.pt
 
 # Dataset images (large binary files, keep directory structure via .gitkeep)
-datasets/*/images/
-datasets/*/raw/images/
-datasets/*/pseudo/images/
 !datasets/*/images/**/.gitkeep
 !datasets/*/raw/images/.gitkeep
 !datasets/*/pseudo/images/.gitkeep
+datasets/*/images/
+datasets/*/raw/images/
+datasets/*/pseudo/images/
 
 # Outputs
 outputs/
 logs/
+.tmp/
 
 # Label Studio data directory
 .label-studio-data/
@@ -55,8 +56,31 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
-models/train/softcare/weights/*.pt
-models/train/softcare/*.png
-models/train/softcare/*.jpg
-models/train/softcare/*.csv
 datasets/softcare/labels/*.cache
+/models/train/
+
+/datasets/multibrand/labels/*.cache
+
+/datasets/multibrand/labels/test/*.txt
+/datasets/multibrand/labels/train/*.txt
+/datasets/multibrand/labels/val/*.txt
+
+/datasets/multibrand/pseudo/labels/test/*.txt
+/datasets/multibrand/pseudo/labels/train/*.txt
+/datasets/multibrand/pseudo/labels/val/*.txt
+
+/datasets/multibrand/pseudo/metadata/*.txt
+/datasets/multibrand/pseudo/metadata/*.csv
+/datasets/multibrand/pseudo/metadata/*.json
+
+/datasets/multibrand/label_studio/*label_studio_import.json
+/datasets/multibrand/label_studio/exports/
+
+/datasets/multibrand/ocr/metadata/*.txt
+/datasets/multibrand/ocr/metadata/*.csv
+/datasets/multibrand/ocr/metadata/*.json
+
+/datasets/multibrand/raw/metadata/*.txt
+/datasets/multibrand/raw/metadata/*.csv
+/datasets/multibrand/raw/metadata/*.json
+
