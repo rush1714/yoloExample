@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import mimetypes
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -187,21 +187,30 @@ def extension_from_response(url: str, content_type: str | None) -> str:
     return ".jpg"
 
 
+def attachment_stem_from_url(url: str) -> str:
+    """从 URL 路径中提取原附件文件名 stem。"""
+    parsed_name = Path(urlparse(url).path).name
+    stem = Path(parsed_name).stem.strip()
+    # 只保留常见安全字符，避免 URL 中异常字符影响本地文件名。
+    safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._-")
+    return safe_stem or "attachment"
+
+
 def make_filename(record: ImageRecord, extension: str) -> str:
     """
-    生成文件名：行号 + URL 哈希值。
-    
-    使用 URL 的 SHA1 哈希前 12 位，确保文件名唯一且可追溯。
-    
+    生成文件名：行号 + 原附件名称。
+
+    原附件名称本身就是业务侧生成的唯一 hash，因此不再对完整 URL 重新计算 hash。
+
     Args:
         record: 图片记录
         extension: 文件后缀
-    
+
     Returns:
-        文件名（如 "row00002_1d59f9162b2f.jpg"）
+        文件名（如 "row00002_67cfc8156160c2fd227aef004b771854.webp"）
     """
-    digest = hashlib.sha1(record.url.encode("utf-8")).hexdigest()[:12]
-    return f"row{record.row_number:05d}_{digest}{extension}"
+    attachment_stem = attachment_stem_from_url(record.url)
+    return f"row{record.row_number:05d}_{attachment_stem}{extension}"
 
 
 def download_one(record: ImageRecord, output_dir: Path, timeout: int) -> DownloadResult:

@@ -121,6 +121,7 @@ uv run python scripts/data_import/import_images_from_excel.py \
 
 - 原图目录：`datasets/multibrand/raw/images/`
 - 下载报告：`datasets/multibrand/raw/metadata/download_report.csv`
+- 图片命名：`row<Excel行号>_<原附件名称>.<后缀>`，例如 `row00002_67cfc8156160c2fd227aef004b771854.webp`；原附件名称本身是业务 hash，因此不再对完整 URL 重新计算 hash。
 
 ## OCR 辅助筛选品牌候选图片
 
@@ -260,6 +261,8 @@ http://localhost:9001
 | `make ls-stop` | 停止占用 9001 端口的 Label Studio 进程，并清理 `logs/label-studio.pid`。 |
 | `make help` | 查看全部 Make 命令，并输出常用参数默认值、可选值和调参效果。 |
 | `make help-params` | 只查看参数说明。 |
+| `make datasets-clean-preview` | 预览 `datasets/` 下会被 `.gitignore` 忽略且会被清理的文件。 |
+| `make datasets-clean-ignored` | 删除 `datasets/` 下所有被 `.gitignore` 忽略的文件；执行前务必先预览。 |
 
 首次使用流程：
 
@@ -314,6 +317,18 @@ make ls-import-json
 make ls-apply
 make ls-stop
 ```
+
+清理 `datasets/` 下被 git 忽略的生成文件：
+
+```bash
+# 先预览会删除哪些文件
+make datasets-clean-preview
+
+# 确认无误后再删除
+make datasets-clean-ignored
+```
+
+该命令只作用于 `datasets/`，底层使用 `git clean -fdX -- datasets/`，会删除 `.gitignore` 忽略的原图、伪标注图片、正式训练图片等大文件，不会删除已被 git 跟踪的文件。
 
 本项目提供两个导入脚本：
 

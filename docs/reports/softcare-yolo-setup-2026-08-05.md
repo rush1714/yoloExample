@@ -49,6 +49,8 @@ datasets/multibrand/raw/metadata/download_report.csv
 datasets/multibrand/raw/metadata/download_report.json
 ```
 
+命名规则更新：图片文件名改为 `row<Excel行号>_<原附件名称>.<后缀>`，例如 `row00002_67cfc8156160c2fd227aef004b771854.webp`。原附件名称本身是业务侧 hash 且唯一，因此不再使用完整 URL 的 SHA1 前 12 位。
+
 使用命令：
 
 ```bash
@@ -767,3 +769,5 @@ make workflow-after-ls LS_PROJECT_ID=<项目ID>
 - 2026-08-06 更新：已完成多品牌多类别改造。`data/brand_keywords.json` 成为统一类别来源，新增 `scripts/common/brand_library.py` 和 `scripts/config/write_brand_yolo_yaml.py`；`make brand-yaml` 会生成多品牌 `data/multibrand.yaml`、`data/multibrand_pseudo.yaml`；YOLO-World 预标注按品牌写入不同 class_id；Label Studio 导入项目自动生成 20 个品牌标签；Label Studio 导出转 YOLO 会按品牌标签写多类别标签；推理输出改为 `brand_counts` 和 `total_count`。
 - 2026-08-06 更新：完成多品牌目录重构。数据根目录从 `datasets/softcare/` 迁移为 `datasets/multibrand/`；YAML 从 `data/softcare*.yaml` 迁移为 `data/multibrand*.yaml`；脚本按流程归类到 `scripts/data_import/`、`scripts/ocr/`、`scripts/pseudo_label/`、`scripts/label_studio/`、`scripts/training/`、`scripts/inference/`、`scripts/config/`、`scripts/common/`。
 - 2026-08-06 更新：修复多品牌预标注跨品牌重叠框问题。`scripts/pseudo_label/generate_yolo_world.py` 新增 `--cross-brand-dedup`、`--cross-brand-iou`、`--cross-brand-containment`；Makefile 默认启用跨品牌去重。1 张样本对比：未启用跨品牌去重时 8 个框，启用后减少到 4 个框，去除了 LAVITA/KINPOWER 等覆盖同一位置的重复候选。
+- 2026-08-06 更新：`scripts/data_import/import_images_from_excel.py` 的原图命名规则从 `行号 + URL SHA1 前 12 位` 改为 `行号 + 原附件名称`，保持与业务附件 hash 文件名一致，便于和上游附件追踪。
+- 2026-08-06 更新：Makefile 新增 `datasets-clean-preview` 和 `datasets-clean-ignored`。前者预览 `datasets/` 下会被 `.gitignore` 忽略并清理的文件，后者执行 `git clean -fdX -- datasets/` 删除这些生成文件。

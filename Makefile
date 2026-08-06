@@ -214,7 +214,7 @@ export BRAND_LIBRARY
 	step-1-import-excel step-2-ocr step-3-pseudo-label step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
 	workflow-to-ls workflow-after-ls \
 	excel-import ocr pseudo-label ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
-	data-validate train predict ls-db-create ls-db-check
+	data-validate train predict datasets-clean-preview datasets-clean-ignored ls-db-create ls-db-check
 
 help: ## 显示命令帮助和常用参数说明
 	@printf "\033[1m可用命令\033[0m\n"
@@ -278,6 +278,12 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 
 prepare-dirs: ## 创建项目内临时目录和日志目录
 	@mkdir -p $(TMP_DIR) $(LS_WORK_DIR) $(LOG_DIR) $(LS_EXPORT_DIR)
+
+datasets-clean-preview: ## 预览 datasets/ 下会被 git clean 删除的 ignored 文件
+	@git clean -ndX -- datasets/
+
+datasets-clean-ignored: ## 删除 datasets/ 下所有被 .gitignore 忽略的文件；先执行 datasets-clean-preview 确认
+	@git clean -fdX -- datasets/
 
 brand-yaml: ## 根据品牌库生成多品牌 YOLO 数据集 YAML
 	$(VENV_BIN)/python scripts/config/write_brand_yolo_yaml.py \
