@@ -1,0 +1,26 @@
+path: ../datasets/multibrand/pseudo
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: softcare
+  1: kleesoft
+  2: doffi
+  3: lavita
+  4: niceday
+  5: mosse
+  6: maya
+  7: clincleer
+  8: veesper
+  9: cuettie
+  10: t_guard
+  11: athena
+  12: mcgel
+  13: faskit
+  14: dr_x
+  15: avril
+  16: diamond
+  17: jiebai
+  18: medipower
+  19: kinpower

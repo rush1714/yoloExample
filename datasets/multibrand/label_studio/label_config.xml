@@ -1,0 +1,27 @@
+<View>
+  <Image name="image" value="$image"/>
+  <RectangleLabels name="bbox" toName="image">
+    <Label value="SOFTCARE" background="#FFA500"/>
+    <Label value="KLEESOFT" background="#1E90FF"/>
+    <Label value="DOFFI" background="#2ECC71"/>
+    <Label value="LAVITA" background="#E74C3C"/>
+    <Label value="NICEDAY" background="#9B59B6"/>
+    <Label value="MOSSE" background="#F1C40F"/>
+    <Label value="MAYA" background="#16A085"/>
+    <Label value="CLINCLEER" background="#E67E22"/>
+    <Label value="VEESPER" background="#34495E"/>
+    <Label value="CUETTIE" background="#FF69B4"/>
+    <Label value="T-GUARD" background="#00CED1"/>
+    <Label value="ATHENA" background="#8B4513"/>
+    <Label value="MCGEL" background="#FFA500"/>
+    <Label value="FASKIT" background="#1E90FF"/>
+    <Label value="DR.X" background="#2ECC71"/>
+    <Label value="Avril" background="#E74C3C"/>
+    <Label value="DIAMOND" background="#9B59B6"/>
+    <Label value="JIEBAI" background="#F1C40F"/>
+    <Label value="MEDIPOWER" background="#16A085"/>
+    <Label value="KINPOWER" background="#E67E22"/>
+  </RectangleLabels>
+  <Header value="来源行：$row_number"/>
+  <Text name="source_url" value="$source_url"/>
+</View>
