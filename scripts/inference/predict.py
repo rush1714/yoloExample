@@ -12,27 +12,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
 from ultralytics import YOLO
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from common.ultralytics_config import configure_ultralytics_weights_dir  # type: ignore[import-not-found]
+
 MODELS_DIR = PROJECT_ROOT / "models"
 DEFAULT_MODEL = MODELS_DIR / "multibrand-best.pt"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "predict"
-
-
-def configure_ultralytics_weights_dir() -> None:
-    """配置 Ultralytics 权重目录到项目本地 models/。"""
-    import ultralytics.utils as ultralytics_utils
-    from ultralytics.nn import text_model
-    from ultralytics.utils import SETTINGS
-
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    SETTINGS["weights_dir"] = str(MODELS_DIR)
-    ultralytics_utils.WEIGHTS_DIR = MODELS_DIR
-    text_model.WEIGHTS_DIR = MODELS_DIR
 
 
 def resolve_model_path(model_path: Path) -> Path:

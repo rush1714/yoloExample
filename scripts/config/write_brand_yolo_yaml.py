@@ -11,7 +11,8 @@ SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, load_brand_classes, yaml_text
+# 动态添加 scripts 目录到 sys.path，IDE 静态分析无法识别，运行时可正常导入
+from common.brand_library import DEFAULT_BRAND_LIBRARY, load_brand_classes, yaml_text  # type: ignore[import-not-found]
 
 DEFAULT_DATA_YAML = PROJECT_ROOT / "data" / "multibrand.yaml"
 DEFAULT_PSEUDO_YAML = PROJECT_ROOT / "data" / "multibrand_pseudo.yaml"

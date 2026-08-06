@@ -50,7 +50,7 @@ LS_LABEL_CONFIG_XML ?= $(DATASET_ROOT)/label_studio/label_config.xml
 # ── 2. OCR 识别参数 ──────────────────────────────────────────
 # OCR 引擎：rapidocr（默认，CPU 快、易跑通）或 easyocr（备选，首次可能下载模型）。
 # 示例：make step-2-ocr OCR_ENGINE=easyocr
-OCR_ENGINE          ?= rapidocr
+OCR_ENGINE          ?= easyocr
 # 额外 OCR 关键词参数，会与 BRAND_LIBRARY 合并；格式必须是脚本参数形式。
 # 示例：make step-2-ocr OCR_KEYWORD_ARGS="--keyword SOFTCARE --keyword KLEESOFT"
 OCR_KEYWORD_ARGS    ?=
@@ -89,6 +89,12 @@ PSEUDO_CONTAINMENT ?= 0.85
 # 单个框最大面积占整图比例；超过则丢弃，防止整图框/整排货架框。
 # 如果仍有大框，试 0.30；如果漏掉近景大包装，可调到 0.60。
 PSEUDO_MAX_AREA_RATIO ?= 0.45
+# 是否启用跨品牌去重；1/true/yes 开启，减少同一商品被多个品牌重复标注。
+PSEUDO_CROSS_BRAND_DEDUP ?= 1
+# 跨品牌重复框 IoU 阈值；调低会更严格删除不同品牌的重叠框。
+PSEUDO_CROSS_BRAND_IOU ?= 0.35
+# 跨品牌覆盖过滤阈值；调低更容易删除覆盖其它品牌小框的大框。
+PSEUDO_CROSS_BRAND_CONTAINMENT ?= 0.80
 # YOLO-World 候选框置信度；调低增加召回但误检多，调高减少误检但漏检多。
 PSEUDO_CONF       ?= 0.03
 # YOLO-World 推理图片尺寸；大图小目标建议 960，速度慢可降到 640。
@@ -104,6 +110,8 @@ PSEUDO_LIMIT_ARG  := $(if $(PSEUDO_LIMIT),--limit $(PSEUDO_LIMIT),)
 PSEUDO_CANDIDATES_ARG := $(if $(filter 1 true yes,$(PSEUDO_USE_OCR_CANDIDATES)),--candidates-file $(OCR_CANDIDATES_FILE),)
 # 派生参数：PSEUDO_INCLUDE_BRAND_PACKAGE_PROMPTS 为 1/true/yes 时才传扩展品牌包装提示词开关。
 PSEUDO_BRAND_PACKAGE_ARG := $(if $(filter 1 true yes,$(PSEUDO_INCLUDE_BRAND_PACKAGE_PROMPTS)),--include-brand-package-prompts,)
+# 派生参数：PSEUDO_CROSS_BRAND_DEDUP 为 1/true/yes 时启用跨品牌去重。
+PSEUDO_CROSS_BRAND_DEDUP_ARG := $(if $(filter 1 true yes,$(PSEUDO_CROSS_BRAND_DEDUP)),--cross-brand-dedup,)
 
 # ── 4/5. Label Studio 参数 ───────────────────────────────────
 # PostgreSQL 用户；默认使用本机用户 guobiao。
@@ -126,6 +134,8 @@ LS_LOCAL_FILES_PATH ?= $(RAW_DIR)
 LS_LOG_FILE      ?= $(LOG_DIR)/label-studio.log
 # Label Studio 后台 PID 文件；ls-stop 会清理它。
 LS_PID_FILE      ?= $(LOG_DIR)/label-studio.pid
+# Label Studio 新建项目标题；ls-apply 会使用它，若同名已存在会自动追加 (2)/(3)。
+LS_PROJECT_TITLE ?= Multi Brand Package Review
 # Label Studio 项目 ID；导出时必填。
 # 示例：make step-5-export-ls-to-train LS_PROJECT_ID=2
 LS_PROJECT_ID    ?=
@@ -188,6 +198,7 @@ export LABEL_STUDIO_BROWSER_OPEN := false
 export NLTK_DISABLE_IMPORT_SECURITY := 1
 
 # PostgreSQL 连接环境变量（Label Studio Django settings 读取）。
+export PROJECT_ROOT
 export DJANGO_DB := postgresql
 export POSTGRE_USER
 export POSTGRE_PASSWORD
@@ -196,6 +207,7 @@ export POSTGRE_HOST
 export POSTGRE_PORT
 export LS_IMPORT_JSON
 export LS_LOCAL_FILES_PATH
+export LS_PROJECT_TITLE
 export BRAND_LIBRARY
 
 .PHONY: help help-params prepare-dirs brand-yaml \
@@ -235,9 +247,13 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  PSEUDO_NMS_IOU=%s\n    重复框去重 IoU；调低删除更多重叠框。\n" "$(PSEUDO_NMS_IOU)"
 	@printf "  PSEUDO_CONTAINMENT=%s\n    大框覆盖小框过滤阈值；调低更积极删除大框。\n" "$(PSEUDO_CONTAINMENT)"
 	@printf "  PSEUDO_MAX_AREA_RATIO=%s\n    最大框面积占比；调低可删除整图/货架大框。\n" "$(PSEUDO_MAX_AREA_RATIO)"
+	@printf "  PSEUDO_CROSS_BRAND_DEDUP=%s\n    1=启用跨品牌去重，减少同一商品被多个品牌重复标注；0=保留跨品牌重叠候选。\n" "$(PSEUDO_CROSS_BRAND_DEDUP)"
+	@printf "  PSEUDO_CROSS_BRAND_IOU=%s\n    跨品牌重叠框 IoU 阈值；调低更严格删除跨品牌重复框。\n" "$(PSEUDO_CROSS_BRAND_IOU)"
+	@printf "  PSEUDO_CROSS_BRAND_CONTAINMENT=%s\n    跨品牌小框覆盖比例阈值；调低更容易删除覆盖同一商品的其它品牌框。\n" "$(PSEUDO_CROSS_BRAND_CONTAINMENT)"
 	@printf "  PSEUDO_LIMIT=%s\n    预标注处理数量上限；空=全量，调试建议 20。\n" "$(PSEUDO_LIMIT)"
 	@printf "\n[5. Label Studio]\n"
 	@printf "  LS_PORT=%s\n    Label Studio 端口。\n" "$(LS_PORT)"
+	@printf "  LS_PROJECT_TITLE=%s\n    ls-apply 新建项目标题；同名存在时自动追加 (2)/(3)。\n" "$(LS_PROJECT_TITLE)"
 	@printf "  LS_PROJECT_ID=%s\n    LS 导出必填项目 ID；示例 make step-5-export-ls-to-train LS_PROJECT_ID=2。\n" "$(LS_PROJECT_ID)"
 	@printf "  LS_EXPORT_PATH=%s\n    LS JSON 导出文件路径，ls-to-yolo 从这里读取。\n" "$(LS_EXPORT_PATH)"
 	@printf "  LS_TO_YOLO_CLEAR=%s\n    1/true/yes 时转换前清空旧正式训练集，谨慎使用。\n" "$(LS_TO_YOLO_CLEAR)"
@@ -285,9 +301,11 @@ step-6-train: train ## 6. 训练多品牌 YOLO 模型
 
 step-7-validate: data-validate predict ## 7. 校验正式数据集并用训练模型推理验证
 
+# ------------------
 workflow-to-ls: step-1-import-excel step-2-ocr step-3-pseudo-label step-4-import-ls ## 执行到 Label Studio 人工复核前/导入阶段
-
+# ------------------
 workflow-after-ls: step-5-export-ls-to-train step-6-train step-7-validate ## Label Studio 人工复核完成后导出、训练并验证
+# ------------------
 
 # ── 1. Excel 数据导入 ────────────────────────────────────────
 
@@ -329,6 +347,9 @@ pseudo-label: ## 生成 YOLO-World 预标注，默认使用 OCR 候选清单和�
 		--nms-iou $(PSEUDO_NMS_IOU) \
 		--containment-threshold $(PSEUDO_CONTAINMENT) \
 		--max-area-ratio $(PSEUDO_MAX_AREA_RATIO) \
+		$(PSEUDO_CROSS_BRAND_DEDUP_ARG) \
+		--cross-brand-iou $(PSEUDO_CROSS_BRAND_IOU) \
+		--cross-brand-containment $(PSEUDO_CROSS_BRAND_CONTAINMENT) \
 		--conf $(PSEUDO_CONF) \
 		--imgsz $(PSEUDO_IMGSZ) \
 		$(PSEUDO_LIMIT_ARG) \

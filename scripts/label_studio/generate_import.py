@@ -23,7 +23,7 @@ if str(SCRIPTS_ROOT) not in sys.path:
 from urllib.parse import quote
 from uuid import uuid4
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, class_id_map, label_config_xml, load_brand_classes
+from common.brand_library import DEFAULT_BRAND_LIBRARY, class_id_map, label_config_xml, load_brand_classes  # type: ignore[import-not-found]
 from PIL import Image
 
 DEFAULT_RAW_REPORT = PROJECT_ROOT / "datasets" / "multibrand" / "raw" / "metadata" / "download_report.csv"

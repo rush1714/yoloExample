@@ -21,7 +21,8 @@ if str(SCRIPTS_ROOT) not in sys.path:
 
 from ultralytics import YOLO
 
-from training.validate_dataset import validate_dataset
+from common.ultralytics_config import configure_ultralytics_weights_dir  # type: ignore[import-not-found]
+from training.validate_dataset import validate_dataset  # type: ignore[import-not-found]
 
 # 项目根目录（scripts/ 的上一级目录）
 # 模型目录，用于存放预训练权重和训练输出
@@ -34,25 +35,6 @@ DEFAULT_PROJECT = MODELS_DIR / "train"
 DEFAULT_BASE_MODEL = MODELS_DIR / "yolo26s.pt"
 # 训练完成后最佳模型的保存路径
 DEFAULT_FINAL_MODEL = MODELS_DIR / "multibrand-best.pt"
-
-
-def configure_ultralytics_weights_dir() -> None:
-    """
-    配置 Ultralytics 的权重文件目录。
-    
-    将 Ultralytics 默认的 weights_dir 重定向到项目本地的 models 目录，
-    避免下载模型到全局目录，便于项目管理和版本控制。
-    """
-    import ultralytics.utils as ultralytics_utils
-    from ultralytics.nn import text_model
-    from ultralytics.utils import SETTINGS
-
-    # 确保 models 目录存在
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    # 更新 Ultralytics 的全局设置和常量，指向本地 models 目录
-    SETTINGS["weights_dir"] = str(MODELS_DIR)
-    ultralytics_utils.WEIGHTS_DIR = MODELS_DIR
-    text_model.WEIGHTS_DIR = MODELS_DIR
 
 
 def resolve_model_path(model_path: Path) -> Path:

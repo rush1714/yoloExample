@@ -15,12 +15,15 @@ import os
 import sys
 from pathlib import Path
 
-# 该脚本通常在 .tmp/label-studio 下通过 label-studio shell 执行，需要把项目根目录加入 sys.path。
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# 该脚本通常通过 label-studio shell 的 exec(open(...).read()) 执行，此时 __file__ 不一定存在。
+# Makefile 会导出 PROJECT_ROOT；如果手动执行，则退回到当前工作目录的父级推断。
+PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", Path.cwd())).resolve()
+if not (PROJECT_ROOT / "scripts").is_dir():
+    PROJECT_ROOT = Path.cwd().resolve().parents[1]
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, label_config_xml, load_brand_classes
+from common.brand_library import DEFAULT_BRAND_LIBRARY, label_config_xml, load_brand_classes  # type: ignore[import-not-found]
 from django.db import transaction  # noqa: ICN001
 from io_storages.localfiles.models import LocalFilesImportStorage, LocalFilesImportStorageLink  # type: ignore[import-not-found]  # noqa: ICN001
 from organizations.models import Organization  # type: ignore[import-not-found]  # noqa: ICN001
@@ -29,7 +32,7 @@ from tasks.models import Prediction, Task  # type: ignore[import-not-found]  # n
 from users.models import User  # type: ignore[import-not-found]  # noqa: ICN001
 
 DEFAULT_IMPORT_JSON = str(PROJECT_ROOT / "datasets" / "multibrand" / "label_studio" / "multibrand_label_studio_import.json")
-DEFAULT_PROJECT_TITLE = "Multi Brand Package Review - 2026-08-06"
+DEFAULT_PROJECT_TITLE = "Multi Brand Package Review"
 DEFAULT_LOCAL_FILES_PATH = str(PROJECT_ROOT / "datasets" / "multibrand" / "raw" / "images")
 
 
@@ -126,6 +129,11 @@ def main() -> None:
     local_files_path = Path(os.environ.get("LS_LOCAL_FILES_PATH", DEFAULT_LOCAL_FILES_PATH))
     brand_library = Path(os.environ.get("BRAND_LIBRARY", str(DEFAULT_BRAND_LIBRARY)))
 
+    print(f"LS_IMPORT_JSON={import_json}")
+    print(f"LS_PROJECT_TITLE={base_title}")
+    print(f"LS_LOCAL_FILES_PATH={local_files_path}")
+    print(f"BRAND_LIBRARY={brand_library}")
+
     if not import_json.is_file():
         raise FileNotFoundError(f"导入 JSON 不存在：{import_json}")
     if not local_files_path.is_dir():
@@ -137,9 +145,29 @@ def main() -> None:
 
     brand_classes = load_brand_classes(brand_library)
     label_config = label_config_xml(brand_classes)
+    title = next_project_title(base_title)
+
+    if os.environ.get("LS_APPLY_DRY_RUN", "").lower() in {"1", "true", "yes"}:
+        prediction_task_count = sum(1 for task in tasks if task.get("predictions"))
+        prediction_count = sum(len(task.get("predictions", []) or []) for task in tasks)
+        prediction_box_count = sum(
+            len(prediction.get("result", []))
+            for task in tasks
+            for prediction in (task.get("predictions", []) or [])
+        )
+        print("dry_run=true")
+        print(f"resolved_project_title={title}")
+        print(f"user_count={User.objects.count()}")
+        print(f"organization_count={Organization.objects.count()}")
+        print(f"brand_classes={len(brand_classes)}")
+        print(f"tasks={len(tasks)}")
+        print(f"tasks_with_predictions={prediction_task_count}")
+        print(f"predictions={prediction_count}")
+        print(f"prediction_boxes={prediction_box_count}")
+        return
+
     user = get_default_user()
     organization = get_default_organization(user)
-    title = next_project_title(base_title)
 
     with transaction.atomic():
         project = create_project(title, user, organization, label_config)
@@ -157,5 +185,6 @@ def main() -> None:
     print(f"url=http://localhost:9001/projects/{project.id}/data")
 
 
-if __name__ == "__main__":
-    main()
+# label-studio shell 里通常通过 exec(open(...).read()) 执行，此时 __name__ 不一定是 "__main__"。
+# 因此这里直接调用 main()，确保 make ls-apply 和手动 exec 都会真正执行导入。
+main()

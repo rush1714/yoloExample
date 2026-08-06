@@ -25,14 +25,8 @@ SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-from common.brand_library import (
-    DEFAULT_BRAND_LIBRARY,
-    BrandClass,
-    filter_brand_classes,
-    load_brand_classes,
-    normalize_key,
-    prompt_to_brand_map,
-)
+from common.brand_library import DEFAULT_BRAND_LIBRARY, BrandClass, filter_brand_classes, load_brand_classes, normalize_key, prompt_to_brand_map  # type: ignore[import-not-found]
+from common.ultralytics_config import configure_ultralytics_weights_dir  # type: ignore[import-not-found]
 from PIL import Image
 from ultralytics import YOLO
 
@@ -70,18 +64,6 @@ class PseudoBox:
     confidence: float  # 检测置信度
     xyxy: list[float]  # 边界框坐标 [x1, y1, x2, y2]（像素值）
     yolo: list[float]  # YOLO 格式坐标 [center_x, center_y, width, height]（归一化值）
-
-
-def configure_ultralytics_weights_dir() -> None:
-    """将 Ultralytics 默认权重目录重定向到项目本地 models/。"""
-    import ultralytics.utils as ultralytics_utils
-    from ultralytics.nn import text_model
-    from ultralytics.utils import SETTINGS
-
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    SETTINGS["weights_dir"] = str(MODELS_DIR)
-    ultralytics_utils.WEIGHTS_DIR = MODELS_DIR
-    text_model.WEIGHTS_DIR = MODELS_DIR
 
 
 def resolve_model_path(model_path: Path) -> Path:
@@ -190,17 +172,67 @@ def box_iou(left: list[float], right: list[float]) -> float:
     return inter_area / union_area if union_area > 0 else 0.0
 
 
+def intersection_area(left: list[float], right: list[float]) -> float:
+    """计算两个 xyxy 像素框的交集面积。"""
+    inter_x1 = max(left[0], right[0])
+    inter_y1 = max(left[1], right[1])
+    inter_x2 = min(left[2], right[2])
+    inter_y2 = min(left[3], right[3])
+    return max(0.0, inter_x2 - inter_x1) * max(0.0, inter_y2 - inter_y1)
+
+
 def covered_ratio(inner: list[float], outer: list[float]) -> float:
     """计算 inner 被 outer 覆盖的比例，用于删除覆盖小框的大框。"""
     inner_area = box_area(inner)
     if inner_area <= 0:
         return 0.0
-    inter_x1 = max(inner[0], outer[0])
-    inter_y1 = max(inner[1], outer[1])
-    inter_x2 = min(inner[2], outer[2])
-    inter_y2 = min(inner[3], outer[3])
-    inter_area = max(0.0, inter_x2 - inter_x1) * max(0.0, inter_y2 - inter_y1)
-    return inter_area / inner_area
+    return intersection_area(inner, outer) / inner_area
+
+
+def overlap_min_ratio(left: list[float], right: list[float]) -> float:
+    """交集占较小框面积比例；比 IoU 更适合发现一大一小的重复框。"""
+    min_area = min(box_area(left), box_area(right))
+    if min_area <= 0:
+        return 0.0
+    return intersection_area(left, right) / min_area
+
+
+def suppress_cross_brand_overlaps(
+    boxes: list[PseudoBox],
+    cross_iou_threshold: float,
+    cross_containment_threshold: float,
+) -> list[PseudoBox]:
+    """跨品牌去重，减少同一商品被多个品牌提示词重复框选。"""
+    # 第一步：如果一个跨品牌大框覆盖了另一个更小的框，优先丢弃大框。
+    non_covering: list[PseudoBox] = []
+    for candidate in boxes:
+        candidate_area = box_area(candidate.xyxy)
+        covers_smaller_other_brand = any(
+            other.class_id != candidate.class_id
+            and candidate_area > box_area(other.xyxy) * 1.25
+            and covered_ratio(other.xyxy, candidate.xyxy) >= cross_containment_threshold
+            for other in boxes
+        )
+        if not covers_smaller_other_brand:
+            non_covering.append(candidate)
+
+    # 第二步：对剩余跨品牌高度重叠框做 NMS，优先保留高置信度；置信度相近时保留更小框。
+    sorted_boxes = sorted(non_covering, key=lambda item: (item.confidence, -box_area(item.xyxy)), reverse=True)
+    kept: list[PseudoBox] = []
+    for candidate in sorted_boxes:
+        should_drop = False
+        for kept_box in kept:
+            if kept_box.class_id == candidate.class_id:
+                continue
+            if box_iou(candidate.xyxy, kept_box.xyxy) >= cross_iou_threshold:
+                should_drop = True
+                break
+            if overlap_min_ratio(candidate.xyxy, kept_box.xyxy) >= cross_containment_threshold:
+                should_drop = True
+                break
+        if not should_drop:
+            kept.append(candidate)
+    return kept
 
 
 def filter_boxes(
@@ -210,8 +242,11 @@ def filter_boxes(
     iou_threshold: float,
     containment_threshold: float,
     max_area_ratio: float,
+    cross_brand_dedup: bool,
+    cross_iou_threshold: float,
+    cross_containment_threshold: float,
 ) -> list[PseudoBox]:
-    """按类别分别做去重和大框过滤，避免不同品牌互相误删。"""
+    """按类别去重后，再可选跨品牌去重，减少重复覆盖框。"""
     image_area = float(image_width * image_height)
     grouped: dict[int, list[PseudoBox]] = {}
     for box in boxes:
@@ -237,6 +272,13 @@ def filter_boxes(
             if not should_drop:
                 kept.append(candidate)
         kept_all.extend(kept)
+
+    if cross_brand_dedup:
+        kept_all = suppress_cross_brand_overlaps(
+            boxes=kept_all,
+            cross_iou_threshold=cross_iou_threshold,
+            cross_containment_threshold=cross_containment_threshold,
+        )
     return sorted(kept_all, key=lambda item: (item.class_id, -item.confidence))
 
 
@@ -249,6 +291,9 @@ def predict_image(
     nms_iou: float,
     containment_threshold: float,
     max_area_ratio: float,
+    cross_brand_dedup: bool,
+    cross_iou_threshold: float,
+    cross_containment_threshold: float,
 ) -> list[PseudoBox]:
     """执行 YOLO-World 推理，并将 prompt 结果映射为品牌类别。"""
     with Image.open(image_path) as image:
@@ -285,6 +330,9 @@ def predict_image(
         iou_threshold=nms_iou,
         containment_threshold=containment_threshold,
         max_area_ratio=max_area_ratio,
+        cross_brand_dedup=cross_brand_dedup,
+        cross_iou_threshold=cross_iou_threshold,
+        cross_containment_threshold=cross_containment_threshold,
     )
 
 
@@ -309,6 +357,9 @@ def main() -> None:
     parser.add_argument("--nms-iou", type=float, default=0.45, help="同类别重复框去重 IoU 阈值")
     parser.add_argument("--containment-threshold", type=float, default=0.85, help="大框覆盖已保留小框超过该比例时丢弃大框")
     parser.add_argument("--max-area-ratio", type=float, default=0.45, help="丢弃占整图面积超过该比例的大框")
+    parser.add_argument("--cross-brand-dedup", action="store_true", help="启用跨品牌重叠框去重，减少同一商品被多个品牌重复标注")
+    parser.add_argument("--cross-brand-iou", type=float, default=0.35, help="跨品牌重复框去重 IoU 阈值；越低越严格")
+    parser.add_argument("--cross-brand-containment", type=float, default=0.80, help="跨品牌覆盖过滤阈值；越低越容易删除覆盖框")
     parser.add_argument("--conf", type=float, default=0.12, help="候选框置信度阈值")
     parser.add_argument("--imgsz", type=int, default=960, help="推理图片边长")
     parser.add_argument("--limit", type=int, default=None, help="只处理前 N 张图片，便于先试跑")
@@ -328,6 +379,10 @@ def main() -> None:
         raise SystemExit("--containment-threshold 必须位于 0 到 1 之间。")
     if not 0.0 < args.max_area_ratio <= 1.0:
         raise SystemExit("--max-area-ratio 必须位于 0 到 1 之间且大于 0。")
+    if not 0.0 <= args.cross_brand_iou <= 1.0:
+        raise SystemExit("--cross-brand-iou 必须位于 0 到 1 之间。")
+    if not 0.0 <= args.cross_brand_containment <= 1.0:
+        raise SystemExit("--cross-brand-containment 必须位于 0 到 1 之间。")
 
     try:
         all_classes = load_brand_classes(args.brand_library)
@@ -377,6 +432,9 @@ def main() -> None:
             nms_iou=args.nms_iou,
             containment_threshold=args.containment_threshold,
             max_area_ratio=args.max_area_ratio,
+            cross_brand_dedup=args.cross_brand_dedup,
+            cross_iou_threshold=args.cross_brand_iou,
+            cross_containment_threshold=args.cross_brand_containment,
         )
         label_lines = [f"{box.class_id} " + " ".join(f"{value:.6f}" for value in box.yolo) for box in boxes]
         target_label.write_text("\n".join(label_lines) + ("\n" if label_lines else ""), encoding="utf-8")

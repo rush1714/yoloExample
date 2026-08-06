@@ -184,8 +184,10 @@ make step-2-ocr
 - `--nms-iou`：重复框 IoU 去重阈值。
 - `--containment-threshold`：大框覆盖已保留小框超过该比例时丢弃大框。
 - `--max-area-ratio`：丢弃占整图面积过大的候选框。
+- `--cross-brand-dedup`：跨品牌去重，减少同一商品被多个品牌提示词重复框选。
+- `--cross-brand-iou` / `--cross-brand-containment`：控制跨品牌重叠框过滤严格程度。
 
-默认 Make 参数会使用全品牌库、`--include-brand-package-prompts`、`--nms-iou 0.45`、`--containment-threshold 0.85`、`--max-area-ratio 0.45`：
+默认 Make 参数会使用全品牌库、`--include-brand-package-prompts`、同类别去重和跨品牌去重：`--nms-iou 0.45`、`--containment-threshold 0.85`、`--max-area-ratio 0.45`、`--cross-brand-dedup`、`--cross-brand-iou 0.35`、`--cross-brand-containment 0.80`：
 
 ```bash
 make step-3-pseudo-label
@@ -203,6 +205,9 @@ uv run python scripts/pseudo_label/generate_yolo_world.py \
   --nms-iou 0.45 \
   --containment-threshold 0.85 \
   --max-area-ratio 0.45 \
+  --cross-brand-dedup \
+  --cross-brand-iou 0.35 \
+  --cross-brand-containment 0.80 \
   --conf 0.03 \
   --imgsz 960
 ```
@@ -212,7 +217,8 @@ uv run python scripts/pseudo_label/generate_yolo_world.py \
 - `--candidates-file` 可接入 OCR 命中的候选清单，只优先处理疑似品牌图片；如果想全量处理，可执行 `make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0`。
 - `PSEUDO_BRAND_FILTER_ARGS` 默认留空，表示多品牌预标注；如只想调试单品牌，可传 `PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"`。
 - 多品牌模式下额外 `PSEUDO_PROMPT_ARGS` 建议使用 `{brand}` 占位符，例如 `--prompt '{brand} package on shelf'`，否则泛化 prompt 无法安全映射到某个类别。
-- 品牌包装提示词会提高召回，但误检会增加；现在配合 NMS、覆盖过滤和最大面积过滤减少“大框盖小框”和重复框。
+- 品牌包装提示词会提高召回，但误检会增加；现在配合同类别 NMS、覆盖过滤、最大面积过滤和跨品牌去重减少“大框盖小框”和重复框。
+- 如果确认同一位置确实可能有多个品牌框，可临时关闭跨品牌去重：`make step-3-pseudo-label PSEUDO_CROSS_BRAND_DEDUP=0`。
 - 该脚本更适合“先找候选框，再人工审核”，不适合直接生成最终训练集。
 - 可以先用 `PSEUDO_LIMIT=20` 试跑，看候选框质量后再全量处理。
 

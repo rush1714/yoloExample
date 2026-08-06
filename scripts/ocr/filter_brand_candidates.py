@@ -16,10 +16,16 @@ import csv
 import json
 import re
 import shutil
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
 from rapidfuzz import fuzz
+
+# 全局抑制 PyTorch 的常见无害警告（MPS pin_memory 不支持、量化 API 弃用）
+warnings.filterwarnings("ignore", message=".*pin_memory.*")
+warnings.filterwarnings("ignore", message=".*quantize_per_tensor.*")
+warnings.filterwarnings("ignore", message=".*quantize_per_channel.*")
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -211,13 +217,7 @@ def read_easyocr(reader, image_path: Path, min_confidence: float) -> list[OcrTex
     Returns:
         识别的文本结果列表
     """
-    import warnings
-
-    # 抑制 PyTorch 在 MPS 设备上 pin_memory 不支持的警告，以及量化 API 弃用警告
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message=".*pin_memory.*not supported on MPS.*")
-        warnings.filterwarnings("ignore", message=".*quantize_per_tensor.*deprecated.*")
-        detections = reader.readtext(str(image_path), detail=1, paragraph=False)
+    detections = reader.readtext(str(image_path), detail=1, paragraph=False)
     texts: list[OcrText] = []
     # 解析检测结果
     for box, text, confidence in detections:
