@@ -396,8 +396,8 @@ Version: 1.23.0
 
 | 脚本 | 作用 |
 | --- | --- |
-| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON；图片使用 Excel 原始 URL；YOLO 伪标注转换为 `predictions`。 |
-| `scripts/apply_label_studio_import.py` | 通过本地 Label Studio Django shell 创建项目、任务和 prediction。 |
+| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON；图片使用本地文件服务路径 `/data/local-files/?d=<absolute_path>`；YOLO 伪标注转换为 `predictions`。 |
+| `scripts/apply_label_studio_import.py` | 通过本地 Label Studio Django shell 创建项目、任务、prediction 和 Local Files storage 权限记录。 |
 
 生成导入 JSON：
 
@@ -430,7 +430,7 @@ PY
 
 ### 10.3 导入结果
 
-已导入项目：
+历史已导入项目：
 
 ```text
 project_id=2
@@ -442,16 +442,18 @@ predictions=153
 prediction_boxes=1102
 ```
 
+Review 后脚本会在重新执行 `make ls-apply` 时创建新项目，并输出新的 `project_id`、项目地址、Local Files storage ID。
+
 说明：
 
 - 361 个任务对应 Excel 下载的 361 张原图。
 - 153 个任务带 YOLO-World 预标注预测。
 - 1102 个候选框需要在 Label Studio 中人工删除误检、补充漏检。
-- 图片字段使用原始 URL，`local_path` 和 `row_number` 作为辅助字段保留。
+- 图片字段使用本地文件服务路径 `/data/local-files/?d=<absolute_path>`，避免远程 CDN CORS 问题。`source_url` 保留原始 URL，`local_path` 和 `row_number` 作为辅助字段。
 
 ### 10.4 后续操作
 
-在 Label Studio 中打开：
+在 Label Studio 中打开 `make ls-apply` 输出的项目地址；历史项目地址为：
 
 ```text
 http://localhost:9001/projects/2/data
@@ -626,3 +628,92 @@ README.md
 ```
 
 新增约定：后续如果识别方案、数据流程、训练流程、OCR/YOLO/多模态架构发生优化或调整，必须同步更新 `设计.md`，确保架构文档与当前实现一致。
+
+## 12. Label Studio 启动配置优化：PostgreSQL + 本地文件服务 + Makefile
+
+### 12.1 问题背景
+
+之前 Label Studio 导入的 JSON 中 `image` 字段使用远程 CDN URL（`https://uat-smdp4cust-cdn.globaltradecoo.com/...`），浏览器加载图片时 CDN 不允许来自 `http://localhost:9001` 的跨域请求，导致：
+
+```text
+[Error] Failed to load resource: Origin http://localhost:9001 is not allowed by Access-Control-Allow-Origin
+```
+
+### 12.2 解决方案
+
+1. **图片改用本地文件服务路径**：`import_label_studio.py` 生成的 JSON 中 `image` 字段改为 `/data/local-files/?d=<absolute_path>`，Label Studio 通过内置的本地文件服务直接提供图片，不再依赖外部 CDN。
+2. **数据库改用 PostgreSQL**：替换默认的 SQLite，提升并发性能和数据可靠性。
+3. **创建 Local Files storage 权限记录**：Label Studio 1.23 的 `/data/local-files/` 端点不仅要求开启本地文件服务，还要求项目绑定对应 Local Files storage；`make ls-apply` 会自动注册 `datasets/softcare/raw/images/`。
+4. **Makefile 一键启动**：封装所有环境变量和启动参数，简化操作。
+
+### 12.3 新增文件
+
+| 文件 | 作用 |
+| --- | --- |
+| `Makefile` | 封装 Label Studio 数据库初始化、启动、停止、检查、导入等命令 |
+
+### 12.4 修改文件
+
+| 文件 | 变更 |
+| --- | --- |
+| `scripts/import_label_studio.py` | `image` 字段从远程 URL 改为 URL 编码后的 `/data/local-files/?d=<absolute_path>` |
+| `scripts/apply_label_studio_import.py` | 导入时创建 Local Files storage，并为每个任务创建本地文件 storage link，确保图片端点有项目权限 |
+
+### 12.5 环境变量配置
+
+通过 Makefile 自动设置以下环境变量：
+
+```text
+LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/
+NLTK_DISABLE_IMPORT_SECURITY=1
+DJANGO_DB=postgresql
+POSTGRE_USER=guobiao
+POSTGRE_NAME=labelstudio
+POSTGRE_HOST=localhost
+POSTGRE_PORT=5432
+```
+
+### 12.6 Make 命令
+
+| 命令 | 作用 |
+| --- | --- |
+| `make help` | 显示所有可用命令 |
+| `make ls-setup` | 首次初始化 PostgreSQL 数据库并执行迁移 |
+| `make ls-start` | 后台启动 Label Studio（端口 9001，PostgreSQL，本地文件服务），日志写入 `logs/label-studio.log` |
+| `make ls-stop` | 停止 Label Studio，并清理 `logs/label-studio.pid` |
+| `make ls-migrate` | 执行 Django 数据库迁移（首次使用需要） |
+| `make ls-shell` | 进入 Label Studio Django shell |
+| `make ls-import-json` | 生成 Label Studio 导入 JSON（使用本地图片路径） |
+| `make ls-apply` | 通过 Django shell 导入任务，并注册本地图片目录 Local Files storage |
+| `make ls-db-create` | 如果 PostgreSQL 数据库不存在则创建 |
+| `make ls-db-check` | 检查 PostgreSQL 数据库连接 |
+
+### 12.7 首次使用流程
+
+```bash
+# 1. 创建 PostgreSQL 数据库并执行数据库迁移
+make ls-setup
+
+# 2. 后台启动 Label Studio，日志见 logs/label-studio.log
+make ls-start
+
+# 可选：查看启动日志
+tail -f logs/label-studio.log
+
+# 3. 另开一个终端，生成导入 JSON（已使用本地图片路径）
+make ls-import-json
+
+# 4. 导入任务、prediction，并注册 Local Files storage
+make ls-apply
+```
+
+### 12.8 测试结果
+
+- PostgreSQL 数据库 `labelstudio` 连接正常。
+- 导入 JSON 中 `image` 字段已改为 `/data/local-files/?d=/Users/guobiao/PRO/me/yoloExample/datasets/softcare/raw/images/...`。
+- 重新生成 JSON：`tasks=361, tasks_with_predictions=153, prediction_boxes=1102`。
+- Review 后修复 Makefile `ls-stop` 目标中的括号错误，`make help`、`make -n ls-stop`、`make -n ls-apply` 均可正常解析。
+- Review 后确认 Label Studio 1.23 本地文件服务要求 Local Files storage 权限；已更新 `scripts/apply_label_studio_import.py`，导入项目时自动创建 storage 和 storage link。
+- 已验证运行时配置：`DJANGO_DB=postgresql`、数据库名 `labelstudio`、`LOCAL_FILES_SERVING_ENABLED=True`、`LOCAL_FILES_DOCUMENT_ROOT=/`。
+- 2026-08-06 更新：`make ls-start` 已改为后台启动，日志写入 `logs/label-studio.log`，PID 写入 `logs/label-studio.pid`；重复执行会提示已有 PID，不会重复启动；`make ls-stop` 会停止进程并清理 PID 文件。

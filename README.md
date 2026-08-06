@@ -200,35 +200,58 @@ datasets/softcare/labels/train|val|test
 
 ### 方案 C：Label Studio 人工复核
 
-当前本地 Label Studio 运行在：
+当前本地 Label Studio 使用 **9001 端口 + 本地 PostgreSQL + 本地文件服务**：
 
 ```text
 http://localhost:9001
 ```
 
-本项目提供两个脚本：
+本项目提供 Makefile 封装常用操作：
+
+| 命令 | 作用 |
+| --- | --- |
+| `make ls-setup` | 首次初始化 PostgreSQL 数据库并执行 Label Studio 迁移。 |
+| `make ls-start` | 后台启动 Label Studio（端口 9001，PostgreSQL，本地文件服务），日志写入 `logs/label-studio.log`。 |
+| `make ls-stop` | 停止占用 9001 端口的 Label Studio 进程，并清理 `logs/label-studio.pid`。 |
+| `make ls-import-json` | 生成 Label Studio 导入 JSON，图片使用 `/data/local-files/?d=<absolute_path>`。 |
+| `make ls-apply` | 通过 `label-studio shell` 导入任务，并注册本地图片目录为 Local Files storage。 |
+| `make ls-db-check` | 检查 PostgreSQL 数据库连接。 |
+
+首次使用流程：
+
+```bash
+# 1. 创建数据库并执行迁移
+make ls-setup
+
+# 2. 后台启动 Label Studio，日志见 logs/label-studio.log
+make ls-start
+
+# 可选：查看启动日志
+tail -f logs/label-studio.log
+
+# 3. 另开一个终端，重新生成导入 JSON
+make ls-import-json
+
+# 4. 导入任务和 YOLO-World 预标注
+make ls-apply
+```
+
+本项目提供两个导入脚本：
 
 | 脚本 | 作用 |
 | --- | --- |
-| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON，图片来自原始 URL，YOLO 伪标注作为 `predictions`。 |
-| `scripts/apply_label_studio_import.py` | 通过本地 `label-studio shell` 写入当前 Label Studio 实例。 |
+| `scripts/import_label_studio.py` | 生成 Label Studio 标准任务 JSON；图片使用本地文件服务路径，避免远程 CDN CORS 问题；YOLO 伪标注作为 `predictions`。 |
+| `scripts/apply_label_studio_import.py` | 通过本地 `label-studio shell` 创建项目、任务、prediction，并创建 Local Files storage 权限记录。 |
 
-生成导入 JSON：
+当前导入 JSON 结果：
 
-```bash
-uv run python scripts/import_label_studio.py
+```text
+任务数：361
+带预标注任务数：153
+候选框数：1102
 ```
 
-导入到本地 Label Studio：
-
-```bash
-cd /tmp && PYTHONSAFEPATH=1 \
-  /Users/guobiao/PRO/me/yoloExample/.venv/bin/label-studio shell <<'PY'
-exec(open('/Users/guobiao/PRO/me/yoloExample/scripts/apply_label_studio_import.py', encoding='utf-8').read())
-PY
-```
-
-当前已导入项目：
+历史已导入项目如下；如果按新脚本重新执行 `make ls-apply`，请以命令输出的新项目地址为准：
 
 ```text
 项目：Softcare Diaper Review - 2026-08-05
@@ -238,7 +261,7 @@ PY
 候选框数：1102
 ```
 
-说明：Label Studio 1.23 默认使用 Personal Access Token 的 `Authorization: Bearer <token>`；当前本地实例没有提供 PAT，且 legacy token 已禁用，因此这里采用本地 `label-studio shell` 导入方式。
+说明：Label Studio 1.23 默认使用 Personal Access Token 的 `Authorization: Bearer <token>`；当前本地实例没有提供 PAT，且 legacy token 已禁用，因此这里采用本地 `label-studio shell` 导入方式。Label Studio 的 `/data/local-files/` 端点还要求项目有对应 Local Files storage 权限，所以必须用 `make ls-apply` 或等价脚本注册 `datasets/softcare/raw/images/`。
 
 ## 数据集校验
 

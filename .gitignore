@@ -35,6 +35,10 @@ datasets/*/pseudo/images/
 
 # Outputs
 outputs/
+logs/
+
+# Label Studio data directory
+.label-studio-data/
 
 # Environment variables
 .env
