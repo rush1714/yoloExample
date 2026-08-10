@@ -84,3 +84,5 @@ datasets/softcare/labels/*.cache
 /datasets/multibrand/raw/metadata/*.csv
 /datasets/multibrand/raw/metadata/*.json
 
+/models/bak/
+

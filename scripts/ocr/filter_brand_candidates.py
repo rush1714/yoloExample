@@ -11,16 +11,30 @@ OCR 筛选脚本：通过文本识别筛选包含 Softcare 字样的图片。
 
 from __future__ import annotations
 
+# OCR 脚本需要集中承载 CLI、模型初始化和单图处理逻辑；保留局部惰性导入以避免
+# 未使用的 OCR 引擎在启动时强制加载模型。
+# pylint: disable=import-outside-toplevel,too-many-arguments,too-many-positional-arguments
+# pylint: disable=too-many-locals,too-many-statements
+
 import argparse
 import csv
 import json
 import re
 import shutil
+import threading
 import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
 from rapidfuzz import fuzz
+
+# OCR 文本过短时 partial_ratio 极易误召回，例如单个 K 命中 KLEESOFT。
+MIN_OCR_MATCH_TEXT_LENGTH = 4
+# 非别名品牌词要求 OCR 文本覆盖品牌长度的一定比例，避免 Viva 命中 LAVITA。
+MIN_KEYWORD_COVERAGE = 0.70
+# 高相似但低置信度的商标 Logo OCR 仍可作为候选，因此不再简单用 score * confidence。
+LOW_CONFIDENCE_PENALTY = 0.85
 
 # 全局抑制 PyTorch 的常见无害警告（MPS pin_memory 不支持、量化 API 弃用）
 warnings.filterwarnings("ignore", message=".*pin_memory.*")
@@ -39,6 +53,8 @@ DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "data" / "brand_keywords.json"
 DEFAULT_KEYWORDS = ["softcare", "soft care"]
 # 支持的图片格式后缀
 IMAGE_SUFFIXES = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+# 每个工作线程保存一个独立 OCR reader，避免多个线程共享模型实例导致线程安全问题。
+_THREAD_LOCAL = threading.local()
 
 
 @dataclass(frozen=True)
@@ -238,13 +254,13 @@ def read_easyocr(reader, image_path: Path, min_confidence: float) -> list[OcrTex
 def read_ocr(reader, engine: str, image_path: Path, min_confidence: float) -> list[OcrText]:
     """
     根据引擎类型调用相应的 OCR 识别函数。
-    
+
     Args:
         reader: OCR 读取器实例
         engine: OCR 引擎类型
         image_path: 图片路径
         min_confidence: 最低置信度阈值
-    
+
     Returns:
         识别的文本结果列表
     """
@@ -253,49 +269,106 @@ def read_ocr(reader, engine: str, image_path: Path, min_confidence: float) -> li
     return read_easyocr(reader, image_path, min_confidence)
 
 
-def match_keywords(texts: list[OcrText], keywords: list[str], fuzzy_threshold: int) -> tuple[bool, float, str, str]:
+def get_thread_reader(engine: str, languages: list[str], gpu: bool):
+    """获取当前线程专用 OCR reader，首次调用时懒加载模型。"""
+    cache_key = f"reader_{engine}_{'_'.join(languages)}_{int(gpu)}"
+    reader = getattr(_THREAD_LOCAL, cache_key, None)
+    if reader is None:
+        reader = build_reader(engine, languages, gpu)
+        setattr(_THREAD_LOCAL, cache_key, reader)
+    return reader
+
+
+def process_image(
+    image_path: Path,
+    engine: str,
+    languages: list[str],
+    gpu: bool,
+    min_confidence: float,
+    keywords: list[str],
+    fuzzy_threshold: int,
+    candidate_dir: Path,
+    copy_candidates: bool,
+) -> OcrResult:
+    """处理单张图片：OCR 识别、关键词匹配，并按需复制候选图片。"""
+    reader = get_thread_reader(engine, languages, gpu)
+    texts = read_ocr(reader, engine, image_path, min_confidence)
+    matched, score, keyword, matched_text = match_keywords(texts, keywords, fuzzy_threshold)
+    candidate_image = ""
+    if matched:
+        candidate_image = str(image_path.resolve())
+        if copy_candidates:
+            target = candidate_dir / image_path.name
+            shutil.copy2(image_path, target)
+            candidate_image = str(target.resolve())
+    return OcrResult(
+        image=str(image_path.resolve()),
+        candidate_image=candidate_image,
+        matched=matched,
+        score=score,
+        keyword=keyword,
+        matched_text=matched_text,
+        texts=texts,
+    )
+
+
+def keyword_match_score(keyword: str, text: str, confidence: float) -> float:
+    """计算单个 OCR 文本与品牌关键词的稳健匹配分数。"""
+    normalized_keyword = normalize_text(keyword)
+    normalized_text = normalize_text(text)
+    if not normalized_keyword or not normalized_text:
+        return 0.0
+    # 过滤极短 OCR 文本，避免 K、iv 之类短文本误命中长品牌。
+    if len(normalized_text) < MIN_OCR_MATCH_TEXT_LENGTH:
+        return 0.0
+
+    coverage = len(normalized_text) / len(normalized_keyword)
+    reverse_coverage = len(normalized_keyword) / len(normalized_text)
+    # OCR 文本比品牌短很多时，除非是显式别名，否则不允许 partial 子串高分误召回。
+    if coverage < MIN_KEYWORD_COVERAGE and normalized_keyword not in normalized_text:
+        return 0.0
+
+    # 精确包含优先；短品牌包含长文本时也要避免整段货架文字误判。
+    if normalized_keyword in normalized_text and reverse_coverage >= 0.45:
+        score = 100.0
+    else:
+        ratio_score = float(fuzz.ratio(normalized_keyword, normalized_text))
+        partial_score = float(fuzz.partial_ratio(normalized_keyword, normalized_text))
+        wratio_score = float(fuzz.WRatio(normalized_keyword, normalized_text))
+        # partial_ratio 对短文本过于乐观，这里只给较小权重。
+        score = max(ratio_score, wratio_score, partial_score * 0.85)
+
+    # 不再直接乘 confidence，避免 KLEESOFT Logo 低置信度相似文本被压没；
+    # 但低置信度仍做轻微惩罚。
+    if confidence < 0.35:
+        score *= LOW_CONFIDENCE_PENALTY
+    return score
+
+
+def match_keywords(
+    texts: list[OcrText], keywords: list[str], fuzzy_threshold: int
+) -> tuple[bool, float, str, str]:
     """
-    在 OCR 识别的文本中匹配关键词。
-    
-    支持精确匹配和模糊匹配（基于编辑距离），并考虑 OCR 置信度进行加权。
-    
-    Args:
-        texts: OCR 识别的文本列表
-        keywords: 关键词列表
-        fuzzy_threshold: 模糊匹配阈值（0-100）
-    
-    Returns:
-        元组：(是否匹配, 最佳得分, 匹配的关键词, 匹配的文本)
+    在 OCR 识别文本中匹配品牌关键词。
+
+    匹配策略：
+    - 过滤长度小于 4 的 OCR 文本，减少单字符误召回。
+    - 不再简单使用 partial_ratio * confidence。
+    - 使用 ratio / WRatio / 降权 partial_ratio 组合。
+    - 低置信度但高相似的商标 Logo 文本仍保留为候选。
     """
     best_score = 0.0
     best_keyword = ""
     best_text = ""
-    # 预处理关键词：标准化
-    normalized_keywords = [(keyword, normalize_text(keyword)) for keyword in keywords]
 
-    # 遍历所有识别的文本
     for item in texts:
-        normalized_text = normalize_text(item.text)
-        if not normalized_text:
-            continue
-        # 对每个关键词进行匹配
-        for keyword, normalized_keyword in normalized_keywords:
-            score = 0.0
-            # 精确子串匹配得满分
-            if normalized_keyword and normalized_keyword in normalized_text:
-                score = 100.0
-            else:
-                # 模糊匹配：使用 partial_ratio 计算相似度
-                score = float(fuzz.partial_ratio(normalized_keyword, normalized_text))
-            # 加权得分：考虑 OCR 置信度
-            weighted_score = score * max(item.confidence, 0.01)
-            # 更新最佳匹配
-            if weighted_score > best_score:
-                best_score = weighted_score
+        for keyword in keywords:
+            score = keyword_match_score(keyword, item.text, item.confidence)
+            if score > best_score:
+                best_score = score
                 best_keyword = keyword
                 best_text = item.text
 
-    # 判断是否达到阈值
     return best_score >= fuzzy_threshold, round(best_score, 2), best_keyword, best_text
 
 
@@ -338,7 +411,15 @@ def write_reports(results: list[OcrResult], output_dir: Path) -> None:
     with csv_path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(
             file,
-            fieldnames=["image", "candidate_image", "matched", "score", "keyword", "matched_text", "text_count"],
+            fieldnames=[
+                "image",
+                "candidate_image",
+                "matched",
+                "score",
+                "keyword",
+                "matched_text",
+                "text_count",
+            ],
         )
         writer.writeheader()
         for result in results:
@@ -355,8 +436,12 @@ def write_reports(results: list[OcrResult], output_dir: Path) -> None:
             )
 
     # 保存候选图片清单（仅包含匹配的图片）
-    candidate_images = [result.candidate_image for result in results if result.matched and result.candidate_image]
-    candidates_path.write_text("\n".join(candidate_images) + ("\n" if candidate_images else ""), encoding="utf-8")
+    candidate_images = [
+        result.candidate_image for result in results if result.matched and result.candidate_image
+    ]
+    candidates_path.write_text(
+        "\n".join(candidate_images) + ("\n" if candidate_images else ""), encoding="utf-8"
+    )
 
 
 def main() -> None:
@@ -364,15 +449,34 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="用 OCR 筛选疑似包含 Softcare 字样的原始图片。")
     parser.add_argument("--raw-dir", type=Path, default=DEFAULT_RAW_DIR, help="未标注原图目录")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="OCR 输出目录")
-    parser.add_argument("--keyword", action="append", dest="keywords", help="关键词，可重复传入；会与品牌库合并")
-    parser.add_argument("--brand-library", type=Path, default=DEFAULT_BRAND_LIBRARY, help="品牌标识库 JSON/TXT；会自动忽略数字行和重复项")
-    parser.add_argument("--no-brand-library", action="store_true", help="不读取品牌标识库，仅使用 --keyword 或默认关键词")
-    parser.add_argument("--engine", choices=["rapidocr", "easyocr"], default="rapidocr", help="OCR 引擎；默认 rapidocr，速度快且无需下载 EasyOCR 检测模型")
-    parser.add_argument("--languages", nargs="+", default=["en"], help="EasyOCR 语言列表，仅 --engine easyocr 时使用")
-    parser.add_argument("--gpu", action="store_true", help="是否启用 EasyOCR GPU，仅 --engine easyocr 时使用；Mac MPS 通常保持关闭")
+    parser.add_argument(
+        "--keyword", action="append", dest="keywords", help="关键词，可重复传入；会与品牌库合并"
+    )
+    parser.add_argument(
+        "--brand-library",
+        type=Path,
+        default=DEFAULT_BRAND_LIBRARY,
+        help="品牌标识库 JSON/TXT；会自动忽略数字行和重复项",
+    )
+    parser.add_argument(
+        "--no-brand-library", action="store_true", help="不读取品牌库，仅使用 --keyword 或默认关键词"
+    )
+    parser.add_argument(
+        "--engine",
+        choices=["rapidocr", "easyocr"],
+        default="rapidocr",
+        help="OCR 引擎；默认 rapidocr，速度快且无需下载 EasyOCR 检测模型",
+    )
+    parser.add_argument(
+        "--languages", nargs="+", default=["en"], help="EasyOCR 语言列表，仅 --engine easyocr 时使用"
+    )
+    parser.add_argument(
+        "--gpu", action="store_true", help="是否启用 EasyOCR GPU；Mac MPS 通常保持关闭"
+    )
     parser.add_argument("--min-confidence", type=float, default=0.2, help="OCR 文本最低置信度")
     parser.add_argument("--fuzzy-threshold", type=int, default=60, help="关键词模糊匹配阈值，0-100")
     parser.add_argument("--limit", type=int, default=None, help="只处理前 N 张图片，便于试跑")
+    parser.add_argument("--workers", type=int, default=4, help="并发 OCR 工作线程数；1 表示串行")
     parser.add_argument("--copy-candidates", action="store_true", help="是否复制命中图片到 ocr/candidates")
     args = parser.parse_args()
 
@@ -383,6 +487,8 @@ def main() -> None:
         raise SystemExit("--min-confidence 必须位于 0 到 1 之间。")
     if not 0 <= args.fuzzy_threshold <= 100:
         raise SystemExit("--fuzzy-threshold 必须位于 0 到 100 之间。")
+    if args.workers < 1:
+        raise SystemExit("--workers 必须大于 0。")
 
     # 获取 OCR 关键词：默认读取品牌库，同时允许命令行追加关键词。
     keywords: list[str] = []
@@ -409,37 +515,42 @@ def main() -> None:
     candidate_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    # 初始化 OCR 引擎
-    reader = build_reader(args.engine, args.languages, args.gpu)
-    # 逐张图片进行 OCR 识别和关键词匹配
+    # 多线程逐张图片进行 OCR 识别和关键词匹配。
+    # 注意：每个线程会懒加载独立 OCR reader，避免多个线程共享同一模型实例。
     results: list[OcrResult] = []
-    for index, image_path in enumerate(images, start=1):
-        # OCR 识别
-        texts = read_ocr(reader, args.engine, image_path, args.min_confidence)
-        # 关键词匹配
-        matched, score, keyword, matched_text = match_keywords(texts, keywords, args.fuzzy_threshold)
-        candidate_image = ""
-        if matched:
-            candidate_image = str(image_path.resolve())
-            # 如果启用复制，将匹配的图片复制到候选目录
-            if args.copy_candidates:
-                target = candidate_dir / image_path.name
-                shutil.copy2(image_path, target)
-                candidate_image = str(target.resolve())
-        # 记录结果
-        results.append(
-            OcrResult(
-                image=str(image_path.resolve()),
-                candidate_image=candidate_image,
-                matched=matched,
-                score=score,
-                keyword=keyword,
-                matched_text=matched_text,
-                texts=texts,
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        future_map = {
+            executor.submit(
+                process_image,
+                image_path,
+                args.engine,
+                args.languages,
+                args.gpu,
+                args.min_confidence,
+                keywords,
+                args.fuzzy_threshold,
+                candidate_dir,
+                args.copy_candidates,
+            ): image_path
+            for image_path in images
+        }
+        for index, future in enumerate(as_completed(future_map), start=1):
+            image_path = future_map[future]
+            result = future.result()
+            results.append(result)
+            status = "MATCH" if result.matched else "miss"
+            print(
+                f"[{index}/{len(images)}] {status} score={result.score} "
+                f"keyword={result.keyword or '-'} text={result.matched_text or '-'} "
+                f"image={image_path.name}"
             )
-        )
-        status = "MATCH" if matched else "miss"
-        print(f"[{index}/{len(images)}] {status} score={score} keyword={keyword or '-'} text={matched_text or '-'} image={image_path.name}")
+
+    # 按原始图片顺序写报告，避免并发完成顺序导致报告随机变化。
+    order = {
+        str(image_path.resolve()): index
+        for index, image_path in enumerate(images)
+    }
+    results.sort(key=lambda item: order.get(item.image, len(order)))
 
     # 生成报告
     write_reports(results, args.output_dir)

@@ -125,7 +125,7 @@ uv run python scripts/data_import/import_images_from_excel.py \
 
 ## OCR 辅助筛选品牌候选图片
 
-OCR 用来先筛选可能包含目标品牌字样的图片，减少后续自动预标注和人工复核的处理量。当前本地 PoC 默认使用 **RapidOCR ONNX**，它基于 PP-OCR 思路、CPU 推理快、无需额外下载 EasyOCR 检测模型；脚本也保留 `--engine easyocr` 作为备选。如果后续要做生产化服务，建议优先评估 **PaddleOCR / PP-OCR**。
+OCR 用来先筛选可能包含目标品牌字样的图片，减少后续自动预标注和人工复核的处理量。当前本地 PoC 默认使用 **RapidOCR ONNX**，它基于 PP-OCR 思路、CPU 推理快、无需额外下载 EasyOCR 检测模型；脚本也保留 `--engine easyocr` 作为备选。如果后续要做生产化服务，建议优先评估 **PaddleOCR / PP-OCR**。常规 OCR 已支持 `OCR_WORKERS` 多线程并行处理；另新增 Ollama 本地视觉大模型 OCR 分支，可用 `gemma3:12b`、`qwen3.6:latest` 或 `minicpm-v:latest` 从图片中提取品牌文字。
 
 品牌标识库位于：
 
@@ -133,12 +133,14 @@ OCR 用来先筛选可能包含目标品牌字样的图片，减少后续自动�
 data/brand_keywords.json
 ```
 
-当前包含 `KLEESOFT`、`SOFTCARE`、`DOFFI`、`LAVITA`、`NICEDAY`、`MOSSE`、`MAYA`、`CLINCLEER`、`VEESPER`、`CUETTIE`、`T-GUARD`、`ATHENA`、`MCGEL`、`FASKIT`、`DR.X`、`Avril`、`DIAMOND`、`JIEBAI`、`MEDIPOWER`、`KINPOWER` 等品牌。脚本会自动忽略纯数字序号、重复项和 `★` 这类纯符号；如果品牌有空格、连字符或 OCR 常见写法，可以放到 `aliases` 中。
+当前包含 `KLEESOFT`、`SOFTCARE`、`DOFFI`、`LAVITA`、`NICEDAY`、`MOSSE`、`MAYA`、`CLINCLEER`、`VEESPER`、`CUETTIE`、`T-GUARD`、`ATHENA`、`MCGEL`、`FASKIT`、`DR.X`、`Avril`、`DIAMOND`、`JIEBAI`、`MEDIPOWER`、`KINPOWER` 等品牌。脚本会自动忽略纯数字序号、重复项和 `★` 这类纯符号；如果品牌有空格、连字符或 OCR 常见写法，可以放到 `aliases` 中。`KLEESOFT` 已加入 `Keeson`、`Kleeson`、`Keesoft`、`KEESOTE`、`NEESOTE` 等 OCR 常见误识别别名。
 
-先小批量试跑：
+OCR 匹配规则已做防误召回处理：长度小于 4 的 OCR 文本不参与品牌匹配，不再使用 `partial_ratio * confidence` 的简单加权，而是组合 `ratio` / `WRatio` / 降权后的 `partial_ratio`；同时要求 OCR 文本覆盖品牌长度的一定比例，避免 `Viva` 误命中 `LAVITA`、单字母 `K` 误命中 `KLEESOFT`。低置信度但高度相似的商标 Logo 文本仍可保留为候选。
+
+先小批量试跑常规并行 OCR：
 
 ```bash
-make step-2-ocr OCR_LIMIT=20
+make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4
 ```
 
 等价脚本命令：
@@ -149,14 +151,25 @@ uv run python scripts/ocr/filter_brand_candidates.py \
   --brand-library data/brand_keywords.json \
   --limit 20 \
   --engine rapidocr \
+  --workers 4 \
   --fuzzy-threshold 60 \
   --min-confidence 0.2
 ```
+
+如果希望用 Ollama 本地视觉大模型做 OCR，可先确认本机 Ollama 已启动，并使用默认 `gemma3:12b` 小批量试跑：
+
+```bash
+make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b
+```
+
+本机已验证的可选视觉模型包括：`gemma3:12b`（默认、样例英文品牌识别稳定）、`qwen3.6:latest`（更大更慢，可作为高精度备选）、`minicpm-v:latest`（可作为备选）。LLM OCR 输出同样写入 `ocr_candidates.txt`，因此后续预标注和 Label Studio 流程不变。
 
 全量筛选：
 
 ```bash
 make step-2-ocr
+# 或使用本地大模型 OCR
+make step-2-ocr-llm
 ```
 
 输出：
@@ -243,7 +256,7 @@ http://localhost:9001
 | 顺序 | 命令 | 作用 |
 | --- | --- | --- |
 | 1 | `make step-1-import-excel` | 从 Excel 的 `整改后图片URL` 列下载原始图片，输出到 `datasets/multibrand/raw/images/`。 |
-| 2 | `make step-2-ocr` | OCR 识别 Softcare 候选图片，输出 `datasets/multibrand/ocr/metadata/ocr_candidates.txt`。 |
+| 2 | `make step-2-ocr` | 并行 OCR 识别品牌候选图片，输出 `datasets/multibrand/ocr/metadata/ocr_candidates.txt`。 |
 | 3 | `make step-3-pseudo-label` | 使用 YOLO-World 对 OCR 候选图片生成多品牌多类别预标注，输出到 `datasets/multibrand/pseudo/`。 |
 | 4 | `make step-4-import-ls` | 生成 Label Studio 导入 JSON，并导入本地 Label Studio。 |
 | 5 | `make step-5-export-ls-to-train LS_PROJECT_ID=<项目ID>` | 从 Label Studio 导出 JSON，再转换为正式 YOLO 训练集 `datasets/multibrand/images|labels/`。 |
@@ -255,6 +268,7 @@ http://localhost:9001
 | 命令 | 作用 |
 | --- | --- |
 | `make workflow-to-ls` | 执行步骤 1–4，到 Label Studio 人工复核前/导入完成。 |
+| `make workflow-to-ls-llm` | 使用 Ollama 本地大模型 OCR 后执行步骤 1–4，到 Label Studio 导入完成。 |
 | `make workflow-after-ls LS_PROJECT_ID=<项目ID>` | 人工复核完成后执行步骤 5–7：导出、转训练集、训练、验证。 |
 | `make ls-setup` | 首次初始化 PostgreSQL 数据库并执行 Label Studio 迁移。 |
 | `make ls-start` | 后台启动 Label Studio（端口 9001，PostgreSQL，本地文件服务），日志写入 `logs/label-studio.log`。 |
@@ -288,7 +302,8 @@ make workflow-after-ls LS_PROJECT_ID=<项目ID>
 make help-params
 
 # 小样本调试 OCR / 预标注
-make step-2-ocr OCR_LIMIT=20
+make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4
+make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b
 make step-3-pseudo-label PSEUDO_LIMIT=20 PSEUDO_CONF=0.03
 
 # 不使用 OCR 候选清单，直接全量预标注

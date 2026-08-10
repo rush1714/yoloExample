@@ -1,20 +1,57 @@
 {
-  "description": "门店图片 OCR 筛选、YOLO-World 预标注、Label Studio 多标签和 YOLO 多类别训练使用的品牌标识库；数字序号不入库，class_id 保持稳定。为兼容历史单类别 softcare_diaper 标签，SOFTCARE 固定为 class_id=0。",
+  "description": "门店图片 OCR 筛选、YOLO-World 预标注、Label Studio 多标签和 YOLO 多类别训练使用的品牌标识库；数字序号不入库，class_id 保持稳定。为兼容历史单类别 softcare_diaper 标签，SOFTCARE 固定为 class_id=0。aliases 主要来自现有 OCR 报告中的高相似误识别文本，避免加入过短或通用词。",
   "brands": [
     {
       "class_id": 0,
       "name": "SOFTCARE",
-      "aliases": ["SOFT CARE"]
+      "aliases": [
+        "SOFT CARE",
+        "Softcae",
+        "Softcane",
+        "Softcate",
+        "Softcaue",
+        "Sogtcare",
+        "Softcave",
+        "Softce",
+        "oftcae",
+        "Softcue",
+        "Suftcae",
+        "Soltcare",
+        "Saftcare"
+      ]
     },
     {
       "class_id": 1,
       "name": "KLEESOFT",
-      "aliases": ["KLEE SOFT"]
+      "aliases": [
+        "KLEE SOFT",
+        "Keeson",
+        "Kleeson",
+        "Keesoft",
+        "Kleesoft",
+        "Rlepsoft",
+        "Nep5ort",
+        "KEESOTE",
+        "NEESOTE",
+        "KEESE",
+        "Meesoft",
+        "Kleespf",
+        "Keesuft",
+        "Kleesore",
+        "Keesor",
+        "Keesors",
+        "Kleesd",
+        "Kleeted"
+      ]
     },
     {
       "class_id": 2,
       "name": "DOFFI",
-      "aliases": []
+      "aliases": [
+        "Doffl",
+        "Deff",
+        "Hdovi"
+      ]
     },
     {
       "name": "★",
@@ -25,87 +62,172 @@
     {
       "class_id": 3,
       "name": "LAVITA",
-      "aliases": []
+      "aliases": [
+        "Lavta",
+        "Cavita",
+        "Qavita",
+        "Tavita",
+        "Javita",
+        "Zavita",
+        "Lavit?s",
+        "avital"
+      ]
     },
     {
       "class_id": 4,
       "name": "NICEDAY",
-      "aliases": []
+      "aliases": [
+        "NICE BABY",
+        "Niceday",
+        "Kondays"
+      ]
     },
     {
       "class_id": 5,
       "name": "MOSSE",
-      "aliases": []
+      "aliases": [
+        "MOSS"
+      ]
     },
     {
       "class_id": 6,
       "name": "MAYA",
-      "aliases": []
+      "aliases": [
+        "MAXA",
+        "Mama",
+        "Mada",
+        "Mady",
+        "Myar",
+        "Madar",
+        "Madap",
+        "MadaF",
+        "Matap",
+        "Maiar",
+        "Maday"
+      ]
     },
     {
       "class_id": 7,
       "name": "CLINCLEER",
-      "aliases": []
+      "aliases": [
+        "cleaner",
+        "CNCEN",
+        "Scltccewe"
+      ]
     },
     {
       "class_id": 8,
       "name": "VEESPER",
-      "aliases": []
+      "aliases": [
+        "Reesert",
+        "Reesor",
+        "Veesper"
+      ]
     },
     {
       "class_id": 9,
       "name": "CUETTIE",
-      "aliases": []
+      "aliases": [
+        "Cuette",
+        "Cuettle",
+        "Cueutie",
+        "Cuettiz",
+        "ettie",
+        "Cueque"
+      ]
     },
     {
       "class_id": 10,
       "name": "T-GUARD",
-      "aliases": ["T GUARD"]
+      "aliases": [
+        "T GUARD",
+        "Gurd",
+        "TGuard"
+      ]
     },
     {
       "class_id": 11,
       "name": "ATHENA",
-      "aliases": []
+      "aliases": [
+        "Athen e",
+        "Githena",
+        "Mthene",
+        "Athone",
+        "Mtnenas"
+      ]
     },
     {
       "class_id": 12,
       "name": "MCGEL",
-      "aliases": []
+      "aliases": [
+        "MC Gel",
+        "McGel"
+      ]
     },
     {
       "class_id": 13,
       "name": "FASKIT",
-      "aliases": []
+      "aliases": [
+        "Favit",
+        "Fasy",
+        "Fita",
+        "Faskit"
+      ]
     },
     {
       "class_id": 14,
       "name": "DR.X",
-      "aliases": ["DR X", "DRX"]
+      "aliases": [
+        "DR X",
+        "DRX",
+        "ramx"
+      ]
     },
     {
       "class_id": 15,
       "name": "Avril",
-      "aliases": []
+      "aliases": [
+        "vril",
+        "Jvril",
+        "Svril",
+        "Avriz",
+        "Avru"
+      ]
     },
     {
       "class_id": 16,
       "name": "DIAMOND",
-      "aliases": []
+      "aliases": [
+        "DIAMOND"
+      ]
     },
     {
       "class_id": 17,
       "name": "JIEBAI",
-      "aliases": []
+      "aliases": [
+        "JIJi",
+        "Jiebai"
+      ]
     },
     {
       "class_id": 18,
       "name": "MEDIPOWER",
-      "aliases": []
+      "aliases": [
+        "medisom",
+        "medisoft",
+        "medisoit",
+        "medisoll",
+        "MEDI POWER",
+        "MediPower"
+      ]
     },
     {
       "class_id": 19,
       "name": "KINPOWER",
-      "aliases": []
+      "aliases": [
+        "KIN POWER",
+        "KinPower"
+      ]
     }
   ]
 }

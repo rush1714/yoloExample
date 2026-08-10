@@ -29,7 +29,7 @@ from PIL import Image
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # 默认 Excel 文件路径
-DEFAULT_EXCEL = Path("/Users/guobiao/Downloads/8e96894159cc584f0c7a27faaa4acc45.xlsx")
+DEFAULT_EXCEL = Path("/Users/guobiao/Downloads/4a95276e5e5159f32effb588ef9c0ac7.xlsx")
 # 默认图片输出目录
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "datasets" / "multibrand" / "raw" / "images"
 # 默认元数据输出目录

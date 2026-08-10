@@ -10,11 +10,13 @@ LS_WORK_DIR  := $(TMP_DIR)/label-studio
 LS_DATA_DIR  := $(PROJECT_ROOT)/.label-studio-data
 # 日志目录：Label Studio 后台启动日志、PID 文件等写入这里。
 LOG_DIR      := $(PROJECT_ROOT)/logs
+# 模型备份目录
+MODELS_BAK_DIR  := $(PROJECT_ROOT)/models/backup
 
 # ── 1. Excel 数据导入参数 ────────────────────────────────────
 # Excel 文件路径；可改成任意包含图片 URL 列的本地 xlsx 文件。
 # 示例：make step-1-import-excel EXCEL=/path/to/file.xlsx
-EXCEL              ?= /Users/guobiao/Downloads/8e96894159cc584f0c7a27faaa4acc45.xlsx
+EXCEL              ?= /Users/guobiao/Downloads/4a95276e5e5159f32effb588ef9c0ac7.xlsx
 # Excel 中存放图片 URL 的列名；改错会导致脚本提示找不到列。
 # 示例：make step-1-import-excel EXCEL_COLUMN=整改后图片URL
 EXCEL_COLUMN       ?= 整改后图片URL
@@ -50,7 +52,9 @@ LS_LABEL_CONFIG_XML ?= $(DATASET_ROOT)/label_studio/label_config.xml
 # ── 2. OCR 识别参数 ──────────────────────────────────────────
 # OCR 引擎：rapidocr（默认，CPU 快、易跑通）或 easyocr（备选，首次可能下载模型）。
 # 示例：make step-2-ocr OCR_ENGINE=easyocr
-OCR_ENGINE          ?= easyocr
+OCR_ENGINE          ?= rapidocr
+# 常规 OCR 并发识别线程数；调大可加快 CPU OCR，但会增加内存占用。
+OCR_WORKERS         ?= 4
 # 额外 OCR 关键词参数，会与 BRAND_LIBRARY 合并；格式必须是脚本参数形式。
 # 示例：make step-2-ocr OCR_KEYWORD_ARGS="--keyword SOFTCARE --keyword KLEESOFT"
 OCR_KEYWORD_ARGS    ?=
@@ -69,6 +73,18 @@ OCR_COPY_CANDIDATES ?= 0
 OCR_LIMIT_ARG       := $(if $(OCR_LIMIT),--limit $(OCR_LIMIT),)
 # 派生参数：OCR_COPY_CANDIDATES 为 1/true/yes 时才传 --copy-candidates。
 OCR_COPY_ARG        := $(if $(filter 1 true yes,$(OCR_COPY_CANDIDATES)),--copy-candidates,)
+# 本地大模型 OCR 使用的 Ollama 视觉模型；本机已验证 gemma3:12b 支持英文品牌 OCR。
+LLM_OCR_MODEL       ?= gemma3:12b
+# Ollama 服务地址；默认是本机 Ollama HTTP API。
+LLM_OCR_URL         ?= http://127.0.0.1:11434
+# 单张图片大模型 OCR 请求超时时间（秒）。
+LLM_OCR_TIMEOUT     ?= 180
+# 大模型 OCR 并发数；本地模型通常 1 更稳，Ollama 支持并行时可调到 2/4。
+LLM_OCR_WORKERS     ?= 1
+# 传给视觉模型前的最长边缩放尺寸，控制速度和显存/内存占用。
+LLM_OCR_MAX_IMAGE_SIDE ?= 1280
+# 传给视觉模型前的 JPEG 质量，越高细节越多但请求体越大。
+LLM_OCR_JPEG_QUALITY ?= 90
 
 # ── 3. YOLO-World 预标注参数 ─────────────────────────────────
 # YOLO-World 权重路径；可换成更大/更小的 world 模型，但本地速度和显存会变化。
@@ -209,11 +225,12 @@ export LS_IMPORT_JSON
 export LS_LOCAL_FILES_PATH
 export LS_PROJECT_TITLE
 export BRAND_LIBRARY
+export MODELS_BAK_DIR
 
 .PHONY: help help-params prepare-dirs brand-yaml \
-	step-1-import-excel step-2-ocr step-3-pseudo-label step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
-	workflow-to-ls workflow-after-ls \
-	excel-import ocr pseudo-label ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
+	step-1-import-excel step-2-ocr step-2-ocr-llm step-3-pseudo-label step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
+	workflow-to-ls workflow-to-ls-llm workflow-after-ls \
+	excel-import ocr ocr-llm pseudo-label ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
 	data-validate train predict datasets-clean-preview datasets-clean-ignored ls-db-create ls-db-check
 
 help: ## 显示命令帮助和常用参数说明
@@ -235,10 +252,13 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  BRAND_LIBRARY=%s\n    品牌标识库；OCR、预标注、Label Studio 标签和 YOLO names 都以它为类别来源。\n" "$(BRAND_LIBRARY)"
 	@printf "\n[3. OCR]\n"
 	@printf "  OCR_ENGINE=%s\n    rapidocr/easyocr；rapidocr 快且默认推荐，easyocr 可作为备选。\n" "$(OCR_ENGINE)"
+	@printf "  OCR_WORKERS=%s\n    常规 OCR 并发线程数；调大更快但更占内存，1=串行。\n" "$(OCR_WORKERS)"
 	@printf "  OCR_MIN_CONFIDENCE=%s\n    OCR 文本最低置信度 0-1；调高少误检但可能漏检。\n" "$(OCR_MIN_CONFIDENCE)"
 	@printf "  OCR_FUZZY_THRESHOLD=%s\n    品牌模糊匹配阈值 0-100；调高更严格，调低召回更多。\n" "$(OCR_FUZZY_THRESHOLD)"
 	@printf "  OCR_LIMIT=%s\n    OCR 处理数量上限；空=全量，调试建议 20。\n" "$(OCR_LIMIT)"
 	@printf "  OCR_COPY_CANDIDATES=%s\n    1/true/yes 时复制命中图片到 ocr/candidates；默认只写清单。\n" "$(OCR_COPY_CANDIDATES)"
+	@printf "  LLM_OCR_MODEL=%s\n    Ollama 视觉模型；默认 gemma3:12b，可改 qwen3.6:latest 或 minicpm-v:latest。\n" "$(LLM_OCR_MODEL)"
+	@printf "  LLM_OCR_WORKERS=%s\n    大模型 OCR 并发数；本地推理通常 1 更稳。\n" "$(LLM_OCR_WORKERS)"
 	@printf "\n[4. 预标注]\n"
 	@printf "  PSEUDO_USE_OCR_CANDIDATES=%s\n    1=只处理 OCR 候选图；0=全量 raw/images。\n" "$(PSEUDO_USE_OCR_CANDIDATES)"
 	@printf "  PSEUDO_BRAND_FILTER_ARGS=%s\n    多品牌默认留空=预标全部启用品牌；如只调试某品牌可传 --brand-filter SOFTCARE。\n" "$(PSEUDO_BRAND_FILTER_ARGS)"
@@ -270,7 +290,8 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  PREDICT_SOURCE=%s\n    推理输入，可改本地图片或 HTTP(S) URL。\n" "$(PREDICT_SOURCE)"
 	@printf "  PREDICT_CONF=%s\n    推理置信度；调高少误检，调低多召回。\n" "$(PREDICT_CONF)"
 	@printf "\n常用示例：\n"
-	@printf "  make step-2-ocr OCR_LIMIT=20\n"
+	@printf "  make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4\n"
+	@printf "  make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b\n"
 	@printf "  make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=20\n"
 	@printf "  make step-3-pseudo-label PSEUDO_BRAND_FILTER_ARGS='--brand-filter SOFTCARE' PSEUDO_LIMIT=20\n"
 	@printf "  make step-3-pseudo-label PSEUDO_MAX_AREA_RATIO=0.30 PSEUDO_NMS_IOU=0.35\n"
@@ -280,10 +301,15 @@ prepare-dirs: ## 创建项目内临时目录和日志目录
 	@mkdir -p $(TMP_DIR) $(LS_WORK_DIR) $(LOG_DIR) $(LS_EXPORT_DIR)
 
 datasets-clean-preview: ## 预览 datasets/ 下会被 git clean 删除的 ignored 文件
-	@git clean -ndX -- datasets/
+	@git clean -ndX -- datasets/ \
+	&& git clean -ndX -- models/train/
 
 datasets-clean-ignored: ## 删除 datasets/ 下所有被 .gitignore 忽略的文件；先执行 datasets-clean-preview 确认
-	@git clean -fdX -- datasets/
+	@git clean -fdX -- datasets/ \
+	&& git clean -fdX -- models/train/
+
+bak-data: ## 备份数据集
+	@echo "备份数据集到 ${MODELS_BAK_DIR}" && rsync -av --delete $(MODELS_DIR) $(MODELS_BAK_DIR)
 
 brand-yaml: ## 根据品牌库生成多品牌 YOLO 数据集 YAML
 	$(VENV_BIN)/python scripts/config/write_brand_yolo_yaml.py \
@@ -295,7 +321,9 @@ brand-yaml: ## 根据品牌库生成多品牌 YOLO 数据集 YAML
 
 step-1-import-excel: excel-import ## 1. 从 Excel 导入/下载原始图片
 
-step-2-ocr: ocr ## 2. OCR 识别品牌库关键词并生成候选图片清单
+step-2-ocr: ocr ## 2. 并行 OCR 识别品牌库关键词并生成候选图片清单
+
+step-2-ocr-llm: ocr-llm ## 2. 使用 Ollama 本地视觉大模型 OCR 生成候选图片清单
 
 step-3-pseudo-label: brand-yaml pseudo-label ## 3. 使用 YOLO-World 和品牌库提示词生成多品牌预标注
 
@@ -307,11 +335,12 @@ step-6-train: train ## 6. 训练多品牌 YOLO 模型
 
 step-7-validate: data-validate predict ## 7. 校验正式数据集并用训练模型推理验证
 
-# ------------------
+# -----自动流程 导入图片，orc识别，预标注 ，导入 ls --------
 workflow-to-ls: step-1-import-excel step-2-ocr step-3-pseudo-label step-4-import-ls ## 执行到 Label Studio 人工复核前/导入阶段
-# ------------------
+# -----自动流程 导入图片，本地LLM识别，预标注，导入 ls --------
+workflow-to-ls-llm: step-1-import-excel step-2-ocr-llm step-3-pseudo-label step-4-import-ls ## 使用 Ollama 本地大模型 OCR 后执行到 Label Studio 导入阶段
+# -----自动流程 导出ls标注，训练，验证 --------
 workflow-after-ls: step-5-export-ls-to-train step-6-train step-7-validate ## Label Studio 人工复核完成后导出、训练并验证
-# ------------------
 
 # ── 1. Excel 数据导入 ────────────────────────────────────────
 
@@ -326,7 +355,7 @@ excel-import: ## 从 Excel 指定列下载原始图片到 RAW_DIR
 
 # ── 2. OCR 识别 ─────────────────────────────────────────────
 
-ocr: ## OCR 识别品牌标识库候选图片，输出 OCR_CANDIDATES_FILE
+ocr: ## 并行 OCR 识别品牌标识库候选图片，输出 OCR_CANDIDATES_FILE
 	$(VENV_BIN)/python scripts/ocr/filter_brand_candidates.py \
 		--raw-dir $(RAW_DIR) \
 		--output-dir $(OCR_OUTPUT_DIR) \
@@ -336,6 +365,23 @@ ocr: ## OCR 识别品牌标识库候选图片，输出 OCR_CANDIDATES_FILE
 		--languages $(OCR_LANGUAGES) \
 		--min-confidence $(OCR_MIN_CONFIDENCE) \
 		--fuzzy-threshold $(OCR_FUZZY_THRESHOLD) \
+		--workers $(OCR_WORKERS) \
+		$(OCR_LIMIT_ARG) \
+		$(OCR_COPY_ARG)
+
+ocr-llm: ## 使用 Ollama 本地视觉大模型 OCR 生成品牌候选图片清单
+	$(VENV_BIN)/python scripts/ocr/filter_brand_candidates_llm.py \
+		--raw-dir $(RAW_DIR) \
+		--output-dir $(OCR_OUTPUT_DIR) \
+		--brand-library $(BRAND_LIBRARY) \
+		$(OCR_KEYWORD_ARGS) \
+		--model $(LLM_OCR_MODEL) \
+		--ollama-url $(LLM_OCR_URL) \
+		--timeout $(LLM_OCR_TIMEOUT) \
+		--workers $(LLM_OCR_WORKERS) \
+		--fuzzy-threshold $(OCR_FUZZY_THRESHOLD) \
+		--max-image-side $(LLM_OCR_MAX_IMAGE_SIDE) \
+		--jpeg-quality $(LLM_OCR_JPEG_QUALITY) \
 		$(OCR_LIMIT_ARG) \
 		$(OCR_COPY_ARG)
 
