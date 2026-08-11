@@ -1,0 +1,270 @@
+# YOLO 多品牌训练报告：yolo26s imgsz960 batch4 epochs100 mps
+
+- 报告生成时间：2026-08-11 15:38 左右
+- 训练输出目录：`models/train/multibrand/`
+- 报告目录：`docs/train_report/20260811-1538-yolo26s-imgsz960-batch4-epochs100-mps/`
+- 训练参数快照：[`args.yaml`](./args.yaml)
+- 训练指标 CSV：[`results.csv`](./results.csv)
+
+## 1. 训练结论
+
+本次训练已经完成，但从验证指标看，模型**暂不适合进入生产试点**，更适合作为 PoC 早期 baseline。
+
+最核心问题：
+
+1. **召回率偏低**：整体 Recall 约 `0.199`，说明真实商品中大约只有 20% 被稳定找出。
+2. **mAP50 偏低**：整体 mAP50 约 `0.125`，距离 PoC 可用门槛仍有明显差距。
+3. **类别极不均衡**：`maya`、`softcare`、`clincleer`、`dr_x` 样本多，其他类别样本极少，导致模型主要学到少数大类。
+4. **本次训练实际基座是 `yolo26s.pt`**，不是前面建议的 `yolo26m.pt`；下一轮建议改为 `yolo26m.pt`。
+5. **后期有过拟合趋势**：train loss 持续下降，但 val cls loss 后期上升，mAP 在 50 epoch 左右达到峰值后没有继续提升。
+
+## 2. 指标图片
+
+### 2.1 训练曲线
+
+![训练曲线](./images/results.png)
+
+### 2.2 训练输出混淆矩阵
+
+![训练混淆矩阵](./images/confusion_matrix.png)
+
+### 2.3 训练输出归一化混淆矩阵
+
+![训练归一化混淆矩阵](./images/confusion_matrix_normalized.png)
+
+### 2.4 best.pt 重新验证 PR 曲线
+
+![验证 PR 曲线](./images/val_BoxPR_curve.png)
+
+### 2.5 best.pt 重新验证 F1 曲线
+
+![验证 F1 曲线](./images/val_BoxF1_curve.png)
+
+### 2.6 best.pt 重新验证 Precision 曲线
+
+![验证 Precision 曲线](./images/val_BoxP_curve.png)
+
+### 2.7 best.pt 重新验证 Recall 曲线
+
+![验证 Recall 曲线](./images/val_BoxR_curve.png)
+
+### 2.8 best.pt 重新验证混淆矩阵
+
+![验证混淆矩阵](./images/val_confusion_matrix.png)
+
+### 2.9 best.pt 重新验证归一化混淆矩阵
+
+![验证归一化混淆矩阵](./images/val_confusion_matrix_normalized.png)
+
+### 2.10 验证集预测可视化
+
+#### batch 0：人工标注
+
+![val batch0 labels](./images/val_val_batch0_labels.jpg)
+
+#### batch 0：模型预测
+
+![val batch0 pred](./images/val_val_batch0_pred.jpg)
+
+#### batch 1：人工标注
+
+![val batch1 labels](./images/val_val_batch1_labels.jpg)
+
+#### batch 1：模型预测
+
+![val batch1 pred](./images/val_val_batch1_pred.jpg)
+
+#### batch 2：人工标注
+
+![val batch2 labels](./images/val_val_batch2_labels.jpg)
+
+#### batch 2：模型预测
+
+![val batch2 pred](./images/val_val_batch2_pred.jpg)
+
+## 3. 本次训练配置
+
+| 项目 | 本次值 | 说明 |
+|---|---:|---|
+| 训练基座 | `models/yolo26s.pt` | 实际不是 `yolo26m.pt` |
+| 任务类型 | detect | 多品牌包装检测 |
+| 数据配置 | `data/multibrand.yaml` | 20 个配置类别 |
+| epochs | 100 | 跑满 100 轮 |
+| imgsz | 960 | 适合小目标，但训练成本较高 |
+| batch | 4 | M1 Max MPS 下实际 batch |
+| device | mps | Apple M1 Max |
+| 训练输出 | `models/train/multibrand/` | best/last/result 图都在此目录 |
+| best 权重 | `models/train/multibrand/weights/best.pt` | 当前最佳权重 |
+| 推理权重 | `models/multibrand-best.pt` | 训练脚本复制出的默认推理权重 |
+
+## 4. 数据集规模与类别分布
+
+| split | 图片数 | 标注框数 | 说明 |
+|---|---:|---:|---|
+| train | 334 | 6385 | 训练集 |
+| val | 96 | 1757 | 验证集 |
+| test | 48 | 829 | 测试集，建议最终上线前单独验证 |
+
+### 4.1 类别分布
+
+| 类别 | train 实例 | val 实例 | test 实例 | 判断 |
+|---|---:|---:|---:|---|
+| softcare | 1311 | 364 | 184 | 样本较多，可继续优化 |
+| kleesoft | 24 | 8 | 2 | 样本严重不足 |
+| doffi | 7 | 1 | 1 | 样本严重不足，指标不可靠 |
+| lavita | 51 | 11 | 6 | 样本偏少 |
+| niceday | 15 | 8 | 2 | 样本严重不足 |
+| mosse | 20 | 5 | 0 | 样本严重不足，test 缺失 |
+| maya | 2869 | 815 | 366 | 样本最多，当前模型主要学到该类 |
+| clincleer | 1032 | 278 | 154 | 样本较多，可继续优化 |
+| veesper | 0 | 0 | 0 | 无样本，建议暂时禁用 |
+| cuettie | 176 | 42 | 18 | 可训练但仍需补样本 |
+| t_guard | 1 | 0 | 0 | 无法有效训练，建议暂时禁用 |
+| athena | 17 | 1 | 3 | 样本严重不足 |
+| mcgel | 0 | 0 | 0 | 无样本，建议暂时禁用 |
+| faskit | 52 | 8 | 6 | 样本偏少 |
+| dr_x | 705 | 191 | 72 | 样本较多，可继续优化 |
+| avril | 2 | 0 | 0 | 无法有效训练，建议暂时禁用 |
+| diamond | 0 | 0 | 0 | 无样本，建议暂时禁用 |
+| jiebai | 0 | 0 | 0 | 无样本，建议暂时禁用 |
+| medipower | 101 | 21 | 13 | 可训练但需补样本 |
+| kinpower | 2 | 4 | 2 | 样本严重不足，分布异常 |
+
+## 5. 整体指标表
+
+### 5.1 best.pt 重新验证结果
+
+| 指标 | 当前值 | PoC 参考门槛 | 生产试点参考门槛 | 判断 |
+|---|---:|---:|---:|---|
+| Precision | 0.304 | >= 0.70 | >= 0.80 | 偏低，误检较多 |
+| Recall | 0.199 | >= 0.75 | >= 0.85 | 很低，漏检严重 |
+| mAP50 | 0.125 | >= 0.70 | >= 0.80 | 很低 |
+| mAP50-95 | 0.0999 | >= 0.45 | >= 0.55 | 很低 |
+| 推理耗时 | 23.5ms / image | 视业务要求 | 视业务要求 | 速度可接受，主要瓶颈是精度 |
+
+### 5.2 训练过程中最佳 epoch
+
+| 指标 | 最佳 epoch | 最佳值 | 说明 |
+|---|---:|---:|---|
+| Precision | 18 | 0.604 | 曾经精确率较高，但召回不一定好 |
+| Recall | 45 | 0.205 | 召回峰值仍然偏低 |
+| mAP50 | 50 | 0.128 | 50 轮左右达到峰值 |
+| mAP50-95 | 51 | 0.1018 | 51 轮左右达到峰值 |
+| epoch 100 mAP50 | 100 | 0.1034 | 后期没有继续提升 |
+| epoch 100 mAP50-95 | 100 | 0.0744 | 后期回落 |
+
+结论：**训练到 50 epoch 左右已经达到本次数据/配置下的峰值，继续训练到 100 epoch 收益不明显，且有过拟合趋势。**
+
+## 6. 各类别验证指标与改进建议
+
+| 类别 | val 实例 | Precision | Recall | mAP50 | mAP50-95 | 当前判断 | 改进建议 |
+|---|---:|---:|---:|---:|---:|---|---|
+| softcare | 364 | 0.223 | 0.335 | 0.177 | 0.127 | 有一定识别能力，但漏检多 | 补充模糊、斜拍、远距离样本；检查是否和 maya/clincleer 混淆 |
+| kleesoft | 8 | 0.0378 | 0.125 | 0.0217 | 0.0106 | 基本不可用 | 至少补到 train 200+、val 50+ 实例后再评估 |
+| doffi | 1 | 1.000 | 0.000 | 0.000 | 0.000 | 样本太少，指标无意义 | 暂时禁用或补充样本 |
+| lavita | 11 | 0.142 | 0.182 | 0.102 | 0.0856 | 不稳定 | 补样本，统一标注规则 |
+| niceday | 8 | 0.592 | 0.250 | 0.318 | 0.240 | 少样本下表现相对较好，但不可靠 | 增加 val/test 样本验证稳定性 |
+| mosse | 5 | 0.497 | 0.200 | 0.226 | 0.218 | 少样本不可靠 | 补样本，test 当前缺失 |
+| maya | 815 | 0.271 | 0.750 | 0.441 | 0.351 | 当前最好类别，召回较高但误检多 | 作为正样本主类继续优化，同时加难负样本降低误检 |
+| clincleer | 278 | 0.165 | 0.227 | 0.112 | 0.0772 | 漏检和误检都明显 | 增加清晰正样本和易混负样本，检查与 maya 混淆 |
+| cuettie | 42 | 0.0497 | 0.119 | 0.0614 | 0.0496 | 基本不可用 | 补充样本，尤其是不同角度/包装版本 |
+| athena | 1 | 0.000 | 0.000 | 0.000 | 0.000 | 无法评估 | 暂时禁用或补样本 |
+| faskit | 8 | 0.000 | 0.000 | 0.0003 | 0.0001 | 基本不可用 | 补样本，检查标注是否一致 |
+| dr_x | 191 | 0.173 | 0.403 | 0.150 | 0.118 | 有一定召回，但仍偏低 | 补充难样本，降低与 maya/softcare 混淆 |
+| medipower | 21 | 0.103 | 0.190 | 0.135 | 0.122 | 不稳定 | 补样本并检查包装差异 |
+| kinpower | 4 | 1.000 | 0.000 | 0.000 | 0.000 | 样本极少，指标无意义 | 暂时禁用或补样本 |
+
+## 7. 主要问题归因
+
+| 问题 | 证据 | 影响 | 优先级 |
+|---|---|---|---:|
+| 类别样本严重不均衡 | `maya` train 2869，`softcare` 1311；多个类别为 0~20 | 模型偏向大类，小类几乎学不会 | P0 |
+| 总体标注图片偏少 | train 334 张，val 96 张 | 覆盖不了不同门店、模糊、斜拍、遮挡等变化 | P0 |
+| 本次使用 yolo26s | `args.yaml` 显示 `model: yolo26s.pt` | 模型容量偏小，对模糊小目标不够强 | P1 |
+| 后期过拟合 | train loss 继续下降，val cls loss 后期上升，mAP 50 epoch 后回落 | 继续训练收益不大 | P1 |
+| 20 个类别中有多个无样本 | veesper/mcgel/diamond/jiebai 等为 0 | 空类别影响类别体系管理和评估可解释性 | P1 |
+| 小类 val/test 样本不足 | doffi/athena/kinpower 等 val 仅 1~4 个 | 指标不可靠，无法判断真实效果 | P1 |
+| 真实业务指标缺失 | 当前只有检测指标，没有数量误差 | 无法判断陈列计数是否可用 | P1 |
+
+## 8. 下一轮改进计划
+
+### 8.1 数据优先级最高
+
+| 动作 | 目标 | 建议标准 |
+|---|---|---|
+| 暂时禁用无样本类别 | 减少无效类别干扰 | veesper、mcgel、diamond、jiebai 等先不参与训练 |
+| 补齐小类样本 | 让每个类别可学习 | 每类 train 至少 200 个实例，val 至少 50 个实例 |
+| 增加困难样本 | 提升真实门店鲁棒性 | 模糊、斜拍、遮挡、反光、小目标分别建标签 |
+| 清理标注一致性 | 降低类别混淆 | 同一商品包装框法一致，避免漏标/错标 |
+| 增加负样本 | 降低误检 | 加入非目标商品、背景货架、相似包装但非目标品牌 |
+
+### 8.2 模型与训练配置
+
+| 动作 | 建议 |
+|---|---|
+| 下一轮基座 | 改用 `models/yolo26m.pt` |
+| 训练轮数 | 先跑 80 epoch，观察 40~60 epoch 是否收敛 |
+| 图片尺寸 | 继续 `imgsz=960`；如果小目标仍漏检，再试 `1024` |
+| batch | AWS GPU 上优先自动或手动调大；本地 MPS 保持 4 或 `-1` |
+| early stopping | patience 可设 30~50，避免后期过拟合 |
+| 对照实验 | 保留 `yolo26s.pt` 作为 baseline，同时跑 `yolo26m.pt` 对比 |
+
+推荐下一轮命令：
+
+```bash
+uv run python scripts/training/train.py \
+  --base-model models/yolo26m.pt \
+  --epochs 80 \
+  --imgsz 960 \
+  --batch -1 \
+  --device mps \
+  --name multibrand-yolo26m-20260811
+```
+
+AWS GPU 上：
+
+```bash
+uv run python scripts/training/train.py \
+  --base-model models/yolo26m.pt \
+  --epochs 80 \
+  --imgsz 960 \
+  --batch -1 \
+  --device 0 \
+  --name multibrand-yolo26m-20260811
+```
+
+### 8.3 验证指标补充
+
+下一轮训练后，除了 YOLO 指标，还必须补充业务指标：
+
+| 指标 | 作用 |
+|---|---|
+| 图片级总数量误差 | 判断陈列计数是否可用 |
+| 每类别数量误差 | 判断哪个品牌/品类计数不准 |
+| 困难集 Recall | 判断模糊、斜拍、小目标是否可用 |
+| Top 漏检样本 | 指导下一轮补标 |
+| Top 误检样本 | 指导增加负样本和规则过滤 |
+
+## 9. 当前模型能否使用
+
+| 场景 | 是否建议使用 | 说明 |
+|---|---|---|
+| 生产自动审核 | 不建议 | Recall 和 mAP 太低，漏检严重 |
+| PoC 演示 | 谨慎使用 | 可以展示流程，但不要承诺准确率 |
+| 辅助预标注 | 可以尝试 | 可作为人工复核起点，但不能直接当最终结果 |
+| 错误样本挖掘 | 建议使用 | 批量推理后找漏检/误检样本，反哺标注 |
+| 训练 pipeline 验证 | 可以 | 说明训练链路已跑通 |
+
+## 10. 原始文件位置
+
+| 文件 | 路径 |
+|---|---|
+| 训练参数 | `models/train/multibrand/args.yaml` |
+| 训练曲线 | `models/train/multibrand/results.png` |
+| 训练指标 CSV | `models/train/multibrand/results.csv` |
+| 训练 best 权重 | `models/train/multibrand/weights/best.pt` |
+| 训练 last 权重 | `models/train/multibrand/weights/last.pt` |
+| 本次重新验证结果图 | `runs/detect/models/val/multibrand-best/` |
+| 验证预测图 | `runs/detect/models/val/multibrand-best/val_batch*_pred.jpg` |
+| 验证标注图 | `runs/detect/models/val/multibrand-best/val_batch*_labels.jpg` |
+

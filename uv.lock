@@ -2045,6 +2045,15 @@ wheels = [
 ]
 
 [[package]]
+name = "mock"
+version = "5.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/8c/14c2ae915e5f9dca5a22edd68b35be94400719ccfa068a03e0fb63d0f6f6/mock-5.2.0.tar.gz", hash = "sha256:4e460e818629b4b173f32d08bf30d3af8123afbb8e04bb5707a1fd4799e503f0", size = 92796, upload-time = "2025-03-03T12:31:42.911Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/d9/617e6af809bf3a1d468e0d58c3997b1dc219a9a9202e650d30c2fc85d481/mock-5.2.0-py3-none-any.whl", hash = "sha256:7ba87f72ca0e915175596069dbbcc7c75af7b5e9b9bc107ad6349ede0819982f", size = 31617, upload-time = "2025-03-03T12:31:41.518Z" },
+]
+
+[[package]]
 name = "mpmath"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2615,6 +2624,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/29/9e/647401ae8a607bc0cc40ed7b8592d5b1be90ded0dc9b9d6d3aeb03f9524b/polars_runtime_32-1.43.2-cp310-abi3-win_amd64.whl", hash = "sha256:00e33c28e321410c8d66e814a90043101e3bdd9ed2c6dabda07565aa8adbbdf1", size = 52572176, upload-time = "2026-08-01T06:27:37.048Z" },
     { url = "https://files.pythonhosted.org/packages/96/8d/60a50c3f36c85218a7ffcb48c6fe2ce1f7bec799152d68b8658ebed2179c/polars_runtime_32-1.43.2-cp310-abi3-win_arm64.whl", hash = "sha256:350a4868cae85bf8b3f81b33ba47927c15256bd9264dfc8c0753f1b927eac9d3", size = 46582513, upload-time = "2026-08-01T06:27:40.025Z" },
 ]
+
+[[package]]
+name = "projects"
+version = "1.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mock" },
+    { name = "pyyaml" },
+    { name = "termcolor" },
+    { name = "urwid" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/81/af/3e1aecc60461f6eb9f7b14db7eb81ec80bf74c32e3c17ec65947fcce65a5/projects-1.0.9.tar.gz", hash = "sha256:198478152f12235d18049cd9e25eb3335cc007ed4b3848dab375e240b1763e0d", size = 43311, upload-time = "2016-08-23T20:07:25.61Z" }
 
 [[package]]
 name = "proto-plus"
@@ -3828,6 +3849,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f3/1b/43e081533932f54d09e2c1e1b7efb3b04d658bf28654d8132b276f4482d0/tasks-py-1.0.3.tar.gz", hash = "sha256:c2c162c7e20afcaddb0bb24012d4b58182f1ebfa36f3bc2e4d1f02484dc22784", size = 3487, upload-time = "2014-12-14T04:40:57.591Z" }
 
 [[package]]
+name = "termcolor"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/79/cf31d7a93a8fdc6aa0fbb665be84426a8c5a557d9240b6239e9e11e35fc5/termcolor-3.3.0.tar.gz", hash = "sha256:348871ca648ec6a9a983a13ab626c0acce02f515b9e1983332b17af7979521c5", size = 14434, upload-time = "2025-12-29T12:55:21.882Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/d1/8bb87d21e9aeb323cc03034f5eaf2c8f69841e40e4853c2627edf8111ed3/termcolor-3.3.0-py3-none-any.whl", hash = "sha256:cf642efadaf0a8ebbbf4bc7a31cec2f9b5f21a9f726f4ccbb08192c9c26f43a5", size = 7734, upload-time = "2025-12-29T12:55:20.718Z" },
+]
+
+[[package]]
 name = "tifffile"
 version = "2026.7.31"
 source = { registry = "https://pypi.org/simple" }
@@ -4129,6 +4159,19 @@ wheels = [
 ]
 
 [[package]]
+name = "urwid"
+version = "4.0.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+    { name = "wcwidth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d4/6a/229b3fca37e146bc4ad763753ae176de866571230b255a11d5829be1fcfc/urwid-4.0.8.tar.gz", hash = "sha256:3cea5748b936a223c9045bcee46dc1a0ec4cbce4a09bd7594974212207b737d4", size = 878866, upload-time = "2026-07-26T11:28:54.509Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/b4/55e951958017b6c6fc5f703dea6d27ec1af4a9714171aadfd83547e001be/urwid-4.0.8-py3-none-any.whl", hash = "sha256:0941d6a4c3c470f7c2ace709e2d62f32f02218076fbe695afa2fb230b0b91441", size = 305959, upload-time = "2026-07-26T11:28:52.709Z" },
+]
+
+[[package]]
 name = "user-agents"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4320,6 +4363,7 @@ dependencies = [
     { name = "opencv-python-headless" },
     { name = "openpyxl" },
     { name = "pillow" },
+    { name = "projects" },
     { name = "psycopg2-binary" },
     { name = "pyyaml" },
     { name = "rapidfuzz" },
@@ -4336,6 +4380,7 @@ requires-dist = [
     { name = "opencv-python-headless", specifier = ">=5.0.0.93" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=10.0.0" },
+    { name = "projects" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "rapidfuzz", specifier = ">=3.14.5" },
