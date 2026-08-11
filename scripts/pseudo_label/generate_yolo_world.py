@@ -13,11 +13,13 @@ YOLO-World 多品牌伪标注生成脚本。
 from __future__ import annotations
 
 import argparse
-import sys
 import csv
 import json
+import os
 import shutil
+import sys
 from dataclasses import dataclass
+from typing import Any
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -25,7 +27,7 @@ SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, BrandClass, filter_brand_classes, load_brand_classes, normalize_key, prompt_to_brand_map  # type: ignore[import-not-found]
+from common.brand_library import DEFAULT_BRAND_LIBRARY, BrandClass, load_brand_classes, normalize_key, prompt_to_brand_map, select_brand_classes  # type: ignore[import-not-found]
 from common.ultralytics_config import configure_ultralytics_weights_dir  # type: ignore[import-not-found]
 from PIL import Image
 from ultralytics import YOLO
@@ -344,6 +346,36 @@ def prepare_output_dirs(output_root: Path) -> None:
     (output_root / "metadata").mkdir(parents=True, exist_ok=True)
 
 
+class PseudoReportWriter:
+    """逐图写入预标注 JSON 与 CSV 报告，确保中断后已有结果可读取。"""
+
+    fieldnames = ["image", "label", "split", "box_count"]
+
+    def __init__(self, output_root: Path) -> None:
+        metadata_dir = output_root / "metadata"
+        self.json_path = metadata_dir / "pseudo_label_report.json"
+        self.csv_path = metadata_dir / "pseudo_label_report.csv"
+        self.rows: list[dict[str, object]] = []
+        self._write_json()
+        with self.csv_path.open("w", encoding="utf-8", newline="") as file:
+            csv.DictWriter(file, fieldnames=self.fieldnames).writeheader()
+
+    def _write_json(self) -> None:
+        """原子替换 JSON，避免运行中读取到不完整内容。"""
+        temporary_path = self.json_path.with_suffix(".json.tmp")
+        temporary_path.write_text(json.dumps(self.rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(temporary_path, self.json_path)
+
+    def record(self, row: dict[str, object]) -> None:
+        """立即持久化一张完成预标注的图片元数据。"""
+        self.rows.append(row)
+        self._write_json()
+        with self.csv_path.open("a", encoding="utf-8", newline="") as file:
+            csv.DictWriter(file, fieldnames=self.fieldnames).writerow(
+                {key: row[key] for key in self.fieldnames}
+            )
+
+
 def main() -> None:
     """伪标注生成脚本主入口。"""
     parser = argparse.ArgumentParser(description="用 YOLO-World 对未标注图片生成多品牌候选框。生成结果必须人工复核。")
@@ -353,6 +385,7 @@ def main() -> None:
     parser.add_argument("--prompt", action="append", dest="prompts", help="额外提示词模板；多类别建议使用 {brand} 占位符")
     parser.add_argument("--brand-library", type=Path, default=DEFAULT_BRAND_LIBRARY, help="品牌标识库 JSON/TXT")
     parser.add_argument("--brand-filter", action="append", dest="brand_filter", help="只预标指定品牌，可重复传入；默认不过滤，即多品牌")
+    parser.add_argument("--compact-class-ids", action="store_true", help="将所选品牌重编号为连续类别 ID")
     parser.add_argument("--include-brand-package-prompts", action="store_true", help="为每个品牌额外生成 '<brand> diaper package' 和 '<brand> package' 提示词")
     parser.add_argument("--nms-iou", type=float, default=0.45, help="同类别重复框去重 IoU 阈值")
     parser.add_argument("--containment-threshold", type=float, default=0.85, help="大框覆盖已保留小框超过该比例时丢弃大框")
@@ -388,7 +421,7 @@ def main() -> None:
         all_classes = load_brand_classes(args.brand_library)
     except (FileNotFoundError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
-    selected_classes = filter_brand_classes(all_classes, args.brand_filter)
+    selected_classes = select_brand_classes(all_classes, args.brand_filter, args.compact_class_ids)
     if not selected_classes:
         raise SystemExit(f"品牌过滤后没有可用类别：{args.brand_filter}")
 
@@ -416,12 +449,12 @@ def main() -> None:
     model = YOLO(str(args.model))
     model.set_classes(prompts)
 
-    rows: list[dict[str, object]] = []
+    report_writer = PseudoReportWriter(args.output_root)
+    box_count = 0
     for index, image_path in enumerate(images):
         split = split_name(index, len(images))
         target_image = args.output_root / "images" / split / image_path.name
         target_label = args.output_root / "labels" / split / image_path.with_suffix(".txt").name
-        shutil.copy2(image_path, target_image)
 
         boxes = predict_image(
             model=model,
@@ -437,31 +470,25 @@ def main() -> None:
             cross_containment_threshold=args.cross_brand_containment,
         )
         label_lines = [f"{box.class_id} " + " ".join(f"{value:.6f}" for value in box.yolo) for box in boxes]
-        target_label.write_text("\n".join(label_lines) + ("\n" if label_lines else ""), encoding="utf-8")
-        rows.append(
-            {
-                "image": str(target_image),
-                "label": str(target_label),
-                "split": split,
-                "box_count": len(boxes),
-                "boxes": [box.__dict__ for box in boxes],
-            }
-        )
+        temporary_label = target_label.with_suffix(".txt.tmp")
+        temporary_label.write_text("\n".join(label_lines) + ("\n" if label_lines else ""), encoding="utf-8")
+        shutil.copy2(image_path, target_image)
+        os.replace(temporary_label, target_label)
+        row = {
+            "image": str(target_image),
+            "label": str(target_label),
+            "split": split,
+            "box_count": len(boxes),
+            "boxes": [box.__dict__ for box in boxes],
+        }
+        report_writer.record(row)
+        box_count += len(boxes)
         class_summary: dict[str, int] = {}
         for box in boxes:
             class_summary[box.class_name] = class_summary.get(box.class_name, 0) + 1
         print(f"[{index + 1}/{len(images)}] {split} {image_path.name}: {len(boxes)} boxes {class_summary}")
 
-    json_path = args.output_root / "metadata" / "pseudo_label_report.json"
-    csv_path = args.output_root / "metadata" / "pseudo_label_report.csv"
-    json_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
-    with csv_path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["image", "label", "split", "box_count"])
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({key: row[key] for key in ["image", "label", "split", "box_count"]})
-
-    print(f"完成：{len(images)} 张图片，候选框 {sum(int(row['box_count']) for row in rows)} 个。")
+    print(f"完成：{len(images)} 张图片，候选框 {box_count} 个。")
     print(f"伪标注目录：{args.output_root}")
     print("重要：请用 Label Studio 打开并人工复核这些标签，再用于训练。")
 

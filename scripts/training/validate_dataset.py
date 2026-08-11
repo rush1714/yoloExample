@@ -22,7 +22,7 @@ IMAGE_SUFFIXES = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # 默认数据集配置文件路径
-DEFAULT_DATASET_YAML = PROJECT_ROOT / "data" / "multibrand.yaml"
+DEFAULT_DATASET_YAML = PROJECT_ROOT / "config" / "generated" / "multibrand.yaml"
 
 
 @dataclass(frozen=True)

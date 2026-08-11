@@ -12,10 +12,10 @@ if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
 # 动态添加 scripts 目录到 sys.path，IDE 静态分析无法识别，运行时可正常导入
-from common.brand_library import DEFAULT_BRAND_LIBRARY, load_brand_classes, yaml_text  # type: ignore[import-not-found]
+from common.brand_library import DEFAULT_BRAND_LIBRARY, load_brand_classes, select_brand_classes, yaml_text  # type: ignore[import-not-found]
 
-DEFAULT_DATA_YAML = PROJECT_ROOT / "data" / "multibrand.yaml"
-DEFAULT_PSEUDO_YAML = PROJECT_ROOT / "data" / "multibrand_pseudo.yaml"
+DEFAULT_DATA_YAML = PROJECT_ROOT / "config" / "generated" / "multibrand.yaml"
+DEFAULT_PSEUDO_YAML = PROJECT_ROOT / "config" / "generated" / "multibrand_pseudo.yaml"
 
 
 def main() -> None:
@@ -24,11 +24,19 @@ def main() -> None:
     parser.add_argument("--brand-library", type=Path, default=DEFAULT_BRAND_LIBRARY, help="品牌标识库 JSON/TXT")
     parser.add_argument("--data-yaml", type=Path, default=DEFAULT_DATA_YAML, help="正式训练数据 YAML 输出路径")
     parser.add_argument("--pseudo-yaml", type=Path, default=DEFAULT_PSEUDO_YAML, help="伪标注数据 YAML 输出路径")
+    parser.add_argument("--dataset-root", default="../../datasets/multibrand", help="正式训练数据集根目录")
+    parser.add_argument("--brand-filter", action="append", dest="brand_filter", help="只生成指定品牌的 YAML，可重复传入")
+    parser.add_argument("--compact-class-ids", action="store_true", help="将所选品牌重编号为连续类别 ID")
     args = parser.parse_args()
 
-    classes = load_brand_classes(args.brand_library)
-    args.data_yaml.write_text(yaml_text("../datasets/multibrand", classes), encoding="utf-8")
-    args.pseudo_yaml.write_text(yaml_text("../datasets/multibrand/pseudo", classes), encoding="utf-8")
+    all_classes = load_brand_classes(args.brand_library)
+    classes = select_brand_classes(all_classes, args.brand_filter, args.compact_class_ids)
+    if not classes:
+        raise SystemExit(f"品牌过滤后没有可用类别：{args.brand_filter}")
+    args.data_yaml.parent.mkdir(parents=True, exist_ok=True)
+    args.pseudo_yaml.parent.mkdir(parents=True, exist_ok=True)
+    args.data_yaml.write_text(yaml_text(args.dataset_root, classes), encoding="utf-8")
+    args.pseudo_yaml.write_text(yaml_text(f"{args.dataset_root}/pseudo", classes), encoding="utf-8")
     print(f"品牌类别数：{len(classes)}")
     print(f"正式数据集 YAML：{args.data_yaml}")
     print(f"伪标注 YAML：{args.pseudo_yaml}")

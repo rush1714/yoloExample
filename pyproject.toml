@@ -13,6 +13,7 @@ dependencies = [
     "pillow>=10.0.0",
     "projects",
     "psycopg2-binary>=2.9.0",
+    "pylint>=4.0.7",
     "pyyaml>=6.0.0",
     "rapidfuzz>=3.14.5",
     "rapidocr-onnxruntime>=1.4.4",

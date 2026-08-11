@@ -23,7 +23,7 @@ if not (PROJECT_ROOT / "scripts").is_dir():
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, label_config_xml, load_brand_classes  # type: ignore[import-not-found]
+from common.brand_library import DEFAULT_BRAND_LIBRARY, label_config_xml, load_brand_classes, select_brand_classes  # type: ignore[import-not-found]
 from django.db import transaction  # noqa: ICN001
 from io_storages.localfiles.models import LocalFilesImportStorage, LocalFilesImportStorageLink  # type: ignore[import-not-found]  # noqa: ICN001
 from organizations.models import Organization  # type: ignore[import-not-found]  # noqa: ICN001
@@ -128,11 +128,14 @@ def main() -> None:
     base_title = os.environ.get("LS_PROJECT_TITLE", DEFAULT_PROJECT_TITLE)
     local_files_path = Path(os.environ.get("LS_LOCAL_FILES_PATH", DEFAULT_LOCAL_FILES_PATH))
     brand_library = Path(os.environ.get("BRAND_LIBRARY", str(DEFAULT_BRAND_LIBRARY)))
+    brand_filter = os.environ.get("LS_BRAND_FILTER", "").strip() or None
+    compact_class_ids = os.environ.get("LS_COMPACT_CLASS_IDS", "").lower() in {"1", "true", "yes"}
 
     print(f"LS_IMPORT_JSON={import_json}")
     print(f"LS_PROJECT_TITLE={base_title}")
     print(f"LS_LOCAL_FILES_PATH={local_files_path}")
     print(f"BRAND_LIBRARY={brand_library}")
+    print(f"LS_BRAND_FILTER={brand_filter or 'all'}")
 
     if not import_json.is_file():
         raise FileNotFoundError(f"导入 JSON 不存在：{import_json}")
@@ -143,7 +146,11 @@ def main() -> None:
     if not isinstance(tasks, list) or not tasks:
         raise ValueError("导入 JSON 必须是非空任务列表。")
 
-    brand_classes = load_brand_classes(brand_library)
+    brand_classes = select_brand_classes(
+        load_brand_classes(brand_library), [brand_filter] if brand_filter else None, compact_class_ids
+    )
+    if not brand_classes:
+        raise ValueError(f"品牌过滤后没有可用类别：{brand_filter}")
     label_config = label_config_xml(brand_classes)
     title = next_project_title(base_title)
 

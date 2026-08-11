@@ -25,7 +25,7 @@ if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, BrandClass, display_name_map, load_brand_classes
+from common.brand_library import DEFAULT_BRAND_LIBRARY, BrandClass, display_name_map, load_brand_classes, select_brand_classes
 
 DEFAULT_INPUT = PROJECT_ROOT / "datasets" / "multibrand" / "label_studio" / "exports" / "label_studio_export.json"
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "datasets" / "multibrand"
@@ -292,6 +292,8 @@ def main() -> None:
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT, help="正式 YOLO 数据集根目录")
     parser.add_argument("--pseudo-root", type=Path, default=DEFAULT_PSEUDO_ROOT, help="伪标注目录，用于复用 train/val/test 分割")
     parser.add_argument("--brand-library", type=Path, default=DEFAULT_BRAND_LIBRARY, help="品牌标识库 JSON/TXT")
+    parser.add_argument("--brand-filter", action="append", dest="brand_filter", help="只导出指定品牌标签，可重复传入")
+    parser.add_argument("--compact-class-ids", action="store_true", help="将所选品牌重编号为连续类别 ID")
     parser.add_argument("--annotation-index", choices=["first", "latest"], default="latest", help="同一任务存在多个 annotation 时选择哪个")
     parser.add_argument("--skip-empty-annotations", action="store_true", help="跳过已完成但没有目标框的 annotation；默认保留为空标签负样本")
     parser.add_argument("--clear-output", action="store_true", help="转换前清空 images/labels 下旧文件；会保留 .gitkeep")
@@ -304,7 +306,11 @@ def main() -> None:
     pseudo_root = args.pseudo_root.resolve()
     report_path = args.report or (args.input.parent / f"{args.input.stem}_to_yolo_report.json")
 
-    brand_classes = load_brand_classes(args.brand_library)
+    brand_classes = select_brand_classes(
+        load_brand_classes(args.brand_library), args.brand_filter, args.compact_class_ids
+    )
+    if not brand_classes:
+        raise SystemExit(f"品牌过滤后没有可用类别：{args.brand_filter}")
     label_to_brand = display_name_map(brand_classes)
     prepare_output_dirs(output_root, args.clear_output)
     tasks = load_export_tasks(args.input)

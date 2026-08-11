@@ -6,7 +6,7 @@
 
 ## 识别范围
 
-- 类别来源：`data/brand_keywords.json` 中启用的品牌，当前生成 20 个 YOLO 类别。
+- 类别来源：`config/brand_keywords.json` 中启用的品牌，当前生成 20 个 YOLO 类别。
 - 标注对象：图片中每一包可辨认的目标品牌包装。
 - 结果：每个检测框代表一包，推理 JSON 会输出 `brand_counts` 和 `total_count`。
 
@@ -35,7 +35,7 @@ uv run python scripts/training/train.py --device mps --imgsz 960 --batch -1
 
 1. 收集不同门店、货架、距离、角度、光照、遮挡条件下的图片；PoC 建议从 300–500 张开始，生产效果通常需要更多真实场景数据。
 2. 每包目标品牌包装绘制一个矩形框；被遮挡的包装只要可辨认，也标注其可见部分。
-3. 类别 ID 由 `data/brand_keywords.json` 的 `class_id` 决定；当前 `SOFTCARE` 固定为 `0`，其它品牌依次映射为 `kleesoft`、`doffi` 等。
+3. 类别 ID 由 `config/brand_keywords.json` 的 `class_id` 决定；当前 `SOFTCARE` 固定为 `0`，其它品牌依次映射为 `kleesoft`、`doffi` 等。
 4. 按 `70% / 20% / 10%` 划分训练、验证、测试数据。来自同一原图或连拍序列的图片必须只存在于其中一个划分，避免数据泄漏。
 
 ### 标注工具
@@ -97,14 +97,15 @@ datasets/multibrand/
 
 - `raw/images/`：只存从 Excel 下载的原图，没有标签，**不能直接训练**。
 - `ocr/...`：OCR 识别品牌库关键词后的候选清单和报告，只用于提高处理优先级；OCR 未命中不代表一定没有目标品牌。
-- `images/...` + `labels/...`：正式训练数据。每张图片必须有一个同名 `.txt` 标签文件，标签中的 class_id 来自 `data/brand_keywords.json`。
+- `images/...` + `labels/...`：正式训练数据。每张图片必须有一个同名 `.txt` 标签文件，标签中的 class_id 来自 `config/brand_keywords.json`。
 - `pseudo/...`：YOLO-World 自动生成的多品牌候选标签，可能误检/漏检，只能作为人工复核起点。
-- `data/brand_keywords.json`：品牌标识库，是 OCR、预标注、Label Studio 多标签和 YOLO 类别 ID 的统一来源。
-- `data/multibrand.yaml`：正式训练数据配置，指向 `datasets/multibrand/images` 和 `datasets/multibrand/labels`；可由 `make brand-yaml` 根据品牌库生成。
-- `data/multibrand_pseudo.yaml`：伪标注数据配置，指向 `datasets/multibrand/pseudo`；可由 `make brand-yaml` 根据品牌库生成。
+- `config/brand_keywords.json`：品牌标识库，是 OCR、预标注、Label Studio 多标签和 YOLO 类别 ID 的统一来源。
+- `config/generated/multibrand.yaml`：全品牌正式训练数据配置；由 `make brand-yaml` 根据品牌库生成。
+- `config/generated/multibrand_pseudo.yaml`：全品牌伪标注数据配置；由 `make brand-yaml` 根据品牌库生成。
+- `config/generated/<品牌>.yaml`：单品牌正式训练配置；执行 `make brand-yaml BRAND=<品牌>` 自动生成。
 - `models/`：统一存放所有 `.pt` 权重，包括预训练模型、YOLO-World、CLIP 和训练完成的多品牌模型；训练输出默认在 `models/train/`。命令里写 `yolo26s.pt`、`yolov8s-world.pt` 这类裸文件名时，脚本会自动解析到 `models/<文件名>`。
 - `outputs/predict/`：推理 JSON 和带框图片输出。
-- `models/multibrand-best.pt`：默认多品牌推理模型路径，训练完成后 Makefile 会把 `best.pt` 复制到这里。
+- `models/<品牌>-best.pt`：训练完成后的推理模型；全品牌默认是 `models/multibrand-best.pt`，单品牌随 `BRAND` 自动命名。
 
 ## 从 Excel 下载原始图片
 
@@ -130,10 +131,12 @@ OCR 用来先筛选可能包含目标品牌字样的图片，减少后续自动�
 品牌标识库位于：
 
 ```text
-data/brand_keywords.json
+config/brand_keywords.json
 ```
 
 当前包含 `KLEESOFT`、`SOFTCARE`、`DOFFI`、`LAVITA`、`NICEDAY`、`MOSSE`、`MAYA`、`CLINCLEER`、`VEESPER`、`CUETTIE`、`T-GUARD`、`ATHENA`、`MCGEL`、`FASKIT`、`DR.X`、`Avril`、`DIAMOND`、`JIEBAI`、`MEDIPOWER`、`KINPOWER` 等品牌。脚本会自动忽略纯数字序号、重复项和 `★` 这类纯符号；如果品牌有空格、连字符或 OCR 常见写法，可以放到 `aliases` 中。`KLEESOFT` 已加入 `Keeson`、`Kleeson`、`Keesoft`、`KEESOTE`、`NEESOTE` 等 OCR 常见误识别别名。
+
+修改 `config/brand_keywords.json` 后，下一次 `make` 命令会重新读取品牌库，自动同步 OCR 关键词、YOLO-World 提示词、Label Studio 标签、`BRAND` 可选值和生成的 YAML 类别。使用 `make brand-list` 查看可用品牌；使用 `BRAND=<品牌>` 时，结果会输出到 `datasets/<品牌>/`，单类别标签会从 `0` 重新编号。全品牌模式为默认的 `BRAND=all`。
 
 OCR 匹配规则已做防误召回处理：长度小于 4 的 OCR 文本不参与品牌匹配，不再使用 `partial_ratio * confidence` 的简单加权，而是组合 `ratio` / `WRatio` / 降权后的 `partial_ratio`；同时要求 OCR 文本覆盖品牌长度的一定比例，避免 `Viva` 误命中 `LAVITA`、单字母 `K` 误命中 `KLEESOFT`。低置信度但高度相似的商标 Logo 文本仍可保留为候选。
 
@@ -148,7 +151,7 @@ make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4
 ```bash
 uv run python scripts/ocr/filter_brand_candidates.py \
   --raw-dir datasets/multibrand/raw/images \
-  --brand-library data/brand_keywords.json \
+  --brand-library config/brand_keywords.json \
   --limit 20 \
   --engine rapidocr \
   --workers 4 \
@@ -174,9 +177,11 @@ make step-2-ocr-llm
 
 输出：
 
-- `datasets/multibrand/ocr/metadata/ocr_softcare_report.csv`：每张图片的 OCR 命中情况。
-- `datasets/multibrand/ocr/metadata/ocr_softcare_report.json`：完整 OCR 文本、置信度和坐标。
-- `datasets/multibrand/ocr/metadata/ocr_candidates.txt`：命中任一品牌关键词的候选图片清单。
+- `datasets/<当前品牌>/ocr/metadata/ocr_softcare_report.csv`：每张图片的 OCR 命中情况。
+- `datasets/<当前品牌>/ocr/metadata/ocr_softcare_report.json`：完整 OCR 文本、置信度和坐标。
+- `datasets/<当前品牌>/ocr/metadata/ocr_candidates.txt`：命中当前品牌关键词的候选图片清单。
+
+OCR 每完成一张图片，会立即追加 CSV、候选清单，并以原子替换方式更新可直接读取的 JSON；因此运行中断时已处理结果仍可保留。默认全品牌目录是 `datasets/multibrand/ocr/`，单品牌目录由 `BRAND` 决定。
 
 注意：OCR 命中只代表“可能有目标品牌”，不能直接得到商品框；OCR 未命中也不代表图片一定没有目标品牌。
 
@@ -192,7 +197,7 @@ make step-2-ocr-llm
 
 ### 方案 B：本项目 YOLO-World 预标注脚本
 
-脚本会根据品牌库生成开放词汇提示词，并按品牌映射到不同 YOLO 类别 ID，不再把所有框统一写成 `softcare_diaper`。OCR 可以用全品牌库做候选图筛选，预标注也默认使用品牌库中全部启用品牌；如果只想临时调试某个品牌，可通过 `PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"` 过滤。
+脚本会根据品牌库生成开放词汇提示词，并按品牌映射到不同 YOLO 类别 ID，不再把所有框统一写成 `softcare_diaper`。OCR 和预标注默认使用品牌库中全部启用品牌；单品牌训练使用 `BRAND=SOFTCARE` 等参数，OCR、预标注、Label Studio 和正式训练集会统一筛选该品牌并隔离输出。预标注每完成一张图片会立即写入图片、标签、JSON 和 CSV 元数据，运行中断时已完成记录仍可读取。
 
 脚本会对同一品牌类别内的 YOLO-World 输出做跨提示词去重和大框过滤：
 - `--nms-iou`：重复框 IoU 去重阈值。
@@ -214,7 +219,7 @@ uv run python scripts/pseudo_label/generate_yolo_world.py \
   --raw-dir datasets/multibrand/raw/images \
   --output-root datasets/multibrand/pseudo \
   --candidates-file datasets/multibrand/ocr/metadata/ocr_candidates.txt \
-  --brand-library data/brand_keywords.json \
+  --brand-library config/brand_keywords.json \
   --include-brand-package-prompts \
   --nms-iou 0.45 \
   --containment-threshold 0.85 \
@@ -229,7 +234,7 @@ uv run python scripts/pseudo_label/generate_yolo_world.py \
 说明：
 
 - `--candidates-file` 可接入 OCR 命中的候选清单，只优先处理疑似品牌图片；如果想全量处理，可执行 `make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0`。
-- `PSEUDO_BRAND_FILTER_ARGS` 默认留空，表示多品牌预标注；如只想调试单品牌，可传 `PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"`。
+- `BRAND=all` 是全品牌默认模式；执行 `make step-3-pseudo-label BRAND=SOFTCARE` 时只处理该品牌，输出隔离到 `datasets/softcare/`，单类 ID 固定为 `0`。
 - 多品牌模式下额外 `PSEUDO_PROMPT_ARGS` 建议使用 `{brand}` 占位符，例如 `--prompt '{brand} package on shelf'`，否则泛化 prompt 无法安全映射到某个类别。
 - 品牌包装提示词会提高召回，但误检会增加；现在配合同类别 NMS、覆盖过滤、最大面积过滤和跨品牌去重减少“大框盖小框”和重复框。
 - 如果确认同一位置确实可能有多个品牌框，可临时关闭跨品牌去重：`make step-3-pseudo-label PSEUDO_CROSS_BRAND_DEDUP=0`。
@@ -255,12 +260,12 @@ http://localhost:9001
 
 | 顺序 | 命令 | 作用 |
 | --- | --- | --- |
-| 1 | `make step-1-import-excel` | 从 Excel 的 `整改后图片URL` 列下载原始图片，输出到 `datasets/multibrand/raw/images/`。 |
-| 2 | `make step-2-ocr` | 并行 OCR 识别品牌候选图片，输出 `datasets/multibrand/ocr/metadata/ocr_candidates.txt`。 |
-| 3 | `make step-3-pseudo-label` | 使用 YOLO-World 对 OCR 候选图片生成多品牌多类别预标注，输出到 `datasets/multibrand/pseudo/`。 |
-| 4 | `make step-4-import-ls` | 生成 Label Studio 导入 JSON，并导入本地 Label Studio。 |
-| 5 | `make step-5-export-ls-to-train LS_PROJECT_ID=<项目ID>` | 从 Label Studio 导出 JSON，再转换为正式 YOLO 训练集 `datasets/multibrand/images|labels/`。 |
-| 6 | `make step-6-train` | 校验数据集后训练多品牌 YOLO 模型，默认导出 `models/multibrand-best.pt`。 |
+| 1 | `make step-1-import-excel` | 从 Excel 的 `整改后图片URL` 列下载共享原图池 `datasets/multibrand/raw/images/`。 |
+| 2 | `make step-2-ocr [BRAND=<品牌>]` | OCR 输出到 `datasets/<当前品牌>/ocr/`；逐图增量写入报告。 |
+| 3 | `make step-3-pseudo-label [BRAND=<品牌>]` | YOLO-World 输出到 `datasets/<当前品牌>/pseudo/`；逐图增量写入图片、标签和报告。 |
+| 4 | `make step-4-import-ls [BRAND=<品牌>]` | 生成当前品牌 Label Studio 导入 JSON，并导入本地 Label Studio。 |
+| 5 | `make step-5-export-ls-to-train BRAND=<品牌> LS_PROJECT_ID=<项目ID>` | 从 Label Studio 导出并转换为当前品牌正式训练集。 |
+| 6 | `make step-6-train [BRAND=<品牌>]` | 校验并训练当前品牌模型，默认导出 `models/<品牌>-best.pt`。 |
 | 7 | `make step-7-validate` | 校验正式数据集，并使用训练模型对 `PREDICT_SOURCE` 做推理验证。 |
 
 常用组合命令：
@@ -312,8 +317,10 @@ make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0
 # 大框/重复框仍多时，调低最大面积和 NMS 阈值
 make step-3-pseudo-label PSEUDO_MAX_AREA_RATIO=0.30 PSEUDO_NMS_IOU=0.35
 
-# 多品牌默认预标全部启用品牌；只调试 SOFTCARE 时可过滤
-make step-3-pseudo-label PSEUDO_BRAND_FILTER_ARGS="--brand-filter SOFTCARE"
+# 单品牌流程：结果隔离在 datasets/softcare，类别 ID 自动重编号为 0
+make workflow-to-ls BRAND=SOFTCARE
+# 人工复核后导出并训练该品牌
+make workflow-after-ls BRAND=SOFTCARE LS_PROJECT_ID=<项目ID>
 
 # 训练参数覆盖
 make step-6-train TRAIN_EPOCHS=50 TRAIN_IMGSZ=640 TRAIN_DEVICE=cpu
@@ -400,7 +407,7 @@ make step-6-train
 
 ```bash
 uv run python scripts/training/train.py \
-  --data data/multibrand.yaml \
+  --data config/generated/multibrand.yaml \
   --base-model models/yolo26s.pt \
   --epochs 100 \
   --imgsz 960 \

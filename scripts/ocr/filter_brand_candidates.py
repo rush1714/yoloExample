@@ -19,10 +19,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import shutil
+import sys
 import threading
 import warnings
+from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,12 +46,17 @@ warnings.filterwarnings("ignore", message=".*quantize_per_channel.*")
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 # 默认原始图片目录
 DEFAULT_RAW_DIR = PROJECT_ROOT / "datasets" / "multibrand" / "raw" / "images"
 # 默认 OCR 输出目录
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "datasets" / "multibrand" / "ocr"
 # 默认品牌标识库路径
-DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "data" / "brand_keywords.json"
+DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "config" / "brand_keywords.json"
+from common.brand_library import load_brand_classes, select_brand_classes  # type: ignore[import-not-found]
+
 # 默认关键词列表；如果品牌库存在，会优先使用品牌库。
 DEFAULT_KEYWORDS = ["softcare", "soft care"]
 # 支持的图片格式后缀
@@ -114,40 +122,13 @@ def unique_preserve_order(values: list[str]) -> list[str]:
     return result
 
 
-def load_brand_library(path: Path) -> list[str]:
-    """从 JSON 或文本品牌库中加载 OCR 关键词，并忽略数字和重复项。"""
-    if not path.is_file():
-        raise FileNotFoundError(f"品牌标识库不存在：{path}")
-
-    if path.suffix.lower() == ".json":
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        raw_values: list[str] = []
-        if isinstance(payload, dict):
-            brands = payload.get("brands", [])
-            if not isinstance(brands, list):
-                raise ValueError("品牌标识库 JSON 的 brands 必须是列表。")
-            for item in brands:
-                if isinstance(item, str):
-                    raw_values.append(item)
-                    continue
-                if not isinstance(item, dict):
-                    continue
-                if item.get("enabled", True) is False:
-                    continue
-                name = item.get("name")
-                if isinstance(name, str):
-                    raw_values.append(name)
-                aliases = item.get("aliases", [])
-                if isinstance(aliases, list):
-                    raw_values.extend(str(alias) for alias in aliases)
-        elif isinstance(payload, list):
-            raw_values = [str(item) for item in payload]
-        else:
-            raise ValueError("品牌标识库 JSON 必须是对象或列表。")
-        return unique_preserve_order(raw_values)
-
-    raw_values = path.read_text(encoding="utf-8").splitlines()
-    return unique_preserve_order(raw_values)
+def load_brand_library(path: Path, brand_filters: list[str] | None = None) -> list[str]:
+    """从品牌库加载所选品牌及其别名，供 OCR 文本匹配使用。"""
+    classes = select_brand_classes(load_brand_classes(path), brand_filters)
+    if not classes:
+        raise ValueError(f"品牌过滤后没有可用类别：{brand_filters}")
+    values = [value for brand in classes for value in [brand.display_name, *brand.aliases]]
+    return unique_preserve_order(values)
 
 
 def list_images(raw_dir: Path, limit: int | None) -> list[Path]:
@@ -372,58 +353,56 @@ def match_keywords(
     return best_score >= fuzzy_threshold, round(best_score, 2), best_keyword, best_text
 
 
-def write_reports(results: list[OcrResult], output_dir: Path) -> None:
-    """
-    生成 OCR 处理报告。
-    
-    生成三种报告文件：
-    - JSON 详细报告（包含所有 OCR 识别结果）
-    - CSV 摘要报告（便于查看和筛选）
-    - 候选图片清单（匹配关键词的图片路径列表）
-    
-    Args:
-        results: OCR 处理结果列表
-        output_dir: 输出目录
-    """
-    metadata_dir = output_dir / "metadata"
-    metadata_dir.mkdir(parents=True, exist_ok=True)
-    json_path = metadata_dir / "ocr_softcare_report.json"
-    csv_path = metadata_dir / "ocr_softcare_report.csv"
-    candidates_path = metadata_dir / "ocr_candidates.txt"
+def report_row(result: OcrResult) -> dict[str, Any]:
+    """将单张 OCR 结果转换为 JSON 详细报告行。"""
+    return {
+        "image": result.image,
+        "candidate_image": result.candidate_image,
+        "matched": result.matched,
+        "score": result.score,
+        "keyword": result.keyword,
+        "matched_text": result.matched_text,
+        "texts": [text.__dict__ for text in result.texts],
+    }
 
-    # 构建 JSON 报告数据
-    rows = []
-    for result in results:
-        row = {
-            "image": result.image,
-            "candidate_image": result.candidate_image,
-            "matched": result.matched,
-            "score": result.score,
-            "keyword": result.keyword,
-            "matched_text": result.matched_text,
-            "texts": [text.__dict__ for text in result.texts],
-        }
-        rows.append(row)
 
-    # 保存 JSON 报告
-    json_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
-    # 保存 CSV 摘要报告
-    with csv_path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(
-            file,
-            fieldnames=[
-                "image",
-                "candidate_image",
-                "matched",
-                "score",
-                "keyword",
-                "matched_text",
-                "text_count",
-            ],
-        )
-        writer.writeheader()
-        for result in results:
-            writer.writerow(
+class OcrReportWriter:
+    """逐图写入 OCR JSON、CSV 和候选清单，确保中断后已有结果可读取。"""
+
+    fieldnames = [
+        "image",
+        "candidate_image",
+        "matched",
+        "score",
+        "keyword",
+        "matched_text",
+        "text_count",
+    ]
+
+    def __init__(self, output_dir: Path) -> None:
+        self.metadata_dir = output_dir / "metadata"
+        self.metadata_dir.mkdir(parents=True, exist_ok=True)
+        self.json_path = self.metadata_dir / "ocr_softcare_report.json"
+        self.csv_path = self.metadata_dir / "ocr_softcare_report.csv"
+        self.candidates_path = self.metadata_dir / "ocr_candidates.txt"
+        self.rows: list[dict[str, Any]] = []
+        self._write_json()
+        with self.csv_path.open("w", encoding="utf-8", newline="") as file:
+            csv.DictWriter(file, fieldnames=self.fieldnames).writeheader()
+        self.candidates_path.write_text("", encoding="utf-8")
+
+    def _write_json(self) -> None:
+        """原子替换 JSON，读取方在每次更新期间都只能看到完整 JSON。"""
+        temporary_path = self.json_path.with_suffix(".json.tmp")
+        temporary_path.write_text(json.dumps(self.rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(temporary_path, self.json_path)
+
+    def record(self, result: OcrResult) -> None:
+        """立即持久化一张已完成图片的 OCR 结果。"""
+        self.rows.append(report_row(result))
+        self._write_json()
+        with self.csv_path.open("a", encoding="utf-8", newline="") as file:
+            csv.DictWriter(file, fieldnames=self.fieldnames).writerow(
                 {
                     "image": result.image,
                     "candidate_image": result.candidate_image,
@@ -434,14 +413,16 @@ def write_reports(results: list[OcrResult], output_dir: Path) -> None:
                     "text_count": len(result.texts),
                 }
             )
+        if result.matched and result.candidate_image:
+            with self.candidates_path.open("a", encoding="utf-8") as file:
+                file.write(f"{result.candidate_image}\n")
 
-    # 保存候选图片清单（仅包含匹配的图片）
-    candidate_images = [
-        result.candidate_image for result in results if result.matched and result.candidate_image
-    ]
-    candidates_path.write_text(
-        "\n".join(candidate_images) + ("\n" if candidate_images else ""), encoding="utf-8"
-    )
+
+def write_reports(results: list[OcrResult], output_dir: Path) -> None:
+    """兼容批量调用，按输入顺序逐条写入报告。"""
+    writer = OcrReportWriter(output_dir)
+    for result in results:
+        writer.record(result)
 
 
 def main() -> None:
@@ -461,6 +442,7 @@ def main() -> None:
     parser.add_argument(
         "--no-brand-library", action="store_true", help="不读取品牌库，仅使用 --keyword 或默认关键词"
     )
+    parser.add_argument("--brand-filter", action="append", dest="brand_filter", help="只匹配指定品牌，可重复传入")
     parser.add_argument(
         "--engine",
         choices=["rapidocr", "easyocr"],
@@ -494,7 +476,7 @@ def main() -> None:
     keywords: list[str] = []
     if not args.no_brand_library:
         if args.brand_library.is_file():
-            keywords.extend(load_brand_library(args.brand_library))
+            keywords.extend(load_brand_library(args.brand_library, args.brand_filter))
         elif args.keywords:
             # 显式传了关键词时允许品牌库不存在，便于临时测试。
             pass
@@ -516,8 +498,10 @@ def main() -> None:
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
     # 多线程逐张图片进行 OCR 识别和关键词匹配。
-    # 注意：每个线程会懒加载独立 OCR reader，避免多个线程共享同一模型实例。
-    results: list[OcrResult] = []
+    # 注意：每个线程会懒加载独立 OCR reader，避免多个线程共享模型实例。
+    report_writer = OcrReportWriter(args.output_dir)
+    processed_count = 0
+    matched_count = 0
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_map = {
             executor.submit(
@@ -537,7 +521,9 @@ def main() -> None:
         for index, future in enumerate(as_completed(future_map), start=1):
             image_path = future_map[future]
             result = future.result()
-            results.append(result)
+            report_writer.record(result)
+            processed_count += 1
+            matched_count += int(result.matched)
             status = "MATCH" if result.matched else "miss"
             print(
                 f"[{index}/{len(images)}] {status} score={result.score} "
@@ -545,18 +531,7 @@ def main() -> None:
                 f"image={image_path.name}"
             )
 
-    # 按原始图片顺序写报告，避免并发完成顺序导致报告随机变化。
-    order = {
-        str(image_path.resolve()): index
-        for index, image_path in enumerate(images)
-    }
-    results.sort(key=lambda item: order.get(item.image, len(order)))
-
-    # 生成报告
-    write_reports(results, args.output_dir)
-    # 打印统计信息
-    matched_count = sum(result.matched for result in results)
-    print(f"完成：processed={len(results)}, matched={matched_count}")
+    print(f"完成：processed={processed_count}, matched={matched_count}")
     print(f"OCR 报告：{metadata_dir / 'ocr_softcare_report.csv'}")
     print(f"候选清单：{metadata_dir / 'ocr_candidates.txt'}")
 

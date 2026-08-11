@@ -23,7 +23,7 @@ if str(SCRIPTS_ROOT) not in sys.path:
 from urllib.parse import quote
 from uuid import uuid4
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, class_id_map, label_config_xml, load_brand_classes  # type: ignore[import-not-found]
+from common.brand_library import DEFAULT_BRAND_LIBRARY, class_id_map, label_config_xml, load_brand_classes, select_brand_classes  # type: ignore[import-not-found]
 from PIL import Image
 
 DEFAULT_RAW_REPORT = PROJECT_ROOT / "datasets" / "multibrand" / "raw" / "metadata" / "download_report.csv"
@@ -186,11 +186,17 @@ def main() -> None:
     parser.add_argument("--pseudo-root", type=Path, default=DEFAULT_PSEUDO_ROOT, help="YOLO 伪标注数据根目录")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Label Studio 导入 JSON 输出路径")
     parser.add_argument("--brand-library", type=Path, default=DEFAULT_BRAND_LIBRARY, help="品牌标识库 JSON/TXT")
+    parser.add_argument("--brand-filter", action="append", dest="brand_filter", help="只导入指定品牌标签，可重复传入")
+    parser.add_argument("--compact-class-ids", action="store_true", help="将所选品牌重编号为连续类别 ID")
     parser.add_argument("--label-config-output", type=Path, default=None, help="可选：输出 Label Studio XML 标签配置")
     parser.add_argument("--limit", type=int, default=None, help="仅生成前 N 个任务，便于试跑")
     args = parser.parse_args()
 
-    brand_classes = load_brand_classes(args.brand_library)
+    brand_classes = select_brand_classes(
+        load_brand_classes(args.brand_library), args.brand_filter, args.compact_class_ids
+    )
+    if not brand_classes:
+        raise SystemExit(f"品牌过滤后没有可用类别：{args.brand_filter}")
     id_to_brand = class_id_map(brand_classes)
     tasks = build_tasks(args.raw_report, args.pseudo_root, id_to_brand, args.limit)
     write_import_file(tasks, args.output)

@@ -84,5 +84,10 @@ datasets/softcare/labels/*.cache
 /datasets/multibrand/raw/metadata/*.csv
 /datasets/multibrand/raw/metadata/*.json
 
-/models/bak/
+/models/backup/
 
+# Generated YOLO dataset configs
+/config/generated/*.yaml
+!/config/generated/.gitkeep
+
+/runs/detect/models/val/multibrand-best/

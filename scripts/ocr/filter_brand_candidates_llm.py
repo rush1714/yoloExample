@@ -41,12 +41,12 @@ from ocr.filter_brand_candidates import (  # type: ignore[import-not-found]
     DEFAULT_OUTPUT_DIR,
     DEFAULT_RAW_DIR,
     IMAGE_SUFFIXES,
+    OcrReportWriter,
     OcrResult,
     OcrText,
     load_brand_library,
     match_keywords,
     unique_preserve_order,
-    write_reports,
 )
 
 # 默认 Ollama 服务地址。
@@ -201,7 +201,7 @@ def load_keywords(args: argparse.Namespace) -> list[str]:
     keywords: list[str] = []
     if not args.no_brand_library:
         if args.brand_library.is_file():
-            keywords.extend(load_brand_library(args.brand_library))
+            keywords.extend(load_brand_library(args.brand_library, args.brand_filter))
         elif args.keywords:
             # 显式传了关键词时允许品牌库不存在，便于临时测试。
             pass
@@ -244,6 +244,7 @@ def main() -> None:
     parser.add_argument(
         "--no-brand-library", action="store_true", help="不读取品牌库，仅使用 --keyword 或默认关键词"
     )
+    parser.add_argument("--brand-filter", action="append", dest="brand_filter", help="只匹配指定品牌，可重复传入")
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
@@ -277,7 +278,9 @@ def main() -> None:
     candidate_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    results: list[OcrResult] = []
+    report_writer = OcrReportWriter(args.output_dir)
+    processed_count = 0
+    matched_count = 0
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_map = {
             executor.submit(
@@ -303,7 +306,9 @@ def main() -> None:
                 raise SystemExit(f"Ollama OCR 请求失败：image={image_path} error={exc}") from exc
             except Exception as exc:
                 raise SystemExit(f"LLM OCR 处理失败：image={image_path} error={exc}") from exc
-            results.append(result)
+            report_writer.record(result)
+            processed_count += 1
+            matched_count += int(result.matched)
             status = "MATCH" if result.matched else "miss"
             joined_texts = " | ".join(item.text for item in result.texts) or "-"
             print(
@@ -312,15 +317,7 @@ def main() -> None:
                 f"llm_texts={joined_texts} image={image_path.name}"
             )
 
-    order = {
-        str(image_path.resolve()): index
-        for index, image_path in enumerate(images)
-    }
-    results.sort(key=lambda item: order.get(item.image, len(order)))
-    write_reports(results, args.output_dir)
-
-    matched_count = sum(result.matched for result in results)
-    print(f"完成：processed={len(results)}, matched={matched_count}")
+    print(f"完成：processed={processed_count}, matched={matched_count}")
     print(f"OCR 报告：{metadata_dir / 'ocr_softcare_report.csv'}")
     print(f"候选清单：{metadata_dir / 'ocr_candidates.txt'}")
 

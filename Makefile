@@ -16,7 +16,7 @@ MODELS_BAK_DIR  := $(PROJECT_ROOT)/models/backup
 # ── 1. Excel 数据导入参数 ────────────────────────────────────
 # Excel 文件路径；可改成任意包含图片 URL 列的本地 xlsx 文件。
 # 示例：make step-1-import-excel EXCEL=/path/to/file.xlsx
-EXCEL              ?= /Users/guobiao/Downloads/4a95276e5e5159f32effb588ef9c0ac7.xlsx
+EXCEL              ?= /Users/guobiao/DOC/森大2.0/18.陈列数据/柯特2026_7-8月.xlsx
 # Excel 中存放图片 URL 的列名；改错会导致脚本提示找不到列。
 # 示例：make step-1-import-excel EXCEL_COLUMN=整改后图片URL
 EXCEL_COLUMN       ?= 整改后图片URL
@@ -25,28 +25,32 @@ EXCEL_WORKERS      ?= 8
 # 单张图片下载超时时间（秒）；远端慢时可调大，例如 60。
 EXCEL_TIMEOUT      ?= 30
 
-# ── 数据目录参数 ─────────────────────────────────────────────
-# 多品牌数据集根目录；如要复制一套实验数据，可整体改到其它目录。
-DATASET_ROOT       ?= $(PROJECT_ROOT)/datasets/multibrand
-# Excel 下载后的原始图片目录；OCR 和预标注默认从这里读取图片。
-RAW_DIR            ?= $(DATASET_ROOT)/raw/images
-# Excel 下载报告目录；ls-import-json 默认读取其中的 download_report.csv。
-RAW_METADATA_DIR   ?= $(DATASET_ROOT)/raw/metadata
-# OCR 输出目录；包含 candidates 和 metadata。
+# ── 品牌与数据目录参数 ───────────────────────────────────────
+# BRAND=all 使用全部启用品牌；指定品牌时，OCR、预标注、Label Studio 和训练集都会隔离。
+BRAND              ?= all
+# 品牌标识库；修改后会驱动 OCR 关键词、预标注提示词、Label Studio 标签和 YAML 类别。
+BRAND_LIBRARY      ?= $(PROJECT_ROOT)/config/brand_keywords.json
+BRAND_PROFILE_SCRIPT := $(PROJECT_ROOT)/scripts/config/brand_profile.py
+DATASET_NAME       := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field dataset-name)
+BRAND_DISPLAY_NAME := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field display-name)
+BRAND_FILTER       := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field brand-filter)
+BRAND_FILTER_ARG   := $(if $(BRAND_FILTER),--brand-filter '$(BRAND_FILTER)',)
+COMPACT_CLASS_IDS_ARG := $(if $(BRAND_FILTER),--compact-class-ids,)
+# 原图池及下载报告由所有品牌共享，避免为单品牌训练重复下载原图。
+SHARED_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/multibrand
+RAW_DIR            ?= $(SHARED_DATASET_ROOT)/raw/images
+RAW_METADATA_DIR   ?= $(SHARED_DATASET_ROOT)/raw/metadata
+# all 使用 datasets/multibrand；指定品牌时输出到 datasets/<brand>/，互不覆盖。
+DATASET_ROOT       ?= $(PROJECT_ROOT)/datasets/$(DATASET_NAME)
 OCR_OUTPUT_DIR     ?= $(DATASET_ROOT)/ocr
-# OCR 候选图片清单；预标注默认只处理这个清单中的图片。
 OCR_CANDIDATES_FILE ?= $(OCR_OUTPUT_DIR)/metadata/ocr_candidates.txt
-# YOLO-World 预标注输出目录；生成 pseudo/images 和 pseudo/labels。
 PSEUDO_ROOT        ?= $(DATASET_ROOT)/pseudo
-# 正式 YOLO 数据集配置；训练和数据集校验都读取该 yaml。
-TRAIN_DATA_YAML    ?= $(PROJECT_ROOT)/data/multibrand.yaml
-# 品牌标识库；OCR、预标注、Label Studio 多标签和 YOLO names 都以它为类别来源。
-BRAND_LIBRARY      ?= $(PROJECT_ROOT)/data/brand_keywords.json
-# 正式训练数据 YAML；brand-yaml 会根据 BRAND_LIBRARY 自动写入多品牌 names。
-BRAND_DATA_YAML    ?= $(PROJECT_ROOT)/data/multibrand.yaml
-# 伪标注数据 YAML；brand-yaml 会根据 BRAND_LIBRARY 自动写入多品牌 names。
-BRAND_PSEUDO_YAML  ?= $(PROJECT_ROOT)/data/multibrand_pseudo.yaml
-# 可选：导出当前品牌库生成的 Label Studio XML 标签配置，便于排查。
+# 每个品牌生成独立 YAML，并以当前数据集根目录和本次类别 ID 为准。
+CONFIG_GENERATED_DIR ?= $(PROJECT_ROOT)/config/generated
+TRAIN_DATA_YAML    ?= $(CONFIG_GENERATED_DIR)/$(DATASET_NAME).yaml
+BRAND_DATA_YAML    ?= $(TRAIN_DATA_YAML)
+BRAND_PSEUDO_YAML  ?= $(CONFIG_GENERATED_DIR)/$(DATASET_NAME)_pseudo.yaml
+# 可选：导出当前品牌选择生成的 Label Studio XML 标签配置，便于排查。
 LS_LABEL_CONFIG_XML ?= $(DATASET_ROOT)/label_studio/label_config.xml
 
 # ── 2. OCR 识别参数 ──────────────────────────────────────────
@@ -151,7 +155,10 @@ LS_LOG_FILE      ?= $(LOG_DIR)/label-studio.log
 # Label Studio 后台 PID 文件；ls-stop 会清理它。
 LS_PID_FILE      ?= $(LOG_DIR)/label-studio.pid
 # Label Studio 新建项目标题；ls-apply 会使用它，若同名已存在会自动追加 (2)/(3)。
-LS_PROJECT_TITLE ?= Multi Brand Package Review
+LS_PROJECT_TITLE ?= $(BRAND_DISPLAY_NAME) Package Review
+# 当前单品牌筛选，供 Label Studio 项目标签配置使用；all 时为空。
+LS_BRAND_FILTER ?= $(BRAND_FILTER)
+LS_COMPACT_CLASS_IDS ?= $(if $(BRAND_FILTER),1,0)
 # Label Studio 项目 ID；导出时必填。
 # 示例：make step-5-export-ls-to-train LS_PROJECT_ID=2
 LS_PROJECT_ID    ?=
@@ -185,10 +192,10 @@ TRAIN_BATCH      ?= -1
 TRAIN_DEVICE     ?= mps
 # 训练输出根目录。
 TRAIN_PROJECT    ?= $(PROJECT_ROOT)/models/train
-# 本次训练名称；输出目录为 $(TRAIN_PROJECT)/$(TRAIN_NAME)。多品牌默认使用 multibrand。
-TRAIN_NAME       ?= multibrand
-# 训练完成后复制 best.pt 到这里，供 predict 默认使用。多品牌默认模型为 multibrand-best.pt。
-FINAL_MODEL      ?= $(PROJECT_ROOT)/models/multibrand-best.pt
+# 本次训练名称；输出目录为 $(TRAIN_PROJECT)/$(TRAIN_NAME)。默认跟随 BRAND。
+TRAIN_NAME       ?= $(DATASET_NAME)
+# 训练完成后复制 best.pt 到这里，供 predict 默认使用。
+FINAL_MODEL      ?= $(PROJECT_ROOT)/models/$(DATASET_NAME)-best.pt
 # 派生参数：TRAIN_DEVICE 非空才传 --device。
 TRAIN_DEVICE_ARG := $(if $(TRAIN_DEVICE),--device $(TRAIN_DEVICE),)
 
@@ -225,13 +232,15 @@ export LS_IMPORT_JSON
 export LS_LOCAL_FILES_PATH
 export LS_PROJECT_TITLE
 export BRAND_LIBRARY
+export LS_BRAND_FILTER
+export LS_COMPACT_CLASS_IDS
 export MODELS_BAK_DIR
 
-.PHONY: help help-params prepare-dirs brand-yaml \
+.PHONY: help help-params prepare-dirs brand-check brand-list brand-yaml \
 	step-1-import-excel step-2-ocr step-2-ocr-llm step-3-pseudo-label step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
 	workflow-to-ls workflow-to-ls-llm workflow-after-ls \
 	excel-import ocr ocr-llm pseudo-label ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
-	data-validate train predict datasets-clean-preview datasets-clean-ignored ls-db-create ls-db-check
+	data-validate train predict datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check
 
 help: ## 显示命令帮助和常用参数说明
 	@printf "\033[1m可用命令\033[0m\n"
@@ -246,10 +255,14 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  EXCEL_COLUMN=%s\n    图片 URL 列名；列名不匹配会导致导入失败。\n" "$(EXCEL_COLUMN)"
 	@printf "  EXCEL_WORKERS=%s\n    并发下载线程数；调大更快但可能被限流，调小更稳。\n" "$(EXCEL_WORKERS)"
 	@printf "  EXCEL_TIMEOUT=%s\n    单图下载超时秒数；网络慢可调大。\n" "$(EXCEL_TIMEOUT)"
-	@printf "\n[2. 数据目录]\n"
-	@printf "  RAW_DIR=%s\n    原始图片目录，OCR/预标注默认从这里读取。\n" "$(RAW_DIR)"
+	@printf "\n[2. 品牌与数据目录]\n"
+	@printf "  BRAND=%s\n    all=全部品牌；指定品牌时 OCR、预标注、Label Studio 和训练集均隔离到 datasets/<品牌>。\n" "$(BRAND)"
+	@printf "  可选 BRAND：\n"
+	@$(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand all --field available-brands | sed 's/^/    /'
+	@printf "  DATASET_ROOT=%s\n    当前运行的数据集输出根目录。\n" "$(DATASET_ROOT)"
+	@printf "  RAW_DIR=%s\n    共享原始图片目录，OCR/预标注默认从这里读取。\n" "$(RAW_DIR)"
 	@printf "  OCR_CANDIDATES_FILE=%s\n    OCR 候选清单，预标注默认只处理该清单。\n" "$(OCR_CANDIDATES_FILE)"
-	@printf "  BRAND_LIBRARY=%s\n    品牌标识库；OCR、预标注、Label Studio 标签和 YOLO names 都以它为类别来源。\n" "$(BRAND_LIBRARY)"
+	@printf "  BRAND_LIBRARY=%s\n    品牌库是 OCR、预标注、Label Studio 标签和 YAML 类别的唯一来源。\n" "$(BRAND_LIBRARY)"
 	@printf "\n[3. OCR]\n"
 	@printf "  OCR_ENGINE=%s\n    rapidocr/easyocr；rapidocr 快且默认推荐，easyocr 可作为备选。\n" "$(OCR_ENGINE)"
 	@printf "  OCR_WORKERS=%s\n    常规 OCR 并发线程数；调大更快但更占内存，1=串行。\n" "$(OCR_WORKERS)"
@@ -261,7 +274,6 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  LLM_OCR_WORKERS=%s\n    大模型 OCR 并发数；本地推理通常 1 更稳。\n" "$(LLM_OCR_WORKERS)"
 	@printf "\n[4. 预标注]\n"
 	@printf "  PSEUDO_USE_OCR_CANDIDATES=%s\n    1=只处理 OCR 候选图；0=全量 raw/images。\n" "$(PSEUDO_USE_OCR_CANDIDATES)"
-	@printf "  PSEUDO_BRAND_FILTER_ARGS=%s\n    多品牌默认留空=预标全部启用品牌；如只调试某品牌可传 --brand-filter SOFTCARE。\n" "$(PSEUDO_BRAND_FILTER_ARGS)"
 	@printf "  PSEUDO_PROMPT_ARGS=%s\n    额外提示词模板；多类别建议用 {brand} 占位符，避免无法映射类别。\n" "$(PSEUDO_PROMPT_ARGS)"
 	@printf "  PSEUDO_CONF=%s\n    YOLO-World 置信度；调高减少误检，调低增加召回。\n" "$(PSEUDO_CONF)"
 	@printf "  PSEUDO_NMS_IOU=%s\n    重复框去重 IoU；调低删除更多重叠框。\n" "$(PSEUDO_NMS_IOU)"
@@ -293,7 +305,8 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4\n"
 	@printf "  make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b\n"
 	@printf "  make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=20\n"
-	@printf "  make step-3-pseudo-label PSEUDO_BRAND_FILTER_ARGS='--brand-filter SOFTCARE' PSEUDO_LIMIT=20\n"
+	@printf "  make workflow-to-ls BRAND=SOFTCARE\n"
+	@printf "  make workflow-after-ls BRAND=SOFTCARE LS_PROJECT_ID=<项目ID>\n"
 	@printf "  make step-3-pseudo-label PSEUDO_MAX_AREA_RATIO=0.30 PSEUDO_NMS_IOU=0.35\n"
 	@printf "  make workflow-after-ls LS_PROJECT_ID=2 TRAIN_EPOCHS=50\n"
 
@@ -308,14 +321,34 @@ datasets-clean-ignored: ## 删除 datasets/ 下所有被 .gitignore 忽略的文
 	@git clean -fdX -- datasets/ \
 	&& git clean -fdX -- models/train/
 
-bak-data: ## 备份数据集
-	@echo "备份数据集到 ${MODELS_BAK_DIR}" && rsync -av --delete $(MODELS_DIR) $(MODELS_BAK_DIR)
+datasets-clean-untracked-except-raw-preview: ## 预览删除 datasets/ 下除 raw 目录外的所有未跟踪内容
+	@git clean -ndx -e 'raw/' -e '*/raw/' -- datasets/
 
-brand-yaml: ## 根据品牌库生成多品牌 YOLO 数据集 YAML
+datasets-clean-untracked-except-raw: ## 删除 datasets/ 下除 raw 目录外的所有未跟踪内容；先执行预览命令确认
+	@git clean -fdx -e 'raw/' -e '*/raw/' -- datasets/
+
+# 备份后的权重命名格式：YYYYmmdd_HHMMSS_原文件名.pt；不删除已有备份。
+bak-data: ## 备份 models/ 下的 .pt 权重，并按日期时间和原文件名重命名
+	@timestamp="$$(date '+%Y%m%d_%H%M%S')"; \
+	export timestamp; \
+	mkdir -p "$(MODELS_BAK_DIR)"; \
+	find "$(PROJECT_ROOT)/models" -path "$(MODELS_BAK_DIR)" -prune -o -type f -name '*.pt' -exec sh -c 'for source do filename=$$(basename "$$source"); target="$(MODELS_BAK_DIR)/$${timestamp}_$${filename}"; cp "$$source" "$$target"; echo "已备份 $$source -> $$target"; done' sh {} +; \
+	echo "权重备份完成：$(MODELS_BAK_DIR)"
+
+brand-check: ## 验证 BRAND 是否存在于当前品牌库
+	@$(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field dataset-name >/dev/null
+
+brand-list: ## 显示当前品牌库支持的 BRAND 参数
+	@$(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand all --field available-brands
+
+brand-yaml: brand-check ## 根据当前 BRAND 从品牌库生成 YOLO 数据集 YAML
 	$(VENV_BIN)/python scripts/config/write_brand_yolo_yaml.py \
 		--brand-library $(BRAND_LIBRARY) \
 		--data-yaml $(BRAND_DATA_YAML) \
-		--pseudo-yaml $(BRAND_PSEUDO_YAML)
+		--pseudo-yaml $(BRAND_PSEUDO_YAML) \
+		--dataset-root ../../datasets/$(DATASET_NAME) \
+		$(BRAND_FILTER_ARG) \
+		$(COMPACT_CLASS_IDS_ARG)
 
 # ── 按业务顺序排列的主流程 ───────────────────────────────────
 
@@ -361,6 +394,7 @@ ocr: ## 并行 OCR 识别品牌标识库候选图片，输出 OCR_CANDIDATES_FIL
 		--output-dir $(OCR_OUTPUT_DIR) \
 		--engine $(OCR_ENGINE) \
 		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
 		$(OCR_KEYWORD_ARGS) \
 		--languages $(OCR_LANGUAGES) \
 		--min-confidence $(OCR_MIN_CONFIDENCE) \
@@ -374,6 +408,7 @@ ocr-llm: ## 使用 Ollama 本地视觉大模型 OCR 生成品牌候选图片清�
 		--raw-dir $(RAW_DIR) \
 		--output-dir $(OCR_OUTPUT_DIR) \
 		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
 		$(OCR_KEYWORD_ARGS) \
 		--model $(LLM_OCR_MODEL) \
 		--ollama-url $(LLM_OCR_URL) \
@@ -393,6 +428,8 @@ pseudo-label: ## 生成 YOLO-World 预标注，默认使用 OCR 候选清单和�
 		--output-root $(PSEUDO_ROOT) \
 		--model $(PSEUDO_MODEL) \
 		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
+		$(COMPACT_CLASS_IDS_ARG) \
 		$(PSEUDO_BRAND_FILTER_ARGS) \
 		$(PSEUDO_BRAND_PACKAGE_ARG) \
 		$(PSEUDO_PROMPT_ARGS) \
@@ -459,6 +496,8 @@ ls-import-json: ## 生成 Label Studio 导入 JSON（使用本地图片路径和
 		--pseudo-root $(PSEUDO_ROOT) \
 		--output $(LS_IMPORT_JSON) \
 		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
+		$(COMPACT_CLASS_IDS_ARG) \
 		--label-config-output $(LS_LABEL_CONFIG_XML)
 
 ls-apply: ls-db-check prepare-dirs ## 通过 Django shell 导入任务到 Label Studio，并注册本地图片目录
@@ -480,6 +519,8 @@ ls-to-yolo: ## 将 Label Studio JSON 导出转换为 datasets/multibrand/images 
 		--output-root $(DATASET_ROOT) \
 		--pseudo-root $(PSEUDO_ROOT) \
 		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
+		$(COMPACT_CLASS_IDS_ARG) \
 		--report $(LS_TO_YOLO_REPORT) \
 		$(LS_TO_YOLO_CLEAR_ARG) \
 		$(LS_TO_YOLO_SKIP_EMPTY_ARG)
@@ -500,7 +541,7 @@ train: data-validate ## 训练多品牌 YOLO 模型
 
 # ── 7. 验证 / 推理 ──────────────────────────────────────────
 
-data-validate: ## 校验正式 YOLO 数据集结构、标签和类别
+data-validate: brand-yaml ## 校验正式 YOLO 数据集结构、标签和类别
 	$(VENV_BIN)/python scripts/training/validate_dataset.py --data $(TRAIN_DATA_YAML)
 
 predict: ## 使用训练后的模型对 PREDICT_SOURCE 做推理验证

@@ -28,7 +28,7 @@ from training.validate_dataset import validate_dataset  # type: ignore[import-no
 # 模型目录，用于存放预训练权重和训练输出
 MODELS_DIR = PROJECT_ROOT / "models"
 # 默认数据集配置文件路径
-DEFAULT_DATASET_YAML = PROJECT_ROOT / "data" / "multibrand.yaml"
+DEFAULT_DATASET_YAML = PROJECT_ROOT / "config" / "generated" / "multibrand.yaml"
 # 训练输出根目录
 DEFAULT_PROJECT = MODELS_DIR / "train"
 # 默认预训练模型路径

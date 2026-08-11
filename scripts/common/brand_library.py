@@ -16,7 +16,7 @@ from typing import Any
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # 默认品牌标识库
-DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "data" / "brand_keywords.json"
+DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "config" / "brand_keywords.json"
 # Label Studio 标签颜色：循环使用，避免所有品牌同色。
 LABEL_COLORS = [
     "#FFA500",
@@ -182,6 +182,29 @@ def filter_brand_classes(classes: list[BrandClass], filters: list[str] | None) -
         or normalize_key(brand.class_name) in allowed
         or any(normalize_key(alias) in allowed for alias in brand.aliases)
     ]
+
+
+def select_brand_classes(
+    classes: list[BrandClass], filters: list[str] | None, compact_class_ids: bool = False
+) -> list[BrandClass]:
+    """选择品牌；单品牌运行可将其类别 ID 重编号为从 0 开始的连续值。"""
+    selected = filter_brand_classes(classes, filters)
+    if not selected or not compact_class_ids:
+        return selected
+    return [
+        BrandClass(
+            class_id=index,
+            class_name=brand.class_name,
+            display_name=brand.display_name,
+            aliases=brand.aliases,
+        )
+        for index, brand in enumerate(selected)
+    ]
+
+
+def available_brand_names(classes: list[BrandClass]) -> list[str]:
+    """返回可传给命令行品牌筛选参数的显示名。"""
+    return [brand.display_name for brand in classes]
 
 
 def yolo_names(classes: list[BrandClass]) -> dict[int, str]:
