@@ -59,30 +59,30 @@ htmlcov/
 datasets/softcare/labels/*.cache
 /models/train/
 
-/datasets/multibrand/labels/*.cache
+/datasets/*/labels/*.cache
 
-/datasets/multibrand/labels/test/*.txt
-/datasets/multibrand/labels/train/*.txt
-/datasets/multibrand/labels/val/*.txt
+/datasets/*/labels/test/*.txt
+/datasets/*/labels/train/*.txt
+/datasets/*/labels/val/*.txt
 
-/datasets/multibrand/pseudo/labels/test/*.txt
-/datasets/multibrand/pseudo/labels/train/*.txt
-/datasets/multibrand/pseudo/labels/val/*.txt
+/datasets/*/pseudo/labels/test/*.txt
+/datasets/*/pseudo/labels/train/*.txt
+/datasets/*/pseudo/labels/val/*.txt
 
-/datasets/multibrand/pseudo/metadata/*.txt
-/datasets/multibrand/pseudo/metadata/*.csv
-/datasets/multibrand/pseudo/metadata/*.json
+/datasets/*/pseudo/metadata/*.txt
+/datasets/*/pseudo/metadata/*.csv
+/datasets/*/pseudo/metadata/*.json
 
-/datasets/multibrand/label_studio/*label_studio_import.json
-/datasets/multibrand/label_studio/exports/
+/datasets/*/label_studio/*label_studio_import.json
+/datasets/*/label_studio/exports/
 
-/datasets/multibrand/ocr/metadata/*.txt
-/datasets/multibrand/ocr/metadata/*.csv
-/datasets/multibrand/ocr/metadata/*.json
+/datasets/*/ocr/metadata/*.txt
+/datasets/*/ocr/metadata/*.csv
+/datasets/*/ocr/metadata/*.json
 
-/datasets/multibrand/raw/metadata/*.txt
-/datasets/multibrand/raw/metadata/*.csv
-/datasets/multibrand/raw/metadata/*.json
+/datasets/*/raw/metadata/*.txt
+/datasets/*/raw/metadata/*.csv
+/datasets/*/raw/metadata/*.json
 
 /models/backup/
 
