@@ -8,6 +8,8 @@
 - `BRAND=all` 保持全品牌流程；`BRAND=<品牌>` 会将 OCR、伪标注、Label Studio 导入/导出和训练数据隔离到 `datasets/<品牌>/`，共享原始图片池 `datasets/multibrand/raw/`。
 - 单品牌模式将该品牌标签重编号为类别 `0`；全品牌模式保留品牌库内稳定 `class_id`。
 - 常规 OCR、Ollama OCR 与 YOLO-World 预标注均改为逐图持久化：CSV 立即追加，JSON 原子更新；预标注图片和标签在单图推理完成后立即落盘。
+- 两种 OCR 支持 `--resume`：从完整 JSON 报告恢复、跳过已完成图片，并重建 CSV 和候选清单保证一致。
+- 训练支持 `--resume`：从 `models/train/<品牌>/weights/last.pt` 恢复 Ultralytics 训练状态；Makefile 使用 `TRAIN_RESUME=1` 开启。
 
 ## 使用方式
 

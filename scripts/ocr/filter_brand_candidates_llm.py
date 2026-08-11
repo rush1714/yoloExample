@@ -262,6 +262,7 @@ def main() -> None:
         "--jpeg-quality", type=int, default=DEFAULT_JPEG_QUALITY, help="送入模型前 JPEG 质量，1-100"
     )
     parser.add_argument("--copy-candidates", action="store_true", help="是否复制命中图片到 ocr/candidates")
+    parser.add_argument("--resume", action="store_true", help="从已有 OCR JSON 报告恢复，跳过已完成图片")
     args = parser.parse_args()
 
     validate_args(args)
@@ -269,18 +270,28 @@ def main() -> None:
     print(f"LLM OCR 模型：{args.model}，Ollama：{args.ollama_url}，并发：{args.workers}")
     print(f"OCR 关键词数量：{len(keywords)}，关键词：{', '.join(keywords)}")
 
-    images = list_images(args.raw_dir, args.limit)
-    if not images:
-        raise SystemExit(f"原图目录没有图片：{args.raw_dir}")
-
     candidate_dir = args.output_dir / "candidates"
     metadata_dir = args.output_dir / "metadata"
     candidate_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        report_writer = OcrReportWriter(args.output_dir, resume=args.resume)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
-    report_writer = OcrReportWriter(args.output_dir)
+    all_images = list_images(args.raw_dir, args.limit)
+    if not all_images:
+        raise SystemExit(f"原图目录没有图片：{args.raw_dir}")
+    images = [image for image in all_images if str(image.resolve()) not in report_writer.completed_images]
+    skipped_count = len(all_images) - len(images)
+    if args.resume:
+        print(f"恢复模式：已完成={skipped_count}，待处理={len(images)}")
+    if not images:
+        print(f"已全部完成：processed={len(report_writer.rows)}, matched={report_writer.matched_count}")
+        return
+
     processed_count = 0
-    matched_count = 0
+    matched_count = report_writer.matched_count
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_map = {
             executor.submit(
@@ -317,7 +328,7 @@ def main() -> None:
                 f"llm_texts={joined_texts} image={image_path.name}"
             )
 
-    print(f"完成：processed={processed_count}, matched={matched_count}")
+    print(f"完成：processed={len(report_writer.rows)}, matched={matched_count}")
     print(f"OCR 报告：{metadata_dir / 'ocr_softcare_report.csv'}")
     print(f"候选清单：{metadata_dir / 'ocr_candidates.txt'}")
 

@@ -183,6 +183,16 @@ make step-2-ocr-llm
 
 OCR 每完成一张图片，会立即追加 CSV、候选清单，并以原子替换方式更新可直接读取的 JSON；因此运行中断时已处理结果仍可保留。默认全品牌目录是 `datasets/multibrand/ocr/`，单品牌目录由 `BRAND` 决定。
 
+如 OCR 被中断，重新执行相同品牌与输出参数并启用恢复模式，脚本会以 JSON 报告为准跳过已完成图片，并先重建 CSV 和候选清单以保持三份报告一致：
+
+```bash
+make step-2-ocr-llm BRAND=SOFTCARE OCR_RESUME=1
+# 常规 OCR 同样支持
+make step-2-ocr BRAND=SOFTCARE OCR_RESUME=1
+```
+
+恢复前必须停止旧 OCR 进程，避免两个进程同时写入同一输出目录。若 JSON 报告无效，恢复会拒绝执行而不会静默丢失处理记录。
+
 注意：OCR 命中只代表“可能有目标品牌”，不能直接得到商品框；OCR 未命中也不代表图片一定没有目标品牌。
 
 ## 自动/半自动标注
@@ -402,6 +412,14 @@ uv run python scripts/data_import/download_sample.py
 ```bash
 make step-6-train
 ```
+
+训练中断后，可从同一品牌的 `models/train/<品牌>/weights/last.pt` 恢复：
+
+```bash
+make train BRAND=SOFTCARE TRAIN_RESUME=1
+```
+
+恢复时 Ultralytics 会读取检查点中的训练参数和状态；如果 `last.pt` 不存在，脚本会明确报错而不会重新开始训练。
 
 等价脚本命令：
 

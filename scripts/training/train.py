@@ -67,6 +67,7 @@ def main() -> None:
     parser.add_argument("--project", type=Path, default=DEFAULT_PROJECT, help="训练输出目录；默认 models/train")
     parser.add_argument("--name", default="multibrand", help="本次训练名称")
     parser.add_argument("--export-model", type=Path, default=DEFAULT_FINAL_MODEL, help="训练完成后复制 best.pt 到该路径；默认 models/multibrand-best.pt")
+    parser.add_argument("--resume", action="store_true", help="从 project/name/weights/last.pt 恢复中断训练")
     args = parser.parse_args()
 
     # 配置 Ultralytics 权重目录
@@ -86,23 +87,26 @@ def main() -> None:
     if errors:
         raise SystemExit("训练取消，数据集校验失败：\n- " + "\n- ".join(errors))
 
-    # 加载预训练模型
-    model = YOLO(str(args.base_model))
-    # 构建训练参数字典
-    train_args = {
-        "data": str(data_path),
-        "epochs": args.epochs,
-        "imgsz": args.imgsz,
-        "project": str(args.project),
-        "name": args.name,
-        "batch": args.batch,
-    }
-    # 如果指定了设备，添加到训练参数
-    if args.device is not None:
-        train_args["device"] = args.device
+    last_model = args.project / args.name / "weights" / "last.pt"
+    if args.resume:
+        if not last_model.is_file():
+            raise SystemExit(f"无法恢复：找不到训练检查点：{last_model}")
+        model = YOLO(str(last_model))
+        model.train(resume=True)
+    else:
+        model = YOLO(str(args.base_model))
+        train_args = {
+            "data": str(data_path),
+            "epochs": args.epochs,
+            "imgsz": args.imgsz,
+            "project": str(args.project),
+            "name": args.name,
+            "batch": args.batch,
+        }
+        if args.device is not None:
+            train_args["device"] = args.device
+        model.train(**train_args)
 
-    # 执行训练
-    model.train(**train_args)
     # 训练完成后，复制最佳模型到指定位置
     best_model = args.project / args.name / "weights" / "best.pt"
     if best_model.is_file() and args.export_model:

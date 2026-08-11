@@ -91,6 +91,43 @@ class IncrementalReportWriterTest(unittest.TestCase):
                 self.assertEqual(len(list(csv.DictReader(file))), 1)
             self.assertEqual((metadata_dir / "ocr_candidates.txt").read_text(encoding="utf-8"), "/raw/image.jpg\n")
 
+    def test_ocr_writer_resumes_and_rebuilds_summary_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            writer = OcrReportWriter(output_dir)
+            writer.record(
+                OcrResult(
+                    image="/raw/processed.jpg",
+                    candidate_image="/raw/processed.jpg",
+                    matched=True,
+                    score=99.0,
+                    keyword="SOFTCARE",
+                    matched_text="Softcare",
+                    texts=[OcrText("Softcare", 0.99, [])],
+                )
+            )
+            metadata_dir = output_dir / "metadata"
+            (metadata_dir / "ocr_softcare_report.csv").write_text("invalid", encoding="utf-8")
+            (metadata_dir / "ocr_candidates.txt").write_text("invalid\n", encoding="utf-8")
+            resumed = OcrReportWriter(output_dir, resume=True)
+            self.assertEqual(resumed.completed_images, {"/raw/processed.jpg"})
+            self.assertEqual(resumed.matched_count, 1)
+            with (metadata_dir / "ocr_softcare_report.csv").open(encoding="utf-8") as file:
+                self.assertEqual(len(list(csv.DictReader(file))), 1)
+            self.assertEqual((metadata_dir / "ocr_candidates.txt").read_text(encoding="utf-8"), "/raw/processed.jpg\n")
+            resumed.record(
+                OcrResult(
+                    image="/raw/remaining.jpg",
+                    candidate_image="",
+                    matched=False,
+                    score=0.0,
+                    keyword="",
+                    matched_text="",
+                    texts=[],
+                )
+            )
+            self.assertEqual(len(json.loads((metadata_dir / "ocr_softcare_report.json").read_text(encoding="utf-8"))), 2)
+
     def test_pseudo_writer_persists_each_result(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output_root = Path(directory)

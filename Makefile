@@ -73,10 +73,14 @@ OCR_FUZZY_THRESHOLD ?= 60
 OCR_LIMIT           ?=
 # 是否复制命中图片到 datasets/multibrand/ocr/candidates；1/true/yes 开启，默认只写候选清单不复制。
 OCR_COPY_CANDIDATES ?= 0
+# 是否从已有 OCR JSON 报告恢复；1/true/yes 时跳过已成功处理的图片。
+OCR_RESUME          ?= 0
 # 派生参数：有 OCR_LIMIT 时才传 --limit。
 OCR_LIMIT_ARG       := $(if $(OCR_LIMIT),--limit $(OCR_LIMIT),)
 # 派生参数：OCR_COPY_CANDIDATES 为 1/true/yes 时才传 --copy-candidates。
 OCR_COPY_ARG        := $(if $(filter 1 true yes,$(OCR_COPY_CANDIDATES)),--copy-candidates,)
+# 派生参数：OCR_RESUME 为 1/true/yes 时才传 --resume。
+OCR_RESUME_ARG      := $(if $(filter 1 true yes,$(OCR_RESUME)),--resume,)
 # 本地大模型 OCR 使用的 Ollama 视觉模型；本机已验证 gemma3:12b 支持英文品牌 OCR。
 LLM_OCR_MODEL       ?= gemma3:12b
 # Ollama 服务地址；默认是本机 Ollama HTTP API。
@@ -196,8 +200,12 @@ TRAIN_PROJECT    ?= $(PROJECT_ROOT)/models/train
 TRAIN_NAME       ?= $(DATASET_NAME)
 # 训练完成后复制 best.pt 到这里，供 predict 默认使用。
 FINAL_MODEL      ?= $(PROJECT_ROOT)/models/$(DATASET_NAME)-best.pt
+# 是否从 models/train/<当前品牌>/weights/last.pt 恢复中断训练。
+TRAIN_RESUME     ?= 0
 # 派生参数：TRAIN_DEVICE 非空才传 --device。
 TRAIN_DEVICE_ARG := $(if $(TRAIN_DEVICE),--device $(TRAIN_DEVICE),)
+# 派生参数：TRAIN_RESUME 为 1/true/yes 时传 --resume。
+TRAIN_RESUME_ARG := $(if $(filter 1 true yes,$(TRAIN_RESUME)),--resume,)
 
 # ── 7. 推理验证参数 ──────────────────────────────────────────
 # 推理验证输入图片；可改为任意本地图片路径或 HTTP(S) URL。
@@ -270,6 +278,7 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  OCR_FUZZY_THRESHOLD=%s\n    品牌模糊匹配阈值 0-100；调高更严格，调低召回更多。\n" "$(OCR_FUZZY_THRESHOLD)"
 	@printf "  OCR_LIMIT=%s\n    OCR 处理数量上限；空=全量，调试建议 20。\n" "$(OCR_LIMIT)"
 	@printf "  OCR_COPY_CANDIDATES=%s\n    1/true/yes 时复制命中图片到 ocr/candidates；默认只写清单。\n" "$(OCR_COPY_CANDIDATES)"
+	@printf "  OCR_RESUME=%s\n    1/true/yes 时从 OCR JSON 报告恢复，跳过已完成图片。\n" "$(OCR_RESUME)"
 	@printf "  LLM_OCR_MODEL=%s\n    Ollama 视觉模型；默认 gemma3:12b，可改 qwen3.6:latest 或 minicpm-v:latest。\n" "$(LLM_OCR_MODEL)"
 	@printf "  LLM_OCR_WORKERS=%s\n    大模型 OCR 并发数；本地推理通常 1 更稳。\n" "$(LLM_OCR_WORKERS)"
 	@printf "\n[4. 预标注]\n"
@@ -298,15 +307,18 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  TRAIN_IMGSZ=%s\n    训练尺寸；小目标建议 960，速度慢可 640。\n" "$(TRAIN_IMGSZ)"
 	@printf "  TRAIN_BATCH=%s\n    batch；-1 自动，内存不稳可设 4/8。\n" "$(TRAIN_BATCH)"
 	@printf "  TRAIN_DEVICE=%s\n    mps/cpu/0/空；M 系 Mac 默认 mps，空表示不传 device。\n" "$(TRAIN_DEVICE)"
+	@printf "  TRAIN_RESUME=%s\n    1/true/yes 时从 models/train/<当前品牌>/weights/last.pt 恢复训练。\n" "$(TRAIN_RESUME)"
 	@printf "\n[7. 推理验证]\n"
 	@printf "  PREDICT_SOURCE=%s\n    推理输入，可改本地图片或 HTTP(S) URL。\n" "$(PREDICT_SOURCE)"
 	@printf "  PREDICT_CONF=%s\n    推理置信度；调高少误检，调低多召回。\n" "$(PREDICT_CONF)"
 	@printf "\n常用示例：\n"
 	@printf "  make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4\n"
 	@printf "  make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b\n"
+	@printf "  make step-2-ocr-llm BRAND=SOFTCARE OCR_RESUME=1\n"
 	@printf "  make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=20\n"
 	@printf "  make workflow-to-ls BRAND=SOFTCARE\n"
 	@printf "  make workflow-after-ls BRAND=SOFTCARE LS_PROJECT_ID=<项目ID>\n"
+	@printf "  make train BRAND=SOFTCARE TRAIN_RESUME=1\n"
 	@printf "  make step-3-pseudo-label PSEUDO_MAX_AREA_RATIO=0.30 PSEUDO_NMS_IOU=0.35\n"
 	@printf "  make workflow-after-ls LS_PROJECT_ID=2 TRAIN_EPOCHS=50\n"
 
@@ -401,7 +413,8 @@ ocr: ## 并行 OCR 识别品牌标识库候选图片，输出 OCR_CANDIDATES_FIL
 		--fuzzy-threshold $(OCR_FUZZY_THRESHOLD) \
 		--workers $(OCR_WORKERS) \
 		$(OCR_LIMIT_ARG) \
-		$(OCR_COPY_ARG)
+		$(OCR_COPY_ARG) \
+		$(OCR_RESUME_ARG)
 
 ocr-llm: ## 使用 Ollama 本地视觉大模型 OCR 生成品牌候选图片清单
 	$(VENV_BIN)/python scripts/ocr/filter_brand_candidates_llm.py \
@@ -418,7 +431,8 @@ ocr-llm: ## 使用 Ollama 本地视觉大模型 OCR 生成品牌候选图片清�
 		--max-image-side $(LLM_OCR_MAX_IMAGE_SIDE) \
 		--jpeg-quality $(LLM_OCR_JPEG_QUALITY) \
 		$(OCR_LIMIT_ARG) \
-		$(OCR_COPY_ARG)
+		$(OCR_COPY_ARG) \
+		$(OCR_RESUME_ARG)
 
 # ── 3. YOLO-World 预标注 ────────────────────────────────────
 
@@ -537,7 +551,8 @@ train: data-validate ## 训练多品牌 YOLO 模型
 		$(TRAIN_DEVICE_ARG) \
 		--project $(TRAIN_PROJECT) \
 		--name $(TRAIN_NAME) \
-		--export-model $(FINAL_MODEL)
+		--export-model $(FINAL_MODEL) \
+		$(TRAIN_RESUME_ARG)
 
 # ── 7. 验证 / 推理 ──────────────────────────────────────────
 

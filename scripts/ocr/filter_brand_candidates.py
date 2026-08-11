@@ -379,17 +379,63 @@ class OcrReportWriter:
         "text_count",
     ]
 
-    def __init__(self, output_dir: Path) -> None:
+    def __init__(self, output_dir: Path, resume: bool = False) -> None:
         self.metadata_dir = output_dir / "metadata"
         self.metadata_dir.mkdir(parents=True, exist_ok=True)
         self.json_path = self.metadata_dir / "ocr_softcare_report.json"
         self.csv_path = self.metadata_dir / "ocr_softcare_report.csv"
         self.candidates_path = self.metadata_dir / "ocr_candidates.txt"
-        self.rows: list[dict[str, Any]] = []
+        self.rows = self._load_rows() if resume else []
         self._write_json()
+        self._rewrite_summary_files()
+
+    def _load_rows(self) -> list[dict[str, Any]]:
+        """加载已有完整 JSON 报告；损坏或格式错误时拒绝继续，避免遗漏图片。"""
+        if not self.json_path.exists():
+            return []
+        try:
+            payload = json.loads(self.json_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"无法恢复：OCR JSON 报告格式无效：{self.json_path}") from exc
+        if not isinstance(payload, list) or not all(isinstance(row, dict) for row in payload):
+            raise ValueError(f"无法恢复：OCR JSON 报告必须是对象列表：{self.json_path}")
+        return payload
+
+    def _rewrite_summary_files(self) -> None:
+        """依据 JSON 重建 CSV 和候选清单，保持恢复时三份报告一致。"""
         with self.csv_path.open("w", encoding="utf-8", newline="") as file:
-            csv.DictWriter(file, fieldnames=self.fieldnames).writeheader()
-        self.candidates_path.write_text("", encoding="utf-8")
+            writer = csv.DictWriter(file, fieldnames=self.fieldnames)
+            writer.writeheader()
+            for row in self.rows:
+                writer.writerow(
+                    {
+                        "image": row.get("image", ""),
+                        "candidate_image": row.get("candidate_image", ""),
+                        "matched": row.get("matched", False),
+                        "score": row.get("score", 0),
+                        "keyword": row.get("keyword", ""),
+                        "matched_text": row.get("matched_text", ""),
+                        "text_count": len(row.get("texts", [])),
+                    }
+                )
+        candidate_images = [
+            str(row["candidate_image"])
+            for row in self.rows
+            if row.get("matched") and row.get("candidate_image")
+        ]
+        self.candidates_path.write_text(
+            "\n".join(candidate_images) + ("\n" if candidate_images else ""), encoding="utf-8"
+        )
+
+    @property
+    def completed_images(self) -> set[str]:
+        """返回报告中已经成功处理过的绝对图片路径。"""
+        return {str(row["image"]) for row in self.rows if isinstance(row.get("image"), str)}
+
+    @property
+    def matched_count(self) -> int:
+        """返回报告中当前累计的命中数量。"""
+        return sum(bool(row.get("matched")) for row in self.rows)
 
     def _write_json(self) -> None:
         """原子替换 JSON，读取方在每次更新期间都只能看到完整 JSON。"""
@@ -460,6 +506,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="只处理前 N 张图片，便于试跑")
     parser.add_argument("--workers", type=int, default=4, help="并发 OCR 工作线程数；1 表示串行")
     parser.add_argument("--copy-candidates", action="store_true", help="是否复制命中图片到 ocr/candidates")
+    parser.add_argument("--resume", action="store_true", help="从已有 OCR JSON 报告恢复，跳过已完成图片")
     args = parser.parse_args()
 
     # 验证参数
@@ -486,22 +533,32 @@ def main() -> None:
     keywords = unique_preserve_order(keywords or DEFAULT_KEYWORDS)
     print(f"OCR 关键词数量：{len(keywords)}，关键词：{', '.join(keywords)}")
 
-    # 获取待处理的图片列表
-    images = list_images(args.raw_dir, args.limit)
-    if not images:
-        raise SystemExit(f"原图目录没有图片：{args.raw_dir}")
-
-    # 准备输出目录
+    # 准备输出目录和恢复报告。
     candidate_dir = args.output_dir / "candidates"
     metadata_dir = args.output_dir / "metadata"
     candidate_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        report_writer = OcrReportWriter(args.output_dir, resume=args.resume)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    # 获取待处理的图片列表；恢复时依据已有 JSON 跳过成功完成的图片。
+    all_images = list_images(args.raw_dir, args.limit)
+    if not all_images:
+        raise SystemExit(f"原图目录没有图片：{args.raw_dir}")
+    images = [image for image in all_images if str(image.resolve()) not in report_writer.completed_images]
+    skipped_count = len(all_images) - len(images)
+    if args.resume:
+        print(f"恢复模式：已完成={skipped_count}，待处理={len(images)}")
+    if not images:
+        print(f"已全部完成：processed={len(report_writer.rows)}, matched={report_writer.matched_count}")
+        return
 
     # 多线程逐张图片进行 OCR 识别和关键词匹配。
     # 注意：每个线程会懒加载独立 OCR reader，避免多个线程共享模型实例。
-    report_writer = OcrReportWriter(args.output_dir)
     processed_count = 0
-    matched_count = 0
+    matched_count = report_writer.matched_count
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_map = {
             executor.submit(
@@ -531,7 +588,7 @@ def main() -> None:
                 f"image={image_path.name}"
             )
 
-    print(f"完成：processed={processed_count}, matched={matched_count}")
+    print(f"完成：processed={len(report_writer.rows)}, matched={matched_count}")
     print(f"OCR 报告：{metadata_dir / 'ocr_softcare_report.csv'}")
     print(f"候选清单：{metadata_dir / 'ocr_candidates.txt'}")
 
