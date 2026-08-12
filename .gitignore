@@ -92,3 +92,4 @@ datasets/softcare/labels/*.cache
 
 /runs/detect/models/val/multibrand-best/
 /datasets/backup/
+/datasets/*/ab_tests/

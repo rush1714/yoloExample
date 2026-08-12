@@ -137,6 +137,29 @@ PSEUDO_BRAND_PACKAGE_ARG := $(if $(filter 1 true yes,$(PSEUDO_INCLUDE_BRAND_PACK
 # 派生参数：PSEUDO_CROSS_BRAND_DEDUP 为 1/true/yes 时启用跨品牌去重。
 PSEUDO_CROSS_BRAND_DEDUP_ARG := $(if $(filter 1 true yes,$(PSEUDO_CROSS_BRAND_DEDUP)),--cross-brand-dedup,)
 
+# ── 3A. YOLO-World A/B 测试参数 ───────────────────────────────
+# 默认对比当前 s-world baseline、m-worldv2 和 x-worldv2；逗号分隔，脚本会对同一批图片逐个模型运行。
+AB_MODELS ?= models/yolov8s-world.pt,yolov8m-world.pt,yolov8m-worldv2.pt,yolov8x-worldv2.pt
+# A/B 测试输出根目录；脚本会在下面自动创建时间戳 run 目录。
+AB_OUTPUT_ROOT ?= $(DATASET_ROOT)/ab_tests/yolo_world
+# 可选运行目录名；留空时使用时间戳。
+AB_RUN_NAME ?=
+# A/B 测试图片数量；默认 50，避免首次跑全量过慢；留空表示脚本默认值或自行命令行控制。
+AB_LIMIT ?= 50
+# 每个模型保存多少张带框预览图；只影响可视化，不影响 JSON/CSV 明细。
+AB_PREVIEW_LIMIT ?= 30
+# 是否使用 OCR 候选清单做 A/B；默认沿用预标注流程设置。
+AB_USE_OCR_CANDIDATES ?= $(PSEUDO_USE_OCR_CANDIDATES)
+# 派生参数：有 AB_RUN_NAME 时才传 --run-name。
+AB_RUN_NAME_ARG := $(if $(AB_RUN_NAME),--run-name $(AB_RUN_NAME),)
+# 派生参数：有 AB_LIMIT 时才传 --limit。
+AB_LIMIT_ARG := $(if $(AB_LIMIT),--limit $(AB_LIMIT),)
+# 派生参数：AB_USE_OCR_CANDIDATES 为 1/true/yes 时才传 --candidates-file。
+AB_CANDIDATES_ARG := $(if $(filter 1 true yes,$(AB_USE_OCR_CANDIDATES)),--candidates-file $(OCR_CANDIDATES_FILE),)
+# 派生参数：显式传递开关，确保 A/B 与 PSEUDO_* 配置完全一致。
+AB_BRAND_PACKAGE_ARG := $(if $(filter 1 true yes,$(PSEUDO_INCLUDE_BRAND_PACKAGE_PROMPTS)),--include-brand-package-prompts,--no-include-brand-package-prompts)
+AB_CROSS_BRAND_DEDUP_ARG := $(if $(filter 1 true yes,$(PSEUDO_CROSS_BRAND_DEDUP)),--cross-brand-dedup,--no-cross-brand-dedup)
+
 # ── 4/5. Label Studio 参数 ───────────────────────────────────
 # PostgreSQL 用户；默认使用本机用户 guobiao。
 POSTGRE_USER     ?= guobiao
@@ -247,7 +270,7 @@ export LS_COMPACT_CLASS_IDS
 export MODELS_BAK_DIR
 
 .PHONY: help help-params prepare-dirs brand-check brand-list brand-yaml \
-	step-1-import-excel step-2-ocr step-2-ocr-llm step-3-pseudo-label step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
+	step-1-import-excel step-2-ocr step-2-ocr-llm step-3-pseudo-label yolo-world-ab-test step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
 	workflow-to-ls workflow-to-ls-llm workflow-after-ls \
 	excel-import ocr ocr-llm pseudo-label ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
 	data-validate train predict datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check
@@ -313,11 +336,16 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "\n[7. 推理验证]\n"
 	@printf "  PREDICT_SOURCE=%s\n    推理输入，可改本地图片或 HTTP(S) URL。\n" "$(PREDICT_SOURCE)"
 	@printf "  PREDICT_CONF=%s\n    推理置信度；调高少误检，调低多召回。\n" "$(PREDICT_CONF)"
+	@printf "\n[3A. YOLO-World A/B 测试]\n"
+	@printf "  AB_MODELS=%s\n    逗号分隔的对比模型；默认 s-world、m-worldv2、x-worldv2。\n" "$(AB_MODELS)"
+	@printf "  AB_LIMIT=%s\n    A/B 测试图片数量；默认 50，避免首跑过慢。\n" "$(AB_LIMIT)"
+	@printf "  AB_PREVIEW_LIMIT=%s\n    每个模型保存多少张带框预览图。\n" "$(AB_PREVIEW_LIMIT)"
 	@printf "\n常用示例：\n"
 	@printf "  make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4\n"
 	@printf "  make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b\n"
 	@printf "  make step-2-ocr-llm BRAND=SOFTCARE OCR_RESUME=1\n"
 	@printf "  make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=20\n"
+	@printf "  make yolo-world-ab-test AB_LIMIT=50\n"
 	@printf "  make workflow-to-ls BRAND=SOFTCARE\n"
 	@printf "  make workflow-after-ls BRAND=SOFTCARE LS_PROJECT_ID=<项目ID>\n"
 	@printf "  make train BRAND=SOFTCARE TRAIN_RESUME=1\n"
@@ -459,6 +487,29 @@ pseudo-label: ## 生成 YOLO-World 预标注，默认使用 OCR 候选清单和�
 		--imgsz $(PSEUDO_IMGSZ) \
 		$(PSEUDO_LIMIT_ARG) \
 		$(PSEUDO_CANDIDATES_ARG)
+
+yolo-world-ab-test: brand-yaml ## 用同一批图片对比 s-world、m-worldv2、x-worldv2 并生成报告
+	$(VENV_BIN)/python scripts/pseudo_label/ab_test_yolo_world.py \
+		--raw-dir $(RAW_DIR) \
+		--output-root $(AB_OUTPUT_ROOT) \
+		$(AB_RUN_NAME_ARG) \
+		--model '$(AB_MODELS)' \
+		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
+		$(COMPACT_CLASS_IDS_ARG) \
+		$(AB_BRAND_PACKAGE_ARG) \
+		$(PSEUDO_PROMPT_ARGS) \
+		--nms-iou $(PSEUDO_NMS_IOU) \
+		--containment-threshold $(PSEUDO_CONTAINMENT) \
+		--max-area-ratio $(PSEUDO_MAX_AREA_RATIO) \
+		$(AB_CROSS_BRAND_DEDUP_ARG) \
+		--cross-brand-iou $(PSEUDO_CROSS_BRAND_IOU) \
+		--cross-brand-containment $(PSEUDO_CROSS_BRAND_CONTAINMENT) \
+		--conf $(PSEUDO_CONF) \
+		--imgsz $(PSEUDO_IMGSZ) \
+		--preview-limit $(AB_PREVIEW_LIMIT) \
+		$(AB_LIMIT_ARG) \
+		$(AB_CANDIDATES_ARG)
 
 # ── 4. Label Studio 启动 / 导入 ─────────────────────────────
 

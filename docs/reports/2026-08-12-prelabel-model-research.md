@@ -158,3 +158,46 @@ yolov8s-worldv2.pt -> yolov8m-worldv2.pt -> yolov8x-worldv2.pt
 - Ultralytics YOLO-World 官方文档：https://docs.ultralytics.com/models/yolo-world/
 - Ultralytics YOLOE 官方文档：https://docs.ultralytics.com/models/yoloe/
 - Ultralytics auto_annotate/SAM 官方说明：https://docs.ultralytics.com/usage/simple-utilities/
+
+## 2026-08-12 实现补充：YOLO-World v2 A/B 测试脚本
+
+已新增脚本：`scripts/pseudo_label/ab_test_yolo_world.py`。
+
+脚本能力：
+
+- 默认对比 `models/yolov8s-world.pt`、`yolov8m-worldv2.pt`、`yolov8x-worldv2.pt`。
+- 使用同一批图片、同一组品牌提示词、同一组 NMS/覆盖过滤/跨品牌去重参数。
+- 每个模型单独输出：
+  - `metadata/prediction_rows.json`：逐图完整候选框明细。
+  - `metadata/prediction_rows.csv`：逐图候选框数量表。
+  - `metadata/summary.json`：单模型汇总。
+  - `labels/<split>/*.txt`：YOLO 格式候选标签。
+  - `previews/*.jpg`：带框预览图，用于快速肉眼检查。
+- 总报告输出：`yolo_world_ab_report.md` 和 `metadata/model_summary.json`。
+
+Makefile 已新增命令：
+
+```bash
+make yolo-world-ab-test AB_LIMIT=50
+```
+
+常用调参示例：
+
+```bash
+# 不使用 OCR 候选清单，直接从 raw/images 抽 30 张对比
+make yolo-world-ab-test AB_USE_OCR_CANDIDATES=0 AB_LIMIT=30
+
+# 只对 Softcare 做 A/B，输出目录随 BRAND 隔离
+make yolo-world-ab-test BRAND=SOFTCARE AB_LIMIT=50
+
+# 只对 Softcare 做 A/B，不使用 OCR 候选清单,输出目录随 BRAND 隔离
+make yolo-world-ab-test AB_USE_OCR_CANDIDATES=0 BRAND=SOFTCARE AB_LIMIT=50
+
+# 自定义对比模型
+make yolo-world-ab-test AB_MODELS=models/yolov8s-world.pt,yolov8m-worldv2.pt AB_LIMIT=20
+
+# 自定义对比模型 只对 Softcare 做 A/B，不使用 OCR 候选清单,输出目录随 BRAND 隔离
+make yolo-world-ab-test AB_USE_OCR_CANDIDATES=0 AB_MODELS=models/yolov8s-world.pt,yolov8m-worldv2.pt AB_LIMIT=20
+```
+
+注意：A/B 报告里的候选框数和置信度只能做初筛，最终仍需人工抽检有效框率、漏检数、重复框、品牌混淆和修框耗时。
