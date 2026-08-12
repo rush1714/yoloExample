@@ -123,6 +123,7 @@ uv run python scripts/data_import/import_images_from_excel.py \
 - 原图目录：`datasets/multibrand/raw/images/`
 - 下载报告：`datasets/multibrand/raw/metadata/download_report.csv`
 - 图片命名：`row<Excel行号>_<原附件名称>.<后缀>`，例如 `row00002_67cfc8156160c2fd227aef004b771854.webp`；原附件名称本身是业务 hash，因此不再对完整 URL 重新计算 hash。
+- 下载前会比较 Excel 中去重后的有效图片 URL 与本地对应文件；若全部已存在，脚本不创建下载线程、不发起网络请求，直接写入全量 `skipped` 报告并退出。部分缺失时仍进入现有逐图下载/跳过逻辑。
 
 ## OCR 辅助筛选品牌候选图片
 

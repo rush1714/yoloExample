@@ -21,7 +21,7 @@ EXCEL              ?= /Users/guobiao/DOC/森大2.0/18.陈列数据/柯特2026_7-
 # 示例：make step-1-import-excel EXCEL_COLUMN=整改后图片URL
 EXCEL_COLUMN       ?= 整改后图片URL
 # 并发下载线程数；调大可加快下载，但可能被远端限流；网络不稳定时可降到 2/4。
-EXCEL_WORKERS      ?= 8
+EXCEL_WORKERS      ?= 10
 # 单张图片下载超时时间（秒）；远端慢时可调大，例如 60。
 EXCEL_TIMEOUT      ?= 30
 
@@ -58,7 +58,7 @@ LS_LABEL_CONFIG_XML ?= $(DATASET_ROOT)/label_studio/label_config.xml
 # 示例：make step-2-ocr OCR_ENGINE=easyocr
 OCR_ENGINE          ?= rapidocr
 # 常规 OCR 并发识别线程数；调大可加快 CPU OCR，但会增加内存占用。
-OCR_WORKERS         ?= 4
+OCR_WORKERS         ?= 10
 # 额外 OCR 关键词参数，会与 BRAND_LIBRARY 合并；格式必须是脚本参数形式。
 # 示例：make step-2-ocr OCR_KEYWORD_ARGS="--keyword SOFTCARE --keyword KLEESOFT"
 OCR_KEYWORD_ARGS    ?=
@@ -185,9 +185,11 @@ LS_TO_YOLO_SKIP_EMPTY_ARG := $(if $(filter 1 true yes,$(LS_TO_YOLO_SKIP_EMPTY)),
 
 # ── 6. 训练参数 ──────────────────────────────────────────────
 # 训练基座模型；默认 yolo26s，速度和精度相对平衡。可改 yolo26n 更快，yolo26m 更慢但可能更准。
-TRAIN_BASE_MODEL ?= $(PROJECT_ROOT)/models/yolo26s.pt
+#TRAIN_BASE_MODEL ?= $(PROJECT_ROOT)/models/yolo26s.pt
+TRAIN_BASE_MODEL ?= $(PROJECT_ROOT)/models/yolo26m.pt
 # 训练 epoch 数；数据少时可先 30/50 快速验证，正式 baseline 可 100。
-TRAIN_EPOCHS     ?= 100
+#TRAIN_EPOCHS     ?= 100
+TRAIN_EPOCHS     ?= 55
 # 训练图片尺寸；小目标建议 960，速度慢或内存压力大可 640。
 TRAIN_IMGSZ      ?= 960
 # batch 大小；-1 表示 Ultralytics 自动选择。显存/内存不稳时可改 4/8。

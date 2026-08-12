@@ -213,6 +213,28 @@ def make_filename(record: ImageRecord, extension: str) -> str:
     return f"row{record.row_number:05d}_{attachment_stem}{extension}"
 
 
+def existing_download_path(record: ImageRecord, output_dir: Path) -> Path | None:
+    """返回与 Excel 记录对应的已下载图片路径，扩展名由实际响应决定。"""
+    filename_prefix = f"row{record.row_number:05d}_{attachment_stem_from_url(record.url)}"
+    matches = [
+        path
+        for path in output_dir.glob(f"{filename_prefix}.*")
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def completed_download_results(records: list[ImageRecord], output_dir: Path) -> list[DownloadResult] | None:
+    """若全部 Excel 图片已有本地文件，返回跳过结果；否则返回 None。"""
+    results: list[DownloadResult] = []
+    for record in records:
+        path = existing_download_path(record, output_dir)
+        if path is None:
+            return None
+        results.append(DownloadResult(record.row_number, record.url, "skipped", path=str(path)))
+    return results
+
+
 def download_one(record: ImageRecord, output_dir: Path, timeout: int) -> DownloadResult:
     """
     下载单张图片。
@@ -308,8 +330,17 @@ def main() -> None:
     if not records:
         raise SystemExit(f"Excel 列 {args.column} 中没有可下载的 HTTP(S) 图片 URL。")
 
-    # 多线程并发下载
-    results: list[DownloadResult] = []
+    # 下载前先判断所有 Excel 图片是否已存在，全部完成时不创建下载线程或发起网络请求。
+    results = completed_download_results(records, args.output_dir)
+    if results is not None:
+        write_reports(results, args.metadata_dir)
+        print(f"全部已下载，跳过下载：total={len(results)}")
+        print(f"原图目录：{args.output_dir}")
+        print(f"下载报告：{args.metadata_dir / 'download_report.csv'}")
+        return
+
+    # 多线程并发下载。
+    results = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = [executor.submit(download_one, record, args.output_dir, args.timeout) for record in records]
         for index, future in enumerate(as_completed(futures), start=1):

@@ -17,6 +17,10 @@ if str(SCRIPTS_ROOT) not in sys.path:
 
 from common.brand_library import BrandClass, select_brand_classes  # type: ignore[import-not-found]
 from config.brand_profile import profile  # type: ignore[import-not-found]
+from data_import.import_images_from_excel import (  # type: ignore[import-not-found]
+    ImageRecord,
+    completed_download_results,
+)
 from ocr.filter_brand_candidates import OcrReportWriter, OcrResult, OcrText  # type: ignore[import-not-found]
 from pseudo_label.generate_yolo_world import PseudoReportWriter  # type: ignore[import-not-found]
 
@@ -66,6 +70,41 @@ class BrandSelectionTest(unittest.TestCase):
             )
             self.assertIn("  0: testbrand", data_yaml.read_text(encoding="utf-8"))
             self.assertIn("../../datasets/testbrand/pseudo", pseudo_yaml.read_text(encoding="utf-8"))
+
+
+class DownloadCompletionTest(unittest.TestCase):
+    """验证 Excel 导入的全量下载前置判断。"""
+
+    def test_all_records_downloaded_without_network_request(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            records = [
+                ImageRecord(2, "https://example.test/images/first.webp"),
+                ImageRecord(3, "https://example.test/images/second.jpg"),
+            ]
+            (output_dir / "row00002_first.png").write_bytes(b"image")
+            (output_dir / "row00003_second.webp").write_bytes(b"image")
+            results = completed_download_results(records, output_dir)
+            self.assertIsNotNone(results)
+            self.assertEqual([item.status for item in results or []], ["skipped", "skipped"])
+
+    def test_partial_download_returns_none(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            records = [
+                ImageRecord(2, "https://example.test/images/first.webp"),
+                ImageRecord(3, "https://example.test/images/second.jpg"),
+            ]
+            (output_dir / "row00002_first.webp").write_bytes(b"image")
+            self.assertIsNone(completed_download_results(records, output_dir))
+
+    def test_multiple_matching_files_are_not_treated_as_complete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            record = ImageRecord(2, "https://example.test/images/first.webp")
+            (output_dir / "row00002_first.jpg").write_bytes(b"image")
+            (output_dir / "row00002_first.png").write_bytes(b"image")
+            self.assertIsNone(completed_download_results([record], output_dir))
 
 
 class IncrementalReportWriterTest(unittest.TestCase):

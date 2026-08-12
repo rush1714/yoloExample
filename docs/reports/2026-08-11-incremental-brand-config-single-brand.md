@@ -10,6 +10,7 @@
 - 常规 OCR、Ollama OCR 与 YOLO-World 预标注均改为逐图持久化：CSV 立即追加，JSON 原子更新；预标注图片和标签在单图推理完成后立即落盘。
 - 两种 OCR 支持 `--resume`：从完整 JSON 报告恢复、跳过已完成图片，并重建 CSV 和候选清单保证一致。
 - 训练支持 `--resume`：从 `models/train/<品牌>/weights/last.pt` 恢复 Ultralytics 训练状态；Makefile 使用 `TRAIN_RESUME=1` 开启。
+- Excel 导入会在下载前比对去重后的有效 URL 与本地图片：全量完成时不创建下载线程、不发起网络请求，直接生成全量 `skipped` 报告；部分缺失时维持现有逐图下载逻辑。
 
 ## 使用方式
 

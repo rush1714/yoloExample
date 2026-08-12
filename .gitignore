@@ -91,3 +91,4 @@ datasets/softcare/labels/*.cache
 !/config/generated/.gitkeep
 
 /runs/detect/models/val/multibrand-best/
+/datasets/backup/
