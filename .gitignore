@@ -33,6 +33,12 @@ datasets/*/images/
 datasets/*/raw/images/
 datasets/*/pseudo/images/
 
+# Brand reference images for YOLOE visual prompt are local/private assets.
+/datasets/*/visual_prompts/**
+!/datasets/*/visual_prompts/
+!/datasets/*/visual_prompts/**/
+!/datasets/*/visual_prompts/**/.gitkeep
+
 # Outputs
 outputs/
 logs/

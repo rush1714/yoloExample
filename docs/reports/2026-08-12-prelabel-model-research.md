@@ -201,3 +201,120 @@ make yolo-world-ab-test AB_USE_OCR_CANDIDATES=0 AB_MODELS=models/yolov8s-world.p
 ```
 
 注意：A/B 报告里的候选框数和置信度只能做初筛，最终仍需人工抽检有效框率、漏检数、重复框、品牌混淆和修框耗时。
+
+## 2026-08-12 实现补充：YOLOE visual prompt 预标注分支
+
+已新增独立脚本：`scripts/pseudo_label/generate_yoloe_visual.py`。
+
+实现方式：
+
+- 使用 Ultralytics YOLOE 的 visual prompt 能力：参考图 bbox 描述的是参考图片里的目标包装，再用该参考外观去目标图片中找相似目标。
+- 默认参考图目录：`datasets/multibrand/visual_prompts/`。
+- 目录约定：
+
+```text
+datasets/multibrand/visual_prompts/
+├── SOFTCARE/
+│   ├── ref1.jpg
+│   └── ref2.webp
+├── MAYA/
+│   └── ref1.png
+└── MEDIPOWER/
+    └── ref1.jpg
+```
+
+- 品牌目录名可使用品牌显示名、`class_name` 或品牌别名；脚本会按 `config/brand_keywords.json` 做规范化匹配。
+- 默认假设参考图就是裁好的包装图，整张参考图作为 visual prompt bbox。
+- 如果参考图不是裁好的包装图，可放同名 JSON sidecar，例如 `ref.jpg` + `ref.json`：
+
+```json
+{"bbox": [x1, y1, x2, y2]}
+```
+
+- 输出仍复用既有伪标注结构：`pseudo/images/<split>/`、`pseudo/labels/<split>/`、`pseudo/metadata/`，因此后续 `ls-import-json` 和 `ls-apply` 不需要改造。
+- 每张参考图会单独跑一次 YOLOE visual prompt；同一目标图上多参考图结果会合并，并复用既有 NMS、大框过滤、跨品牌去重逻辑。
+
+推荐验证顺序：
+
+1. `models/yoloe-26s-seg.pt`：先跑通完整流程。
+2. `models/yoloe-26m-seg.pt`：作为主力候选。
+3. `models/yoloe-26l-seg.pt`：用于验证效果上限。
+
+Makefile 已新增命令：
+
+```bash
+# 端到端：Excel 导入 -> OCR -> YOLOE visual prompt 预标注 -> 导入 Label Studio
+make workflow-to-ls-visual BRAND=SOFTCARE PSEUDO_LIMIT=20
+
+# 只跑 YOLOE visual prompt 预标注；不使用 OCR 候选清单，便于先抽样全量 raw 图片
+make pseudo-label-visual BRAND=SOFTCARE PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=5
+
+# 切换到 m 模型验证主力候选
+make pseudo-label-visual PSEUDO_VISUAL_MODEL=models/yoloe-26m-seg.pt PSEUDO_LIMIT=30
+
+# 每个品牌只取 1 张参考图做快速烟测
+make pseudo-label-visual BRAND=SOFTCARE PSEUDO_VISUAL_REFERENCE_LIMIT=1 PSEUDO_LIMIT=5
+```
+
+注意事项：
+
+- 真实效果高度依赖参考图质量。优先放清晰、正面、只包含单个目标包装的 crop。
+- 多品牌运行时，每个品牌都必须在 `visual_prompts/<品牌名>/` 下至少有一张参考图，否则脚本会拒绝继续，避免某些品牌被静默漏标。
+- 当前只把 YOLOE 输出转换为矩形框，保持 Label Studio 复核流程不变；后续如要利用分割 mask，可再扩展为分割标注流程。
+- 该分支仍然是“候选框生成器”，不能直接把结果当最终训练标签；必须人工抽检有效框率、漏检数、重复框和品牌混淆情况。
+
+本地验证结果：
+
+- `generate_yoloe_visual.py --help` 可正常展示参数，已包含 `--reference-root`、`--reference-limit`、`--dry-run`、`--cross-brand-dedup/--no-cross-brand-dedup`。
+- `tests/test_yoloe_visual.py` 通过 7 个用例，覆盖权重路径解析、品牌参考目录匹配、参考框 JSON sidecar、缺参考图中文错误和 YOLO 标签写出。
+- `python -m unittest discover -s tests -p 'test_*.py'` 通过 19 个用例；旧测试仍会打印一次 Matplotlib 缓存目录提示，但不影响退出结果。
+- `pylint scripts/pseudo_label/generate_yoloe_visual.py tests/test_yoloe_visual.py` 评分为 `10.00/10`。
+- 使用临时参考图目录对 `data/samples/multibrand-shelf.webp` 做 dry-run，确认单品牌参考图能被识别；再使用 `models/yoloe-26s-seg.pt` 跑 1 张样例图，流程成功产出 `pseudo/images`、`pseudo/labels`、`pseudo/metadata`。该烟测只验证链路，不代表真实品牌效果，因为临时参考图并非真实裁剪包装图。
+
+## 2026-08-12 实现补充：品牌参考图 Excel 导入到 YOLOE visual prompts
+
+已新增独立脚本：`scripts/data_import/import_visual_prompts_from_excel.py`。
+
+用途：把品牌图片 Excel 中的参考包装图自动下载到 YOLOE visual prompt 目录，避免手工逐张保存参考图。
+
+默认输入与输出：
+
+- Excel：`/Users/guobiao/Downloads/品牌图片_1786521889720.xlsx`
+- 品牌列：`brand`
+- 图片 URL 列：`attach_file`
+- 参考图目录：`datasets/multibrand/visual_prompts/<品牌>/`
+- 下载报告：
+  - `datasets/multibrand/visual_prompts/metadata/download_report.csv`
+  - `datasets/multibrand/visual_prompts/metadata/download_report.json`
+
+实现细节：
+
+- 支持同一个单元格中用换行、逗号、中文逗号或分号分隔多个 URL。
+- 对完整 URL 做全局去重，避免同一张参考图重复下载。
+- 品牌名会清洗为安全目录名，例如 `SOFT CARE/2026` 会落到 `SOFT_CARE_2026/`。
+- 文件命名格式为 `row<Excel行号>_<URL序号>_<原附件名>.<后缀>`，例如 `row00002_01_Z-1.png`。
+- 下载完成后使用 PIL 校验图片完整性；如果远端返回空内容或非图片内容，会记录为 `failed` 并删除异常文件。
+- 当 Excel 中所有待下载 URL 都已有对应本地图片时，会直接写 `skipped` 报告，不再发起网络请求。
+- 新增 Make 命令：
+
+```bash
+# 小批量烟测，只导入 3 张
+make visual-prompts-import VISUAL_PROMPTS_LIMIT=3
+
+# 全量导入
+make visual-prompts-import
+```
+
+本地验证结果：
+
+- 已新增 `tests/test_visual_prompts_import.py`，覆盖品牌目录名清洗、Excel 读取、多 URL 拆分、URL 去重、目标路径生成、已下载跳过判断、JSON/CSV 报告输出。
+- `PYTHONPATH=scripts .venv/bin/python tests/test_visual_prompts_import.py` 通过 7 个用例。
+- `PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests -p 'test_*.py'` 通过 26 个用例；旧测试仍会打印一次 Matplotlib 缓存目录提示，但不影响退出结果。
+- `PYLINTHOME=.tmp/pylint PYTHONPATH=scripts .venv/bin/pylint scripts/data_import/import_visual_prompts_from_excel.py tests/test_visual_prompts_import.py` 评分为 `10.00/10`。
+- `make -n visual-prompts-import VISUAL_PROMPTS_LIMIT=3` 已确认 Make 命令参数展开正确。
+- 沙箱内首次下载因 DNS 受限失败，联网权限放开后执行 `make visual-prompts-import VISUAL_PROMPTS_LIMIT=3` 成功下载 3 张 `softcare` 参考图，结果为 `downloaded=3, skipped=0, failed=0`。
+
+注意事项：
+
+- 真实参考图和 `visual_prompts/metadata/` 下载报告属于本地数据资产，默认被 `.gitignore` 忽略，不提交到 Git。
+- 该导入脚本只负责收集参考图，不判断参考图是否是高质量包装 crop；后续运行 YOLOE visual prompt 前仍建议人工抽查参考图是否清晰、正面、主体单一。

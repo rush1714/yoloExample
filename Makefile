@@ -25,6 +25,26 @@ EXCEL_WORKERS      ?= 10
 # 单张图片下载超时时间（秒）；远端慢时可调大，例如 60。
 EXCEL_TIMEOUT      ?= 30
 
+# ── 1B. YOLOE Visual Prompt 品牌参考图导入参数 ────────────────
+# 品牌参考图 Excel；默认来自用户提供的品牌图片表。
+VISUAL_PROMPTS_EXCEL ?= /Users/guobiao/Downloads/品牌图片2_1786525402668.xlsx
+# 品牌列名；脚本会按该列创建 visual_prompts/<品牌>/ 目录。
+VISUAL_PROMPTS_BRAND_COLUMN ?= brand
+# 图片 URL 列名；支持一格多个 URL，并自动按 URL 去重。
+VISUAL_PROMPTS_ATTACH_COLUMN ?= attach_file
+# 品牌参考图保存根目录；YOLOE visual prompt 预标注会从这里读取。
+VISUAL_PROMPTS_OUTPUT_ROOT ?= $(SHARED_DATASET_ROOT)/visual_prompts
+# 品牌参考图下载报告目录。
+VISUAL_PROMPTS_METADATA_DIR ?= $(VISUAL_PROMPTS_OUTPUT_ROOT)/metadata
+# 品牌参考图下载并发数；网络不稳定时可降到 2/4。
+VISUAL_PROMPTS_WORKERS ?= 8
+# 单张品牌参考图下载超时时间（秒）。
+VISUAL_PROMPTS_TIMEOUT ?= 30
+# 最多导入多少个去重后的 URL；空=全量，调试可设为 3。
+VISUAL_PROMPTS_LIMIT ?=
+# 派生参数：有 VISUAL_PROMPTS_LIMIT 时才传 --limit。
+VISUAL_PROMPTS_LIMIT_ARG := $(if $(VISUAL_PROMPTS_LIMIT),--limit $(VISUAL_PROMPTS_LIMIT),)
+
 # ── 品牌与数据目录参数 ───────────────────────────────────────
 # BRAND=all 使用全部启用品牌；指定品牌时，OCR、预标注、Label Studio 和训练集都会隔离。
 BRAND              ?= all
@@ -136,6 +156,8 @@ PSEUDO_CANDIDATES_ARG := $(if $(filter 1 true yes,$(PSEUDO_USE_OCR_CANDIDATES)),
 PSEUDO_BRAND_PACKAGE_ARG := $(if $(filter 1 true yes,$(PSEUDO_INCLUDE_BRAND_PACKAGE_PROMPTS)),--include-brand-package-prompts,)
 # 派生参数：PSEUDO_CROSS_BRAND_DEDUP 为 1/true/yes 时启用跨品牌去重。
 PSEUDO_CROSS_BRAND_DEDUP_ARG := $(if $(filter 1 true yes,$(PSEUDO_CROSS_BRAND_DEDUP)),--cross-brand-dedup,)
+# YOLOE visual prompt 脚本使用 BooleanOptionalAction，显式传 --no 能让 Make 参数 0 生效。
+PSEUDO_VISUAL_CROSS_BRAND_DEDUP_ARG := $(if $(filter 1 true yes,$(PSEUDO_CROSS_BRAND_DEDUP)),--cross-brand-dedup,--no-cross-brand-dedup)
 
 # ── 3A. YOLO-World A/B 测试参数 ───────────────────────────────
 # 默认对比当前 s-world baseline、m-worldv2 和 x-worldv2；逗号分隔，脚本会对同一批图片逐个模型运行。
@@ -159,6 +181,20 @@ AB_CANDIDATES_ARG := $(if $(filter 1 true yes,$(AB_USE_OCR_CANDIDATES)),--candid
 # 派生参数：显式传递开关，确保 A/B 与 PSEUDO_* 配置完全一致。
 AB_BRAND_PACKAGE_ARG := $(if $(filter 1 true yes,$(PSEUDO_INCLUDE_BRAND_PACKAGE_PROMPTS)),--include-brand-package-prompts,--no-include-brand-package-prompts)
 AB_CROSS_BRAND_DEDUP_ARG := $(if $(filter 1 true yes,$(PSEUDO_CROSS_BRAND_DEDUP)),--cross-brand-dedup,--no-cross-brand-dedup)
+
+# ── 3B. YOLOE Visual Prompt 预标注参数 ────────────────────────
+# YOLOE visual prompt 权重路径；建议先用 s 跑通，再用 m/l 验证效果上限。
+PSEUDO_VISUAL_MODEL ?= $(PROJECT_ROOT)/models/yoloe-26m-seg.pt
+# 品牌参考包装图根目录；结构为 visual_prompts/<品牌名>/*.jpg。
+PSEUDO_VISUAL_REFERENCE_ROOT ?= $(SHARED_DATASET_ROOT)/visual_prompts
+# 每个品牌最多使用多少张参考图；空=全部。调试时可设为 1/3 加快速度。
+PSEUDO_VISUAL_REFERENCE_LIMIT ?=
+# YOLOE visual prompt 推理设备；Apple Silicon 默认 mps，也可设 cpu、0 或空值自动选择。
+PSEUDO_VISUAL_DEVICE ?= mps
+# 派生参数：有 PSEUDO_VISUAL_REFERENCE_LIMIT 时才传 --reference-limit。
+PSEUDO_VISUAL_REFERENCE_LIMIT_ARG := $(if $(PSEUDO_VISUAL_REFERENCE_LIMIT),--reference-limit $(PSEUDO_VISUAL_REFERENCE_LIMIT),)
+# 派生参数：PSEUDO_VISUAL_DEVICE 非空才传 --device。
+PSEUDO_VISUAL_DEVICE_ARG := $(if $(PSEUDO_VISUAL_DEVICE),--device $(PSEUDO_VISUAL_DEVICE),)
 
 # ── 4/5. Label Studio 参数 ───────────────────────────────────
 # PostgreSQL 用户；默认使用本机用户 guobiao。
@@ -270,9 +306,9 @@ export LS_COMPACT_CLASS_IDS
 export MODELS_BAK_DIR
 
 .PHONY: help help-params prepare-dirs brand-check brand-list brand-yaml \
-	step-1-import-excel step-2-ocr step-2-ocr-llm step-3-pseudo-label yolo-world-ab-test step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
-	workflow-to-ls workflow-to-ls-llm workflow-after-ls \
-	excel-import ocr ocr-llm pseudo-label ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
+	step-1-import-excel visual-prompts-import step-2-ocr step-2-ocr-llm step-3-pseudo-label step-3-pseudo-label-visual yolo-world-ab-test step-4-import-ls step-5-export-ls-to-train step-6-train step-7-validate \
+	workflow-to-ls workflow-to-ls-llm workflow-to-ls-visual workflow-after-ls \
+	excel-import ocr ocr-llm pseudo-label pseudo-label-visual ls-setup ls-start ls-migrate ls-shell ls-stop ls-import-json ls-apply ls-export ls-to-yolo \
 	data-validate train predict datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check
 
 help: ## 显示命令帮助和常用参数说明
@@ -288,6 +324,10 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  EXCEL_COLUMN=%s\n    图片 URL 列名；列名不匹配会导致导入失败。\n" "$(EXCEL_COLUMN)"
 	@printf "  EXCEL_WORKERS=%s\n    并发下载线程数；调大更快但可能被限流，调小更稳。\n" "$(EXCEL_WORKERS)"
 	@printf "  EXCEL_TIMEOUT=%s\n    单图下载超时秒数；网络慢可调大。\n" "$(EXCEL_TIMEOUT)"
+	@printf "\n[1B. YOLOE 品牌参考图导入]\n"
+	@printf "  VISUAL_PROMPTS_EXCEL=%s\n    品牌参考图 Excel，默认读取 brand/attach_file 两列。\n" "$(VISUAL_PROMPTS_EXCEL)"
+	@printf "  VISUAL_PROMPTS_OUTPUT_ROOT=%s\n    下载到 visual_prompts/<品牌>/，供 YOLOE visual prompt 使用。\n" "$(VISUAL_PROMPTS_OUTPUT_ROOT)"
+	@printf "  VISUAL_PROMPTS_LIMIT=%s\n    参考图导入数量上限；空=全量，烟测建议 3。\n" "$(VISUAL_PROMPTS_LIMIT)"
 	@printf "\n[2. 品牌与数据目录]\n"
 	@printf "  BRAND=%s\n    all=全部品牌；指定品牌时 OCR、预标注、Label Studio 和训练集均隔离到 datasets/<品牌>。\n" "$(BRAND)"
 	@printf "  可选 BRAND：\n"
@@ -340,12 +380,20 @@ help-params: ## 显示 Make 参数默认值、可选值和调参效果
 	@printf "  AB_MODELS=%s\n    逗号分隔的对比模型；默认 s-world、m-worldv2、x-worldv2。\n" "$(AB_MODELS)"
 	@printf "  AB_LIMIT=%s\n    A/B 测试图片数量；默认 50，避免首跑过慢。\n" "$(AB_LIMIT)"
 	@printf "  AB_PREVIEW_LIMIT=%s\n    每个模型保存多少张带框预览图。\n" "$(AB_PREVIEW_LIMIT)"
+	@printf "\n[3B. YOLOE Visual Prompt 预标注]\n"
+	@printf "  PSEUDO_VISUAL_MODEL=%s\n    YOLOE 权重；建议 s 跑通，m 主力候选，l 验证效果上限。\n" "$(PSEUDO_VISUAL_MODEL)"
+	@printf "  PSEUDO_VISUAL_REFERENCE_ROOT=%s\n    品牌参考图根目录；按 visual_prompts/<品牌名>/ 放参考包装图。\n" "$(PSEUDO_VISUAL_REFERENCE_ROOT)"
+	@printf "  PSEUDO_VISUAL_REFERENCE_LIMIT=%s\n    每个品牌最多使用多少张参考图；空=全部。\n" "$(PSEUDO_VISUAL_REFERENCE_LIMIT)"
+	@printf "  PSEUDO_VISUAL_DEVICE=%s\n    YOLOE visual prompt 推理设备；M 系 Mac 默认 mps，可改 cpu/0/空。\n" "$(PSEUDO_VISUAL_DEVICE)"
 	@printf "\n常用示例：\n"
 	@printf "  make step-2-ocr OCR_LIMIT=20 OCR_WORKERS=4\n"
 	@printf "  make step-2-ocr-llm OCR_LIMIT=5 LLM_OCR_MODEL=gemma3:12b\n"
 	@printf "  make step-2-ocr-llm BRAND=SOFTCARE OCR_RESUME=1\n"
 	@printf "  make step-3-pseudo-label PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=20\n"
+	@printf "  make visual-prompts-import VISUAL_PROMPTS_LIMIT=3\n"
 	@printf "  make yolo-world-ab-test AB_LIMIT=50\n"
+	@printf "  make workflow-to-ls-visual BRAND=SOFTCARE PSEUDO_LIMIT=20\n"
+	@printf "  make pseudo-label-visual BRAND=SOFTCARE PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=5\n"
 	@printf "  make workflow-to-ls BRAND=SOFTCARE\n"
 	@printf "  make workflow-after-ls BRAND=SOFTCARE LS_PROJECT_ID=<项目ID>\n"
 	@printf "  make train BRAND=SOFTCARE TRAIN_RESUME=1\n"
@@ -402,6 +450,8 @@ step-2-ocr-llm: ocr-llm ## 2. 使用 Ollama 本地视觉大模型 OCR 生成候�
 
 step-3-pseudo-label: brand-yaml pseudo-label ## 3. 使用 YOLO-World 和品牌库提示词生成多品牌预标注
 
+step-3-pseudo-label-visual: brand-yaml pseudo-label-visual ## 3. 使用 YOLOE visual prompt 和品牌参考图生成预标注
+
 step-4-import-ls: ls-import-json ls-apply ## 4. 生成任务 JSON 并导入 Label Studio
 
 step-5-export-ls-to-train: ls-export ls-to-yolo ## 5. 导出 Label Studio 结果并转换为正式训练集
@@ -414,6 +464,8 @@ step-7-validate: data-validate predict ## 7. 校验正式数据集并用训练�
 workflow-to-ls: step-1-import-excel step-2-ocr step-3-pseudo-label step-4-import-ls ## 执行到 Label Studio 人工复核前/导入阶段
 # -----自动流程 导入图片，本地LLM识别，预标注，导入 ls --------
 workflow-to-ls-llm: step-1-import-excel step-2-ocr-llm step-3-pseudo-label step-4-import-ls ## 使用 Ollama 本地大模型 OCR 后执行到 Label Studio 导入阶段
+# -----自动流程 导入图片，OCR识别，YOLOE视觉提示预标注，导入 ls --------
+workflow-to-ls-visual: step-1-import-excel step-2-ocr step-3-pseudo-label-visual step-4-import-ls ## 使用 YOLOE visual prompt 后执行到 Label Studio 导入阶段
 # -----自动流程 导出ls标注，训练，验证 --------
 workflow-after-ls: step-5-export-ls-to-train step-6-train step-7-validate ## Label Studio 人工复核完成后导出、训练并验证
 
@@ -427,6 +479,17 @@ excel-import: ## 从 Excel 指定列下载原始图片到 RAW_DIR
 		--metadata-dir $(RAW_METADATA_DIR) \
 		--workers $(EXCEL_WORKERS) \
 		--timeout $(EXCEL_TIMEOUT)
+
+visual-prompts-import: ## 从品牌图片 Excel 下载 YOLOE visual prompt 参考图
+	$(VENV_BIN)/python scripts/data_import/import_visual_prompts_from_excel.py \
+		--excel '$(VISUAL_PROMPTS_EXCEL)' \
+		--brand-column '$(VISUAL_PROMPTS_BRAND_COLUMN)' \
+		--url-column '$(VISUAL_PROMPTS_ATTACH_COLUMN)' \
+		--output-root $(VISUAL_PROMPTS_OUTPUT_ROOT) \
+		--metadata-dir $(VISUAL_PROMPTS_METADATA_DIR) \
+		--workers $(VISUAL_PROMPTS_WORKERS) \
+		--timeout $(VISUAL_PROMPTS_TIMEOUT) \
+		$(VISUAL_PROMPTS_LIMIT_ARG)
 
 # ── 2. OCR 识别 ─────────────────────────────────────────────
 
@@ -487,6 +550,28 @@ pseudo-label: ## 生成 YOLO-World 预标注，默认使用 OCR 候选清单和�
 		--imgsz $(PSEUDO_IMGSZ) \
 		$(PSEUDO_LIMIT_ARG) \
 		$(PSEUDO_CANDIDATES_ARG)
+
+pseudo-label-visual: ## 使用 YOLOE visual prompt 和品牌参考图生成预标注
+	$(VENV_BIN)/python scripts/pseudo_label/generate_yoloe_visual.py \
+		--raw-dir $(RAW_DIR) \
+		--output-root $(PSEUDO_ROOT) \
+		--reference-root $(PSEUDO_VISUAL_REFERENCE_ROOT) \
+		--model $(PSEUDO_VISUAL_MODEL) \
+		--brand-library $(BRAND_LIBRARY) \
+		$(BRAND_FILTER_ARG) \
+		$(COMPACT_CLASS_IDS_ARG) \
+		--nms-iou $(PSEUDO_NMS_IOU) \
+		--containment-threshold $(PSEUDO_CONTAINMENT) \
+		--max-area-ratio $(PSEUDO_MAX_AREA_RATIO) \
+		$(PSEUDO_VISUAL_CROSS_BRAND_DEDUP_ARG) \
+		--cross-brand-iou $(PSEUDO_CROSS_BRAND_IOU) \
+		--cross-brand-containment $(PSEUDO_CROSS_BRAND_CONTAINMENT) \
+		--conf $(PSEUDO_CONF) \
+		--imgsz $(PSEUDO_IMGSZ) \
+		$(PSEUDO_VISUAL_DEVICE_ARG) \
+		$(PSEUDO_LIMIT_ARG) \
+		$(PSEUDO_CANDIDATES_ARG) \
+		$(PSEUDO_VISUAL_REFERENCE_LIMIT_ARG)
 
 yolo-world-ab-test: brand-yaml ## 用同一批图片对比 s-world、m-worldv2、x-worldv2 并生成报告
 	$(VENV_BIN)/python scripts/pseudo_label/ab_test_yolo_world.py \
