@@ -130,12 +130,14 @@ def main() -> None:
     brand_library = Path(os.environ.get("BRAND_LIBRARY", str(DEFAULT_BRAND_LIBRARY)))
     brand_filter = os.environ.get("LS_BRAND_FILTER", "").strip() or None
     compact_class_ids = os.environ.get("LS_COMPACT_CLASS_IDS", "").lower() in {"1", "true", "yes"}
+    label_config_path = os.environ.get("LS_LABEL_CONFIG_XML", "").strip()
 
     print(f"LS_IMPORT_JSON={import_json}")
     print(f"LS_PROJECT_TITLE={base_title}")
     print(f"LS_LOCAL_FILES_PATH={local_files_path}")
     print(f"BRAND_LIBRARY={brand_library}")
     print(f"LS_BRAND_FILTER={brand_filter or 'all'}")
+    print(f"LS_LABEL_CONFIG_XML={label_config_path or '-'}")
 
     if not import_json.is_file():
         raise FileNotFoundError(f"导入 JSON 不存在：{import_json}")
@@ -146,12 +148,16 @@ def main() -> None:
     if not isinstance(tasks, list) or not tasks:
         raise ValueError("导入 JSON 必须是非空任务列表。")
 
-    brand_classes = select_brand_classes(
-        load_brand_classes(brand_library), [brand_filter] if brand_filter else None, compact_class_ids
-    )
-    if not brand_classes:
-        raise ValueError(f"品牌过滤后没有可用类别：{brand_filter}")
-    label_config = label_config_xml(brand_classes)
+    if label_config_path:
+        label_config = Path(label_config_path).read_text(encoding="utf-8")
+        brand_classes = []
+    else:
+        brand_classes = select_brand_classes(
+            load_brand_classes(brand_library), [brand_filter] if brand_filter else None, compact_class_ids
+        )
+        if not brand_classes:
+            raise ValueError(f"品牌过滤后没有可用类别：{brand_filter}")
+        label_config = label_config_xml(brand_classes)
     title = next_project_title(base_title)
 
     if os.environ.get("LS_APPLY_DRY_RUN", "").lower() in {"1", "true", "yes"}:

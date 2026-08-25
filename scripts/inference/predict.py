@@ -59,6 +59,7 @@ def main() -> None:
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL, help="训练完成的 best.pt 路径")
     parser.add_argument("--conf", type=float, default=0.35, help="最小置信度，范围 0 到 1")
     parser.add_argument("--imgsz", type=int, default=960, help="推理图片边长")
+    parser.add_argument("--device", default=None, help="推理设备，例如 cpu、mps、0；空值由 Ultralytics 自动选择")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="结果输出目录")
     args = parser.parse_args()
 
@@ -71,7 +72,7 @@ def main() -> None:
 
     source = validate_source(args.source)
     model = YOLO(args.model)
-    result = model.predict(source=source, conf=args.conf, imgsz=args.imgsz, verbose=False)[0]
+    result = model.predict(source=source, conf=args.conf, imgsz=args.imgsz, device=args.device, verbose=False)[0]
 
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)

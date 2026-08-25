@@ -390,6 +390,112 @@ make datasets-clean-ignored
 
 说明：Label Studio 1.23 默认使用 Personal Access Token 的 `Authorization: Bearer <token>`；当前本地实例没有提供 PAT，且 legacy token 已禁用，因此这里采用本地 `label-studio shell` 导入方式。Label Studio 的 `/data/local-files/` 端点还要求项目有对应 Local Files storage 权限，所以必须用 `make ls-apply` 或等价脚本注册 `datasets/multibrand/raw/images/`。
 
+## 纸尿裤大类正式标注与 EC2 A10 训练流程
+
+这是独立于多品牌识别的新流程，目标是先标注“纸尿裤”这个大类，而不是识别具体品牌。该流程**只导入原始图片到 Label Studio，不做任何预标注**。
+
+### 本地目录规划
+
+```text
+datasets/diaper_category/<国家>/<版本>/
+├── raw/images/                  # 正式图片原图
+├── raw/metadata/download_report.csv
+├── label_studio/diaper_category_label_studio_import.json
+├── label_studio/label_config.xml
+├── label_studio/exports/
+├── images/{train,val,test}/     # 人工标注导出的训练图片
+└── labels/{train,val,test}/     # YOLO 标签，class_id 固定为 0
+```
+
+配置文件生成到：
+
+```text
+config/generated/diaper_category_<国家>_<版本>.yaml
+```
+
+类别固定为：
+
+```yaml
+names:
+  0: 纸尿裤
+```
+
+### 下载并导入 Label Studio
+
+```bash
+make diaper-workflow-to-ls \
+  DIAPER_COUNTRY=ghana \
+  DIAPER_VERSION=v20260812 \
+  DIAPER_EXCEL=/path/to/images.xlsx \
+  DIAPER_EXCEL_COLUMN=整改后图片URL
+```
+
+它会执行：
+
+1. `diaper-import-excel`：下载图片到 `datasets/diaper_category/ghana/v20260812/raw/images/`。
+2. `diaper-yaml`：生成单类别 YAML。
+3. `diaper-ls-import-json`：生成无预标注的 Label Studio JSON。
+4. `diaper-ls-apply`：导入 Label Studio，标签只有 `纸尿裤`。
+
+人工标注完成后：
+
+```bash
+make diaper-workflow-after-ls \
+  DIAPER_COUNTRY=ghana \
+  DIAPER_VERSION=v20260812 \
+  LS_PROJECT_ID=<项目ID>
+```
+
+该命令会导出 Label Studio JSON，并转换成 `images/` + `labels/` YOLO 训练集。
+
+### EC2 A10 目录规划
+
+建议 EC2 上使用：
+
+```text
+/home/ubuntu/yoloExample/
+├── scripts/
+├── config/generated/diaper_category_ghana_v20260812.yaml
+├── datasets/diaper_category/ghana/v20260812/
+├── models/train/diaper_category_ghana_v20260812/weights/best.pt
+└── models/ec2/diaper_category/ghana/v20260812/best.pt
+```
+
+### 上传、训练、推理、下载模型
+
+默认命令只 dry-run 打印将执行的 `rsync` / `ssh` 命令；确认无误后加 `EC2_EXECUTE=1` 才会实际连接 EC2。
+
+```bash
+# 上传代码
+make diaper-ec2-upload-project EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+
+# 上传当前国家/版本数据和 YAML
+make diaper-ec2-upload-data \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana DIAPER_VERSION=v20260812
+
+# 在 A10 GPU 上训练，默认 device=0
+make diaper-ec2-train \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana DIAPER_VERSION=v20260812 \
+  EC2_EXECUTE=1
+
+# 在 EC2 上推理验证
+make diaper-ec2-predict \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana DIAPER_VERSION=v20260812 \
+  EC2_PREDICT_SOURCE=/path/on/ec2/test.jpg \
+  EC2_EXECUTE=1
+
+# 下载训练好的 best.pt
+make diaper-ec2-download-model \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana DIAPER_VERSION=v20260812 \
+  EC2_EXECUTE=1
+```
+
+常用 EC2 参数：`EC2_USER`、`EC2_KEY`、`EC2_PORT`、`EC2_PROJECT_ROOT`、`EC2_BASE_MODEL`、`EC2_TRAIN_EPOCHS`、`EC2_TRAIN_BATCH`、`EC2_TRAIN_DEVICE`。
+
 ## 数据集校验
 
 训练前先校验图片、标签是否一一对应，以及标签坐标和类别是否合法：

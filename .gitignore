@@ -99,3 +99,16 @@ datasets/softcare/labels/*.cache
 /runs/detect/models/val/multibrand-best/
 /datasets/backup/
 /datasets/*/ab_tests/
+/datasets/softcare/label_studio/label_config.xml
+
+# Diaper category country/version datasets
+/datasets/diaper_category/**/raw/images/
+/datasets/diaper_category/**/raw/metadata/*.txt
+/datasets/diaper_category/**/raw/metadata/*.csv
+/datasets/diaper_category/**/raw/metadata/*.json
+/datasets/diaper_category/**/label_studio/*label_studio_import.json
+/datasets/diaper_category/**/label_studio/label_config.xml
+/datasets/diaper_category/**/label_studio/exports/
+/datasets/diaper_category/**/images/
+/datasets/diaper_category/**/labels/
+!/datasets/diaper_category/**/.gitkeep
