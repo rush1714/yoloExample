@@ -66,11 +66,18 @@ EC2_RESUME_ARG := $(if $(filter 1 true yes,$(TRAIN_RESUME)),--resume,)
 .PHONY: diaper-yaml diaper-import-excel diaper-ls-import-json diaper-ls-apply diaper-ls-export diaper-ls-to-yolo \
 	diaper-workflow-to-ls diaper-workflow-after-ls diaper-prepare-dirs \
 	01-diaper-ec2-upload-project 02-diaper-ec2-upload-data \
-	03-diaper-ec2-train-smoke 04-diaper-ec2-evaluate 05-diaper-ec2-download-artifacts \
-	06-diaper-ec2-train-baseline 07-diaper-ec2-train-improve 08-diaper-ec2-predict 09-diaper-ec2-download-model \
+	03-1-diaper-ec2-train-smoke 03-2-diaper-ec2-evaluate-smoke 03-3-diaper-ec2-download-artifacts-smoke \
+	04-1-diaper-ec2-train-baseline 04-2-diaper-ec2-evaluate-baseline 04-3-diaper-ec2-download-artifacts-baseline \
+	05-1-diaper-ec2-train-improve 05-2-diaper-ec2-evaluate-improve 05-3-diaper-ec2-download-artifacts-improve \
+	06-diaper-ec2-predict 07-diaper-ec2-download-model \
 	diaper-ec2-upload-project diaper-ec2-upload-data diaper-ec2-train diaper-ec2-train-smoke diaper-ec2-train-baseline diaper-ec2-train-improve \
 	diaper-ec2-evaluate diaper-ec2-predict diaper-ec2-download-model diaper-ec2-download-artifacts
 
+# EC2 推荐执行顺序：01/02（按需）→ 03-* smoke → 04-* baseline → 05-* improve → 06 推理 → 07 下载模型。
+# 03/04/05 每组必须按“训练 → 评估 → 下载归档”顺序执行。
+# EC2 通过 Git 部署代码时跳过 01；仅新国家/版本数据首次上传时执行 02。
+# 注释不影响目标执行。
+# 顺序别名定义见下方。
 diaper-yaml: ## 生成纸尿裤大类单类别 YOLO YAML
 	$(VENV_BIN)/python scripts/config/write_single_class_yolo_yaml.py \
 		--output $(DIAPER_DATA_YAML) \
@@ -130,19 +137,40 @@ diaper-prepare-dirs: ## 创建纸尿裤大类流程需要的临时、日志和�
 
 02-diaper-ec2-upload-data: diaper-ec2-upload-data ## 02. 仅新国家/版本首次使用：上传数据集到 EC2（训练 YAML 自动生成）
 
-03-diaper-ec2-train-smoke: diaper-ec2-train-smoke ## 03. smoke 训练：yolo11n.pt / 640 / 5 epochs
+03-1-diaper-ec2-train-smoke: ## 03-1. smoke 训练：yolo11n.pt / 640 / 5 epochs
+	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=smoke
 
-04-diaper-ec2-evaluate: diaper-ec2-evaluate ## 04. 归档训练产物并生成 evaluation-summary.md
+03-2-diaper-ec2-evaluate-smoke: ## 03-2. 归档 smoke 训练产物并生成 evaluation-summary.md
+	$(MAKE) --no-print-directory diaper-ec2-evaluate EC2_TRAIN_PROFILE=smoke
 
-05-diaper-ec2-download-artifacts: diaper-ec2-download-artifacts ## 05. 下载完整训练归档目录
+03-3-diaper-ec2-download-artifacts-smoke: ## 03-3. 下载 smoke 完整训练归档目录
+	$(MAKE) --no-print-directory diaper-ec2-download-artifacts EC2_TRAIN_PROFILE=smoke
 
-06-diaper-ec2-train-baseline: diaper-ec2-train-baseline ## 06. baseline 训练：yolo11s.pt / 960 / 100 epochs
+04-1-diaper-ec2-train-baseline: ## 04-1. baseline 训练：yolo11s.pt / 960 / 100 epochs
+	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=baseline
 
-07-diaper-ec2-train-improve: diaper-ec2-train-improve ## 07. improve 训练：yolo11m.pt / 960 / 150 epochs
+04-2-diaper-ec2-evaluate-baseline: ## 04-2. 归档 baseline 训练产物并生成 evaluation-summary.md
+	$(MAKE) --no-print-directory diaper-ec2-evaluate EC2_TRAIN_PROFILE=baseline
 
-08-diaper-ec2-predict: diaper-ec2-predict ## 08. 使用 EC2 模型做推理验证
+04-3-diaper-ec2-download-artifacts-baseline: ## 04-3. 下载 baseline 完整训练归档目录
+	$(MAKE) --no-print-directory diaper-ec2-download-artifacts EC2_TRAIN_PROFILE=baseline
 
-09-diaper-ec2-download-model: diaper-ec2-download-model ## 09. 仅下载 EC2 best.pt 模型
+05-1-diaper-ec2-train-improve: ## 05-1. improve 训练：yolo11m.pt / 960 / 150 epochs
+	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=improve
+
+05-2-diaper-ec2-evaluate-improve: ## 05-2. 归档 improve 训练产物并生成 evaluation-summary.md
+	$(MAKE) --no-print-directory diaper-ec2-evaluate EC2_TRAIN_PROFILE=improve
+
+05-3-diaper-ec2-download-artifacts-improve: ## 05-3. 下载 improve 完整训练归档目录
+	$(MAKE) --no-print-directory diaper-ec2-download-artifacts EC2_TRAIN_PROFILE=improve
+
+06-diaper-ec2-predict: ## 06. 使用 EC2 模型做推理验证
+	$(MAKE) --no-print-directory diaper-ec2-predict
+
+07-diaper-ec2-download-model: ## 07. 仅下载 EC2 best.pt 模型
+	$(MAKE) --no-print-directory diaper-ec2-download-model
+
+# 下面为底层 EC2 操作目标。
 
 diaper-ec2-upload-project: ## 仅非 Git 部署环境：dry-run 输出 rsync 上传项目代码命令；EC2_EXECUTE=1 才执行
 
