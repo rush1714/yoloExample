@@ -180,7 +180,7 @@ diaper-ec2-upload-project: ## 仅非 Git 部署环境：dry-run 输出 rsync 上
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-project \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
@@ -192,7 +192,7 @@ diaper-ec2-upload-data: diaper-yaml ## 仅首次需要：上传当前纸尿裤�
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-data \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
@@ -202,7 +202,7 @@ diaper-ec2-train: ## dry-run 输出 EC2 A10 训练命令；EC2_EXECUTE=1 才执�
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py train \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--base-model '$(EC2_BASE_MODEL)' --remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' \
@@ -225,7 +225,7 @@ diaper-ec2-evaluate: ## dry-run 输出 EC2 训练产物归档与 evaluation-summ
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py evaluate \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--base-model '$(EC2_BASE_MODEL)' --remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' \
@@ -238,7 +238,7 @@ diaper-ec2-predict: ## dry-run 输出 EC2 推理验证命令；EC2_EXECUTE=1 才
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py predict \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
@@ -249,7 +249,7 @@ diaper-ec2-download-model: ## dry-run 输出从 EC2 下载 best.pt 的 rsync 命
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py download-model \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
@@ -260,7 +260,7 @@ diaper-ec2-download-artifacts: ## dry-run 输出从 EC2 下载完整训练归档
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py download-artifacts \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
-		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' \
+		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \

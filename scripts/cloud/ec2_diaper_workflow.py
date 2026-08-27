@@ -137,7 +137,7 @@ def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
             "test: images/test",
             "",
             "names:",
-            "  0: 纸尿裤",
+            f"  0: {args.label_name}",
             "",
         ]
     )
@@ -297,6 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=["smoke", "baseline", "improve", "custom"], default="smoke", help="训练档位")
     parser.add_argument("--country", default="default", help="国家代码")
     parser.add_argument("--version", default="v1", help="数据版本")
+    parser.add_argument("--label-name", default="diaper", help="单类别显示名，写入训练 YAML 的 names[0]")
     parser.add_argument("--dataset-root", default="datasets/diaper_category/default/v1", help="本地数据集根目录")
     parser.add_argument("--data-yaml", default="config/generated/diaper_category_default_v1.yaml", help="本地 YAML 路径")
     parser.add_argument("--remote-data-yaml", default="config/generated/diaper_category_default_v1.yaml", help="EC2 上 YAML 相对项目路径")

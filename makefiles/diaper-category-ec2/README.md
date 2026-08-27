@@ -175,7 +175,19 @@ make 09-diaper-ec2-download-model \
 | `DIAPER_VERSION` | `v<今天日期>` | 数据版本，用于批次隔离。 | `DIAPER_VERSION=v20260812` |
 | `DIAPER_EXCEL` | `$(EXCEL)` | 正式图片 Excel。 | `DIAPER_EXCEL=/path/images.xlsx` |
 | `DIAPER_EXCEL_COLUMN` | `$(EXCEL_COLUMN)` | 图片 URL 列名。 | `DIAPER_EXCEL_COLUMN=整改后图片URL` |
-| `DIAPER_LABEL_NAME` | `纸尿裤` | Label Studio 和 YOLO 单类别名。 | `DIAPER_LABEL_NAME=纸尿裤` |
+| `DIAPER_LABEL_NAME` | `diaper` | Label Studio、本地 YAML、EC2 训练自动 YAML 和新模型可视化中的单类别名。 | `DIAPER_LABEL_NAME=diaper` |
+
+`DIAPER_LABEL_NAME` 必须在新训练开始前传入。例如：
+
+```bash
+make 04-1-diaper-ec2-train-baseline \
+  DIAPER_COUNTRY=CI \
+  DIAPER_VERSION=v2026-08-27_01 \
+  DIAPER_LABEL_NAME=diaper \
+  EC2_EXECUTE=1
+```
+
+已训练模型的类别显示名不会被代码修改自动更新；若旧模型显示 `纸尿裤`，需要重新训练，或在推理阶段单独覆盖模型 names。
 | `DIAPER_DATASET_ROOT` | `datasets/diaper_category/<country>/<version>` | 当前国家/版本数据集根目录。 | 自动派生 |
 | `DIAPER_DATA_YAML` | `config/generated/diaper_category_<country>_<version>.yaml` | 单类别 YAML。 | 自动派生 |
 | `DIAPER_FINAL_MODEL` | `models/diaper_category/<country>/<version>/best.pt` | 下载回本地的 EC2 best.pt。 | 自动派生 |
