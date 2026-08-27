@@ -2,27 +2,27 @@
 
 ## 训练配置
 
-- profile: `smoke`
-- model: `yolo11n.pt`
-- imgsz: `640`
-- epochs: `5`
-- batch: `16`
+- profile: `baseline`
+- model: `yolo11s.pt`
+- imgsz: `960`
+- epochs: `100`
+- batch: `-1`
 - device: `0`
-- run_dir: `/home/ec2-user/yoloExample/runs/detect/models/train/diaper_category_CI_v2026-08-27_01-3`
+- run_dir: `/home/ec2-user/yoloExample/runs/detect/models/train/diaper_category_CI_v2026-08-27_01-4`
 - dataset_yaml: `config/generated/diaper_category_CI_v2026-08-27_01.yaml`
 - dataset_root: `/home/ec2-user/yoloExample/datasets/diaper_category/CI/v2026-08-27_01`
 - dataset_images: train=585, val=168, test=84, total=837`
 
 ## 最佳指标
 
-- best_epoch: `5`
-- precision(B): `0.72844`
-- recall(B): `0.63563`
-- mAP50(B): `0.67553`
-- mAP50-95(B): `0.32708`
-- train/box_loss: `1.80719`
-- train/cls_loss: `1.47768`
-- train/dfl_loss: `1.26017`
+- best_epoch: `64`
+- precision(B): `0.76262`
+- recall(B): `0.73398`
+- mAP50(B): `0.7491`
+- mAP50-95(B): `0.37312`
+- train/box_loss: `1.54988`
+- train/cls_loss: `0.89301`
+- train/dfl_loss: `1.26608`
 
 ## 已归档关键产物
 
@@ -34,11 +34,14 @@
 - `plots/train_batch0.jpg`
 - `plots/train_batch1.jpg`
 - `plots/train_batch2.jpg`
-- `plots/val_batch0_labels.jpg`
+- `plots/train_batch6660.jpg`
+- `plots/train_batch6661.jpg`
+- `plots/train_batch6662.jpg`
 - `plots/val_batch0_pred.jpg`
+- `plots/val_batch0_labels.jpg`
+- `plots/val_batch2_labels.jpg`
 - `plots/val_batch1_labels.jpg`
 - `plots/val_batch1_pred.jpg`
-- `plots/val_batch2_labels.jpg`
 - `plots/val_batch2_pred.jpg`
 - `plots/BoxPR_curve.png`
 - `plots/BoxF1_curve.png`
