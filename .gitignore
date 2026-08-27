@@ -112,3 +112,4 @@ datasets/softcare/labels/*.cache
 /datasets/diaper_category/**/images/
 /datasets/diaper_category/**/labels/
 !/datasets/diaper_category/**/.gitkeep
+!/models/ec2/
