@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import shlex
 import subprocess
 from pathlib import Path
@@ -128,7 +129,7 @@ def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
     remote_dataset_root = (
         f"{args.ec2_project_root}/datasets/diaper_category/{args.country}/{args.version}"
     )
-    yaml_content = "\\n".join(
+    yaml_content = "\n".join(
         [
             f"path: {remote_dataset_root}",
             "train: images/train",
@@ -140,8 +141,12 @@ def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
             "",
         ]
     )
-    quoted_content = shlex.quote(yaml_content)
-    return f"mkdir -p config/generated && printf '%s\\n' {quoted_content} > {shlex.quote(args.remote_data_yaml)}"
+    encoded_content = base64.b64encode(yaml_content.encode("utf-8")).decode("ascii")
+    return (
+        f"mkdir -p config/generated && echo {encoded_content} | base64 --decode > "
+        f"{shlex.quote(args.remote_data_yaml)}"
+    )
+
 
 
 def train(args: argparse.Namespace) -> None:
