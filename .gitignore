@@ -63,7 +63,6 @@ logs/
 htmlcov/
 .pytest_cache/
 datasets/softcare/labels/*.cache
-/models/train/
 
 /datasets/*/labels/*.cache
 
@@ -90,7 +89,6 @@ datasets/softcare/labels/*.cache
 /datasets/*/raw/metadata/*.csv
 /datasets/*/raw/metadata/*.json
 
-/models/backup/
 
 # Generated YOLO dataset configs
 /config/generated/*.yaml
@@ -112,4 +110,3 @@ datasets/softcare/labels/*.cache
 /datasets/diaper_category/**/images/
 /datasets/diaper_category/**/labels/
 !/datasets/diaper_category/**/.gitkeep
-!/models/ec2/
