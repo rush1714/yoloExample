@@ -54,6 +54,7 @@ EC2_BASE_MODEL ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),yolo11n.pt,$(if $(fi
 EC2_REMOTE_DATA_YAML ?= config/generated/$(DIAPER_DATASET_NAME).yaml
 EC2_REMOTE_FINAL_MODEL ?= models/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)/best.pt
 EC2_ARTIFACT_ROOT ?= artifacts/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)
+EC2_LATEST_RUN_FILE ?= $(EC2_ARTIFACT_ROOT)/latest-run.txt
 EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)
 EC2_PREDICT_SOURCE ?= data/samples/multibrand-shelf.webp
 EC2_EVAL_NOTES ?= 首轮 PoC 建议先用 300~500 张有效标注图验证闭环，再扩大数据量。
@@ -180,6 +181,7 @@ diaper-ec2-train: ## dry-run 输出 EC2 A10 训练命令；EC2_EXECUTE=1 才执�
 		--local-model '$(DIAPER_FINAL_MODEL)' --epochs $(EC2_TRAIN_EPOCHS) --imgsz $(EC2_TRAIN_IMGSZ) \
 		--batch $(EC2_TRAIN_BATCH) --device $(EC2_TRAIN_DEVICE) \
 		--profile '$(EC2_TRAIN_PROFILE)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
+		--latest-run-file '$(EC2_LATEST_RUN_FILE)' \
 		$(EC2_RESUME_ARG) $(EC2_EXECUTE_ARG)
 
 diaper-ec2-train-smoke: ## 使用 smoke 档位训练：yolo11n.pt / imgsz=640 / epochs=5
@@ -201,7 +203,8 @@ diaper-ec2-evaluate: ## dry-run 输出 EC2 训练产物归档与 evaluation-summ
 		--base-model '$(EC2_BASE_MODEL)' --remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' \
 		--local-model '$(DIAPER_FINAL_MODEL)' --epochs $(EC2_TRAIN_EPOCHS) --imgsz $(EC2_TRAIN_IMGSZ) \
 		--batch $(EC2_TRAIN_BATCH) --device $(EC2_TRAIN_DEVICE) --profile '$(EC2_TRAIN_PROFILE)' \
-		--artifact-root '$(EC2_ARTIFACT_ROOT)' --notes '$(EC2_EVAL_NOTES)' $(EC2_EXECUTE_ARG)
+		--artifact-root '$(EC2_ARTIFACT_ROOT)' --latest-run-file '$(EC2_LATEST_RUN_FILE)' \
+		--notes '$(EC2_EVAL_NOTES)' $(EC2_EXECUTE_ARG)
 
 diaper-ec2-predict: ## dry-run 输出 EC2 推理验证命令；EC2_EXECUTE=1 才执行
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py predict \

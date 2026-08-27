@@ -57,6 +57,7 @@ make diaper-workflow-after-ls \
 
 - `02-diaper-ec2-upload-data` **仍保留**，仅用于首次把新的国家/版本数据集上传到 EC2。当前 EC2 已存在 `CI/v2026-08-27_01` 数据时，不需要重复执行。
 - `03/06/07` 训练命令会在 EC2 训练前自动生成使用**绝对数据目录**的 YAML，因此不需要通过 `02` 上传本地 YAML。
+- Ultralytics 可能为同名运行自动追加 `-2`、`-3` 等后缀；训练脚本会把真实路径写入 `artifacts/.../<profile>/latest-run.txt`，`04-diaper-ec2-evaluate` 会读取该清单，不能手工假设固定 run 路径。
 
 ## EC2 A10 目录建议
 
@@ -64,8 +65,15 @@ make diaper-workflow-after-ls \
 /home/ubuntu/yoloExample/
 ├── config/generated/diaper_category_ghana_v20260812.yaml
 ├── datasets/diaper_category/ghana/v20260812/
-├── models/train/diaper_category_ghana_v20260812/weights/best.pt
-└── models/ec2/diaper_category/ghana/v20260812/best.pt
+├── runs/detect/models/train/diaper_category_ghana_v20260812[-N]/weights/best.pt
+├── models/ec2/diaper_category/ghana/v20260812/<profile>/best.pt
+└── artifacts/diaper_category/ghana/v20260812/<profile>/
+    ├── latest-run.txt
+    ├── evaluation-summary.md
+    ├── weights/
+    ├── metrics/
+    ├── plots/
+    └── review/
 ```
 
 ## EC2 dry-run / 执行

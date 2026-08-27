@@ -67,6 +67,7 @@ def main() -> None:
     parser.add_argument("--project", type=Path, default=DEFAULT_PROJECT, help="训练输出目录；默认 models/train")
     parser.add_argument("--name", default="multibrand", help="本次训练名称")
     parser.add_argument("--export-model", type=Path, default=DEFAULT_FINAL_MODEL, help="训练完成后复制 best.pt 到该路径；默认 models/multibrand-best.pt")
+    parser.add_argument("--run-dir-output", type=Path, default=None, help="可选：写入 Ultralytics 实际运行目录的文本文件")
     parser.add_argument("--resume", action="store_true", help="从 project/name/weights/last.pt 恢复中断训练")
     args = parser.parse_args()
 
@@ -107,8 +108,14 @@ def main() -> None:
             train_args["device"] = args.device
         model.train(**train_args)
 
-    # 训练完成后，复制最佳模型到指定位置
-    best_model = args.project / args.name / "weights" / "best.pt"
+    run_dir = Path(model.trainer.save_dir).resolve()
+    if args.run_dir_output is not None:
+        args.run_dir_output.parent.mkdir(parents=True, exist_ok=True)
+        args.run_dir_output.write_text(str(run_dir), encoding="utf-8")
+        print(f"实际训练目录：{run_dir}")
+
+    # 训练完成后，复制真实运行目录中的最佳模型到指定位置。
+    best_model = run_dir / "weights" / "best.pt"
     if best_model.is_file() and args.export_model:
         args.export_model.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(best_model, args.export_model)
@@ -116,6 +123,7 @@ def main() -> None:
         print(f"训练原始权重：{best_model}")
     else:
         print(f"训练完成。推理模型：{best_model}")
+    print(f"训练运行目录：{run_dir}")
 
 
 if __name__ == "__main__":

@@ -192,6 +192,7 @@ def main() -> None:
     """命令行入口。"""
     parser = argparse.ArgumentParser(description="汇总 YOLO 训练结果并归档关键产物。")
     parser.add_argument("--run-dir", type=Path, required=True, help="Ultralytics 训练 run 目录")
+    parser.add_argument("--export-model", type=Path, default=None, help="可选：固定导出的 best.pt 路径，也归档到 weights")
     parser.add_argument("--dataset-root", type=Path, required=True, help="数据集根目录")
     parser.add_argument("--dataset-yaml", type=Path, required=True, help="数据集 YAML 路径")
     parser.add_argument("--artifact-dir", type=Path, required=True, help="归档输出目录")
@@ -206,6 +207,8 @@ def main() -> None:
 
     artifact_dir = args.artifact_dir.resolve()
     copied = copy_training_artifacts(args.run_dir.resolve(), artifact_dir)
+    if args.export_model is not None and copy_if_exists(args.export_model.resolve(), artifact_dir / "weights" / "exported-best.pt"):
+        copied.append("weights/exported-best.pt")
     prepare_review_dirs(artifact_dir)
     write_summary(
         artifact_dir=artifact_dir,

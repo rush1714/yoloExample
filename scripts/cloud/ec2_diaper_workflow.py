@@ -173,43 +173,37 @@ def train(args: argparse.Namespace) -> None:
             args.train_name,
             "--export-model",
             args.remote_final_model,
+            "--run-dir-output",
+            args.latest_run_file,
         ]
     )
     if args.resume:
         training_command += " --resume"
-    command = f"{prepare_remote_dataset_yaml(args)} && {training_command}"
+    command = f"mkdir -p {shlex.quote(args.artifact_root)} && {prepare_remote_dataset_yaml(args)} && {training_command}"
     run_or_print(remote_python_command(args, command), args.execute)
+
+
+def resolve_remote_run_dir(args: argparse.Namespace) -> str:
+    """读取训练写入的真实 Ultralytics run 目录清单。"""
+    latest_run_file = shlex.quote(args.latest_run_file)
+    fallback = shlex.quote(f"runs/detect/models/train/{args.train_name}")
+    return f"$(cat {latest_run_file} 2>/dev/null || printf '%s' {fallback})"
 
 
 def evaluate(args: argparse.Namespace) -> None:
     """在 EC2 上归档训练产物并生成 evaluation-summary.md。"""
-    command = shell_join(
-        [
-            *args.python_cmd.split(),
-            "scripts/reports/summarize_yolo_run.py",
-            "--run-dir",
-            f"models/train/{args.train_name}",
-            "--dataset-root",
-            f"datasets/diaper_category/{args.country}/{args.version}",
-            "--dataset-yaml",
-            args.remote_data_yaml,
-            "--artifact-dir",
-            args.artifact_root,
-            "--profile",
-            args.profile,
-            "--model",
-            args.base_model,
-            "--imgsz",
-            str(args.imgsz),
-            "--epochs",
-            str(args.epochs),
-            "--batch",
-            str(args.batch),
-            "--device",
-            args.device,
-            "--notes",
-            args.notes,
-        ]
+    command = (
+        f"{shell_join([*args.python_cmd.split(), 'scripts/reports/summarize_yolo_run.py'])} "
+        f"--run-dir {resolve_remote_run_dir(args)} "
+        f"--export-model {shlex.quote(args.remote_final_model)} "
+        f"--dataset-root {shlex.quote(f'datasets/diaper_category/{args.country}/{args.version}')} "
+        f"--dataset-yaml {shlex.quote(args.remote_data_yaml)} "
+        f"--artifact-dir {shlex.quote(args.artifact_root)} "
+        f"--profile {shlex.quote(args.profile)} "
+        f"--model {shlex.quote(args.base_model)} "
+        f"--imgsz {args.imgsz} --epochs {args.epochs} "
+        f"--batch {shlex.quote(str(args.batch))} --device {shlex.quote(args.device)} "
+        f"--notes {shlex.quote(args.notes)}"
     )
     run_or_print(remote_python_command(args, command), args.execute)
 
@@ -311,6 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--remote-final-model", default="models/ec2/diaper_category/default/v1/best.pt", help="EC2 上导出的 best.pt 相对项目路径")
     parser.add_argument("--local-model", default="models/diaper_category/default/v1/best.pt", help="下载到本地的模型路径")
     parser.add_argument("--artifact-root", default="artifacts/diaper_category/default/v1/smoke", help="EC2 上训练产物归档目录")
+    parser.add_argument("--latest-run-file", default="artifacts/diaper_category/default/v1/smoke/latest-run.txt", help="EC2 上记录实际 Ultralytics run 目录的清单文件")
     parser.add_argument("--local-artifact-root", default="outputs/ec2/diaper_category/default/v1/smoke", help="本地归档下载目录")
     parser.add_argument("--epochs", type=int, default=None, help="训练轮数；未设置时由 profile 决定")
     parser.add_argument("--imgsz", type=int, default=None, help="训练/推理尺寸；未设置时由 profile 决定")
