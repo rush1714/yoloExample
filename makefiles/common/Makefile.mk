@@ -17,8 +17,8 @@ LOG_DIR      := $(PROJECT_ROOT)/logs
 MODELS_BAK_DIR  := $(PROJECT_ROOT)/models/backup
 
 # ── 通用 Excel 下载参数 ───────────────────────────────────────
-EXCEL              ?= /Users/guobiao/DOC/森大2.0/18.陈列数据/柯特2026_7-8月.xlsx
-EXCEL_COLUMN       ?= 整改后图片URL
+EXCEL              ?= /Users/guobiao/DOC/森大2.0/18.陈列数据/CI_2026-08-26_最新1801个_02.xlsx
+EXCEL_COLUMN       ?= 生动化照片链接
 EXCEL_WORKERS      ?= 10
 EXCEL_TIMEOUT      ?= 30
 

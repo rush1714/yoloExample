@@ -25,8 +25,15 @@ make diaper-workflow-to-ls \
   DIAPER_EXCEL_COLUMN=整改后图片URL \
   DIAPER_LABEL_NAME=纸尿裤
 ```
+```bash
+make diaper-workflow-to-ls \
+  DIAPER_COUNTRY=CI \
+  DIAPER_VERSION=v2026-08-26_01
+```
 
 导入后 Label Studio 标签只有一个：`纸尿裤`。
+
+注意：`diaper-workflow-to-ls` 每执行一次都会创建一个新的 Label Studio 项目；如果只是继续标注已有项目，不要重复执行该命令，直接打开已有项目继续标注。若确实要重新导入一批新任务，再重新执行。
 
 ## 人工标注后导出 YOLO 数据集
 
@@ -69,29 +76,56 @@ make diaper-ec2-train \
 确认无误后加 `EC2_EXECUTE=1`：
 
 ```bash
-make diaper-ec2-upload-project \
+make 01-diaper-ec2-upload-project \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   EC2_EXECUTE=1
 
-make diaper-ec2-upload-data \
+make 02-diaper-ec2-upload-data \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   DIAPER_COUNTRY=ghana \
   DIAPER_VERSION=v20260812 \
   EC2_EXECUTE=1
 
-make diaper-ec2-train \
+make 03-diaper-ec2-train-smoke \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   DIAPER_COUNTRY=ghana \
   DIAPER_VERSION=v20260812 \
-  EC2_TRAIN_EPOCHS=100 \
   EC2_TRAIN_BATCH=16 \
   EC2_TRAIN_DEVICE=0 \
   EC2_EXECUTE=1
 
-make diaper-ec2-predict \
+make 04-diaper-ec2-evaluate \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana \
+  DIAPER_VERSION=v20260812 \
+  EC2_EXECUTE=1
+
+make 05-diaper-ec2-download-artifacts \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana \
+  DIAPER_VERSION=v20260812 \
+  EC2_EXECUTE=1
+
+make 06-diaper-ec2-train-baseline \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana \
+  DIAPER_VERSION=v20260812 \
+  EC2_EXECUTE=1
+
+make 07-diaper-ec2-train-improve \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  DIAPER_COUNTRY=ghana \
+  DIAPER_VERSION=v20260812 \
+  EC2_EXECUTE=1
+
+make 08-diaper-ec2-predict \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   DIAPER_COUNTRY=ghana \
@@ -99,7 +133,7 @@ make diaper-ec2-predict \
   EC2_PREDICT_SOURCE=/home/ubuntu/test.jpg \
   EC2_EXECUTE=1
 
-make diaper-ec2-download-model \
+make 09-diaper-ec2-download-model \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   DIAPER_COUNTRY=ghana \

@@ -4,7 +4,7 @@
 # 国家/市场代码；用于 datasets/diaper_category/<country>/<version> 分目录。
 DIAPER_COUNTRY ?= CI
 # 数据版本；默认按当天日期，建议实际项目显式传 vYYYYMMDD 或业务批次号。
-DIAPER_VERSION ?= v$(shell date +%Y%m%d)
+DIAPER_VERSION ?= v$(shell date +%Y-%m-%d)_01
 DIAPER_DATASET_NAME := diaper_category_$(DIAPER_COUNTRY)_$(DIAPER_VERSION)
 # 正式图片 Excel；默认复用公共 EXCEL，也可按国家单独传。
 DIAPER_EXCEL ?= $(EXCEL)
@@ -63,8 +63,11 @@ EC2_KEY_ARG := $(if $(EC2_KEY),--key $(EC2_KEY),)
 EC2_RESUME_ARG := $(if $(filter 1 true yes,$(TRAIN_RESUME)),--resume,)
 
 .PHONY: diaper-yaml diaper-import-excel diaper-ls-import-json diaper-ls-apply diaper-ls-export diaper-ls-to-yolo \
-	diaper-workflow-to-ls diaper-workflow-after-ls diaper-ec2-upload-project diaper-ec2-upload-data \
-	diaper-ec2-train diaper-ec2-train-smoke diaper-ec2-train-baseline diaper-ec2-train-improve \
+	diaper-workflow-to-ls diaper-workflow-after-ls diaper-prepare-dirs \
+	01-diaper-ec2-upload-project 02-diaper-ec2-upload-data \
+	03-diaper-ec2-train-smoke 04-diaper-ec2-evaluate 05-diaper-ec2-download-artifacts \
+	06-diaper-ec2-train-baseline 07-diaper-ec2-train-improve 08-diaper-ec2-predict 09-diaper-ec2-download-model \
+	diaper-ec2-upload-project diaper-ec2-upload-data diaper-ec2-train diaper-ec2-train-smoke diaper-ec2-train-baseline diaper-ec2-train-improve \
 	diaper-ec2-evaluate diaper-ec2-predict diaper-ec2-download-model diaper-ec2-download-artifacts
 
 diaper-yaml: ## 生成纸尿裤大类单类别 YOLO YAML
@@ -90,7 +93,7 @@ diaper-ls-import-json: ## 生成纸尿裤大类 LS 导入 JSON，无预标注 pr
 		--label-config-output $(DIAPER_LS_LABEL_CONFIG_XML) \
 		--dataset-name $(DIAPER_DATASET_NAME)
 
-diaper-ls-apply: ls-db-check prepare-dirs ## 导入纸尿裤大类任务到 Label Studio（无预标注）
+diaper-ls-apply: ls-db-check diaper-prepare-dirs ## 导入纸尿裤大类任务到 Label Studio（每执行一次都会创建一个新 LS 项目）
 	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
 		LS_IMPORT_JSON='$(DIAPER_LS_IMPORT_JSON)' \
 		LS_LOCAL_FILES_PATH='$(DIAPER_RAW_DIR)' \
@@ -98,7 +101,7 @@ diaper-ls-apply: ls-db-check prepare-dirs ## 导入纸尿裤大类任务到 Labe
 		LS_LABEL_CONFIG_XML='$(DIAPER_LS_LABEL_CONFIG_XML)' \
 		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
 
-diaper-ls-export: ls-db-check prepare-dirs ## 从 Label Studio 导出纸尿裤大类 JSON；需传 LS_PROJECT_ID=<项目ID>
+diaper-ls-export: ls-db-check diaper-prepare-dirs ## 从 Label Studio 导出纸尿裤大类 JSON；需传 LS_PROJECT_ID=<项目ID>
 	@[ -n "$(LS_PROJECT_ID)" ] || (echo "错误：请传入 LS_PROJECT_ID，例如：make diaper-ls-export LS_PROJECT_ID=2" && exit 1)
 	mkdir -p $(DIAPER_LS_EXPORT_DIR)
 	cd $(LS_WORK_DIR) && PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio export \
@@ -115,9 +118,30 @@ diaper-ls-to-yolo: diaper-yaml ## 转换纸尿裤大类 LS 导出为 YOLO 数据
 		$(LS_TO_YOLO_CLEAR_ARG) \
 		$(LS_TO_YOLO_SKIP_EMPTY_ARG)
 
-diaper-workflow-to-ls: diaper-import-excel diaper-yaml diaper-ls-import-json diaper-ls-apply ## 下载纸尿裤大类正式图片并导入 LS，无预标注
+1-diaper-workflow-to-ls: diaper-import-excel diaper-yaml diaper-ls-import-json diaper-ls-apply ## 下载纸尿裤大类正式图片并导入 LS，无预标注
 
-diaper-workflow-after-ls: diaper-ls-export diaper-ls-to-yolo ## 导出纸尿裤大类人工标注并转换 YOLO 数据集
+2-diaper-workflow-after-ls: diaper-ls-export diaper-ls-to-yolo ## 导出纸尿裤大类人工标注并转换 YOLO 数据集
+
+diaper-prepare-dirs: ## 创建纸尿裤大类流程需要的临时、日志和导出目录
+	@mkdir -p $(TMP_DIR) $(LS_WORK_DIR) $(LOG_DIR) $(DIAPER_LS_EXPORT_DIR)
+
+01-diaper-ec2-upload-project: diaper-ec2-upload-project ## 01. 上传项目代码到 EC2
+
+02-diaper-ec2-upload-data: diaper-ec2-upload-data ## 02. 上传当前国家/版本数据集和 YAML 到 EC2
+
+03-diaper-ec2-train-smoke: diaper-ec2-train-smoke ## 03. smoke 训练：yolo11n.pt / 640 / 5 epochs
+
+04-diaper-ec2-evaluate: diaper-ec2-evaluate ## 04. 归档训练产物并生成 evaluation-summary.md
+
+05-diaper-ec2-download-artifacts: diaper-ec2-download-artifacts ## 05. 下载完整训练归档目录
+
+06-diaper-ec2-train-baseline: diaper-ec2-train-baseline ## 06. baseline 训练：yolo11s.pt / 960 / 100 epochs
+
+07-diaper-ec2-train-improve: diaper-ec2-train-improve ## 07. improve 训练：yolo11m.pt / 960 / 150 epochs
+
+08-diaper-ec2-predict: diaper-ec2-predict ## 08. 使用 EC2 模型做推理验证
+
+09-diaper-ec2-download-model: diaper-ec2-download-model ## 09. 仅下载 EC2 best.pt 模型
 
 diaper-ec2-upload-project: ## dry-run 输出上传项目代码到 EC2 的 rsync 命令；EC2_EXECUTE=1 才执行
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-project \
