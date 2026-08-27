@@ -26,7 +26,7 @@ DIAPER_FINAL_MODEL ?= $(PROJECT_ROOT)/models/diaper_category/$(DIAPER_COUNTRY)/$
 
 # ── AWS EC2 A10 参数 ────────────────────────────────────────
 # EC2 地址或 SSH Host 别名；默认空，dry-run 时也会保留占位。
-EC2_HOST ?=
+EC2_HOST ?= 100.52.169.93
 # EC2 SSH 用户；Ubuntu AMI 默认 ubuntu。
 EC2_USER ?= ec2-user
 # SSH 私钥路径；未设置时不传 -i。
@@ -34,7 +34,7 @@ EC2_KEY ?= ~/.ssh/smdp-yolo-gpu-key.pem
 # SSH 端口。
 EC2_PORT ?= 22
 # EC2 上项目根目录。
-EC2_PROJECT_ROOT ?= /home/$(EC2_USER)/smdp4cust
+EC2_PROJECT_ROOT ?= /home/$(EC2_USER)/yoloExample
 # EC2 上执行训练/推理前激活 PyTorch 环境；用户当前环境已使用该路径。
 EC2_ACTIVATE_CMD ?= source /opt/pytorch/bin/activate
 # EC2 上 Python 执行命令；激活 PyTorch 环境后默认使用 python3。
@@ -125,9 +125,9 @@ diaper-ls-to-yolo: diaper-yaml ## 转换纸尿裤大类 LS 导出为 YOLO 数据
 diaper-prepare-dirs: ## 创建纸尿裤大类流程需要的临时、日志和导出目录
 	@mkdir -p $(TMP_DIR) $(LS_WORK_DIR) $(LOG_DIR) $(DIAPER_LS_EXPORT_DIR)
 
-01-diaper-ec2-upload-project: diaper-ec2-upload-project ## 01. 上传项目代码到 EC2
+01-diaper-ec2-upload-project: diaper-ec2-upload-project ## 01. 仅非 Git 部署环境：上传项目代码到 EC2
 
-02-diaper-ec2-upload-data: diaper-ec2-upload-data ## 02. 上传当前国家/版本数据集和 YAML 到 EC2
+02-diaper-ec2-upload-data: diaper-ec2-upload-data ## 02. 仅新国家/版本首次使用：上传数据集到 EC2（训练 YAML 自动生成）
 
 03-diaper-ec2-train-smoke: diaper-ec2-train-smoke ## 03. smoke 训练：yolo11n.pt / 640 / 5 epochs
 
@@ -143,7 +143,11 @@ diaper-prepare-dirs: ## 创建纸尿裤大类流程需要的临时、日志和�
 
 09-diaper-ec2-download-model: diaper-ec2-download-model ## 09. 仅下载 EC2 best.pt 模型
 
-diaper-ec2-upload-project: ## dry-run 输出上传项目代码到 EC2 的 rsync 命令；EC2_EXECUTE=1 才执行
+diaper-ec2-upload-project: ## 仅非 Git 部署环境：dry-run 输出 rsync 上传项目代码命令；EC2_EXECUTE=1 才执行
+
+# EC2 已通过 git clone 部署代码时：在本地提交后，登录 EC2 项目目录执行 git pull；不要执行本目标。
+# 仅当 EC2 尚无某个国家/版本数据集时，使用下一个目标上传数据；训练 YAML 会由训练命令自动生成绝对路径版本。
+# 下面保留 rsync 上传项目能力，供不使用 Git 部署的环境使用.
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-project \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
@@ -153,7 +157,9 @@ diaper-ec2-upload-project: ## dry-run 输出上传项目代码到 EC2 的 rsync 
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
 		$(EC2_EXECUTE_ARG)
 
-diaper-ec2-upload-data: diaper-yaml ## dry-run 输出上传当前纸尿裤数据和 YAML 到 EC2 的命令
+diaper-ec2-upload-data: diaper-yaml ## 仅首次需要：上传当前纸尿裤数据到 EC2；训练 YAML 会由 EC2 训练命令自动生成绝对路径版本
+
+# 说明：EC2 已通过 git clone 管理代码时，不需要用本命令上传项目代码；使用 git pull 获取提交后的更新。
 	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-data \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \

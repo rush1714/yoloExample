@@ -45,6 +45,19 @@ make diaper-workflow-after-ls \
   LS_TO_YOLO_CLEAR=1
 ```
 
+## EC2 代码和数据同步规则
+
+- EC2 项目代码已通过 `git clone` 管理时，**不要使用** `01-diaper-ec2-upload-project`；该命令仅供非 Git 部署环境使用。
+- 本地代码修复完成并提交后，在 EC2 执行：
+
+  ```bash
+  cd /home/ec2-user/yoloExample
+  git pull
+  ```
+
+- `02-diaper-ec2-upload-data` **仍保留**，仅用于首次把新的国家/版本数据集上传到 EC2。当前 EC2 已存在 `CI/v2026-08-27_01` 数据时，不需要重复执行。
+- `03/06/07` 训练命令会在 EC2 训练前自动生成使用**绝对数据目录**的 YAML，因此不需要通过 `02` 上传本地 YAML。
+
 ## EC2 A10 目录建议
 
 ```text
@@ -81,12 +94,17 @@ make 01-diaper-ec2-upload-project \
   EC2_KEY=/path/key.pem \
   EC2_EXECUTE=1
 
+# 仅在 EC2 尚未有该国家/版本数据集时执行；EC2 已有数据则跳过
 make 02-diaper-ec2-upload-data \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   DIAPER_COUNTRY=ghana \
   DIAPER_VERSION=v20260812 \
   EC2_EXECUTE=1
+
+# 代码已通过 git clone 管理时，到 EC2 项目目录拉取提交后的修复
+ssh -i /path/key.pem ec2-user@<host> \
+  'cd /home/ec2-user/yoloExample && git pull'
 
 make 03-diaper-ec2-train-smoke \
   EC2_HOST=<host> \

@@ -123,9 +123,30 @@ def upload_project(args: argparse.Namespace) -> None:
     run_or_print(command, args.execute)
 
 
+def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
+    """在 EC2 生成使用绝对数据目录的单类别 YAML，避免相对路径解析偏差。"""
+    remote_dataset_root = (
+        f"{args.ec2_project_root}/datasets/diaper_category/{args.country}/{args.version}"
+    )
+    yaml_content = "\\n".join(
+        [
+            f"path: {remote_dataset_root}",
+            "train: images/train",
+            "val: images/val",
+            "test: images/test",
+            "",
+            "names:",
+            "  0: 纸尿裤",
+            "",
+        ]
+    )
+    quoted_content = shlex.quote(yaml_content)
+    return f"mkdir -p config/generated && printf '%s\\n' {quoted_content} > {shlex.quote(args.remote_data_yaml)}"
+
+
 def train(args: argparse.Namespace) -> None:
-    """在 EC2 上启动训练。"""
-    command = shell_join(
+    """在 EC2 上生成专用 YAML 后启动训练。"""
+    training_command = shell_join(
         [
             *args.python_cmd.split(),
             "scripts/training/train.py",
@@ -150,7 +171,8 @@ def train(args: argparse.Namespace) -> None:
         ]
     )
     if args.resume:
-        command += " --resume"
+        training_command += " --resume"
+    command = f"{prepare_remote_dataset_yaml(args)} && {training_command}"
     run_or_print(remote_python_command(args, command), args.execute)
 
 
