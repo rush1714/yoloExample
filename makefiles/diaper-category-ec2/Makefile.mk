@@ -44,7 +44,7 @@ EC2_TRAIN_PROFILE ?= smoke
 # A10 GPU 设备号。
 EC2_TRAIN_DEVICE ?= 0
 # EC2 训练 batch。
-EC2_TRAIN_BATCH ?= -1
+EC2_TRAIN_BATCH ?= 16
 # EC2 训练轮数；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
 EC2_TRAIN_EPOCHS ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),5,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),100,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),150,100)))
 # EC2 训练/推理尺寸；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。

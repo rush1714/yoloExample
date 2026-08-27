@@ -10,9 +10,9 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TRAIN_PROFILES = {
-    "smoke": {"base_model": "yolo11n.pt", "imgsz": 640, "epochs": 5},
-    "baseline": {"base_model": "yolo11s.pt", "imgsz": 960, "epochs": 100},
-    "improve": {"base_model": "yolo11m.pt", "imgsz": 960, "epochs": 150},
+    "smoke": {"base_model": "yolo26n.pt", "imgsz": 640, "epochs": 5},
+    "baseline": {"base_model": "yolo26s.pt", "imgsz": 960, "epochs": 60},
+    "improve": {"base_model": "yolo26m.pt", "imgsz": 960, "epochs": 100},
 }
 
 
