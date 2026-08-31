@@ -1,0 +1,1 @@
+/home/ec2-user/yoloExample/runs/detect/models/train/diaper_category_CI_v2026-08-28-3
