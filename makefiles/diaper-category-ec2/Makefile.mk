@@ -4,7 +4,8 @@
 # 国家/市场代码；用于 datasets/diaper_category/<country>/<version> 分目录。
 DIAPER_COUNTRY ?= CI
 # 数据版本；默认按当天日期，建议实际项目显式传 vYYYYMMDD 或业务批次号。
-DIAPER_VERSION ?= v$(shell date +%Y-%m-%d)_01
+#DIAPER_VERSION ?= v$(shell date +%Y-%m-%d)
+DIAPER_VERSION ?= v2026-08-28
 DIAPER_DATASET_NAME := diaper_category_$(DIAPER_COUNTRY)_$(DIAPER_VERSION)
 # 正式图片 Excel；默认复用公共 EXCEL，也可按国家单独传。
 DIAPER_EXCEL ?= $(EXCEL)
@@ -26,7 +27,7 @@ DIAPER_FINAL_MODEL ?= $(PROJECT_ROOT)/models/diaper_category/$(DIAPER_COUNTRY)/$
 
 # ── AWS EC2 A10 参数 ────────────────────────────────────────
 # EC2 地址或 SSH Host 别名；默认空，dry-run 时也会保留占位。
-EC2_HOST ?= 100.52.169.93
+EC2_HOST ?= 3.232.95.101
 # EC2 SSH 用户；Ubuntu AMI 默认 ubuntu。
 EC2_USER ?= ec2-user
 # SSH 私钥路径；未设置时不传 -i。
@@ -44,20 +45,20 @@ EC2_TRAIN_PROFILE ?= smoke
 # A10 GPU 设备号。
 EC2_TRAIN_DEVICE ?= 0
 # EC2 训练 batch。
-EC2_TRAIN_BATCH ?= 16
+EC2_TRAIN_BATCH ?= -1
 # EC2 训练轮数；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
-EC2_TRAIN_EPOCHS ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),5,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),100,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),150,100)))
+EC2_TRAIN_EPOCHS ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),5,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),60,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),100,100)))
 # EC2 训练/推理尺寸；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
 EC2_TRAIN_IMGSZ ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),640,960)
 # EC2 基座模型；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
-EC2_BASE_MODEL ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),yolo11n.pt,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),yolo11s.pt,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),yolo11m.pt,models/yolo26m.pt)))
+EC2_BASE_MODEL ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),yolo26n.pt,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),yolo26s.pt,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),yolo26m.pt,models/yolo26m.pt)))
 EC2_REMOTE_DATA_YAML ?= config/generated/$(DIAPER_DATASET_NAME).yaml
 EC2_REMOTE_FINAL_MODEL ?= models/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)/best.pt
 EC2_ARTIFACT_ROOT ?= artifacts/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)
 EC2_LATEST_RUN_FILE ?= $(EC2_ARTIFACT_ROOT)/latest-run.txt
 EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)
 EC2_PREDICT_SOURCE ?= data/samples/multibrand-shelf.webp
-EC2_EVAL_NOTES ?= 首轮 PoC 建议先用 300~500 张有效标注图验证闭环，再扩大数据量。
+EC2_EVAL_NOTES ?= training start
 EC2_EXECUTE ?= 0
 EC2_EXECUTE_ARG := $(if $(filter 1 true yes,$(EC2_EXECUTE)),--execute,)
 EC2_KEY_ARG := $(if $(EC2_KEY),--key $(EC2_KEY),)

@@ -269,6 +269,26 @@ http://localhost:9001
 
 本项目提供 Makefile 封装端到端流程，所有参数都有默认值，并可在命令行覆盖，例如 `make step-6-train TRAIN_EPOCHS=50 TRAIN_DEVICE=cpu`。Makefile 不再切换到 `/tmp`，Label Studio shell/start 统一使用项目内临时目录 `.tmp/label-studio/`，运行日志写入 `logs/`。
 
+### 本地 Make 可视化控制台
+
+如果不想手写复杂 Make 命令，可以启动一个本地 Node 页面：
+
+```bash
+npm start
+# 或
+make web-console
+```
+
+默认访问地址：
+
+```text
+http://localhost:3000
+```
+
+页面使用左侧菜单展示功能大类，包括品牌多类别流程、Label Studio、训练与推理、纸尿裤大类/EC2、维护工具和图片浏览。命令类功能会在左侧展开二级子菜单；点击某个命令子菜单后，右侧只展示该命令的单独页面，包括说明、常用参数、命令预览、复制和执行按钮。未填写的参数继续使用 Makefile 默认值；点击“执行”后会在页面下方显示实时日志，也可以复制生成的命令到终端手动执行。
+
+数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
+
 | 顺序 | 命令 | 作用 |
 | --- | --- | --- |
 | 1 | `make step-1-import-excel` | 从 Excel 的 `整改后图片URL` 列下载共享原图池 `datasets/multibrand/raw/images/`。 |

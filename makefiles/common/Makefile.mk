@@ -101,7 +101,7 @@ export LS_COMPACT_CLASS_IDS
 export LS_LABEL_CONFIG_XML
 export MODELS_BAK_DIR
 
-.PHONY: help help-params prepare-dirs brand-check brand-list \
+.PHONY: help help-params web-console prepare-dirs brand-check brand-list \
 	ls-setup ls-start ls-migrate ls-shell ls-stop ls-apply ls-export \
 	data-validate train predict datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check bak-data
 
@@ -125,6 +125,9 @@ help-params: ## 显示 Make 参数默认值；各流程详见 makefiles/*/README
 	@printf "  makefiles/brand-llm-ocr-yoloworld/README.md\n"
 	@printf "  makefiles/brand-yoloe-visual/README.md\n"
 	@printf "  makefiles/diaper-category-ec2/README.md\n"
+
+web-console: ## 启动本地 Make 命令与数据可视化页面
+	node web-console/server.js
 
 prepare-dirs: ## 创建项目内临时目录和日志目录
 	@mkdir -p $(TMP_DIR) $(LS_WORK_DIR) $(LOG_DIR) $(LS_EXPORT_DIR)

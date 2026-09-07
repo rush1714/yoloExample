@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YOLO 本地控制台</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #687184;
+      --line: #dfe5ef;
+      --primary: #2563eb;
+      --primary-soft: #eaf1ff;
+      --danger: #dc2626;
+      --success: #15803d;
+      --warning: #b45309;
+      --shadow: 0 10px 30px rgb(15 23 42 / 8%);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgb(255 255 255 / 90%);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 20px 22px 40px;
+    }
+
+    .side-menu {
+      align-self: start;
+      position: sticky;
+      top: 88px;
+      max-height: calc(100vh - 110px);
+      overflow: auto;
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .side-menu-title {
+      padding: 6px 12px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .menu-section {
+      margin-bottom: 4px;
+    }
+
+    .menu-button,
+    .submenu-button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .menu-button {
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+
+    .submenu-button {
+      padding: 9px 10px 9px 34px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .menu-button:hover,
+    .menu-button.active,
+    .submenu-button:hover,
+    .submenu-button.active {
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    .menu-count {
+      min-width: 22px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      text-align: center;
+      background: #eef2ff;
+      color: #4f46e5;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .submenu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 2px 0 8px;
+      padding-left: 4px;
+      border-left: 2px solid #eef2ff;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h2, h3 {
+      margin: 0;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    h3 {
+      font-size: 16px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+    }
+
+    .data-grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 14px;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 8px 0 2px;
+    }
+
+    .command-detail {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(#ffffff, #fbfdff);
+      padding: 16px;
+    }
+
+    .command-detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      color: var(--text);
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button.primary,
+    button.secondary,
+    button.danger {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    button.secondary {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    button.danger {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    code.command-preview {
+      display: block;
+      white-space: nowrap;
+      overflow: auto;
+      max-width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: #0f172a;
+      color: #dbeafe;
+      font-size: 12px;
+    }
+
+    .job-panel {
+      position: sticky;
+      bottom: 0;
+      z-index: 9;
+      border-color: #bfd1ff;
+    }
+
+    .job-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .status.running,
+    .status.stopping {
+      background: #fef3c7;
+      color: var(--warning);
+    }
+
+    .status.success {
+      background: #dcfce7;
+      color: var(--success);
+    }
+
+    .status.failed,
+    .status.stopped {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    pre.log {
+      min-height: 180px;
+      max-height: 380px;
+      overflow: auto;
+      margin: 12px 0 0;
+      padding: 14px;
+      color: #d1d5db;
+      background: #0b1020;
+      border-radius: 12px;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar select,
+    .toolbar input {
+      max-width: 360px;
+    }
+
+    .image-card {
+      overflow: hidden;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      background: #e5e7eb;
+      display: block;
+    }
+
+    .image-meta {
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    .image-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 700;
+      background: #f8fafc;
+    }
+
+    dialog {
+      width: min(1100px, 92vw);
+      border: 0;
+      border-radius: 18px;
+      padding: 0;
+      box-shadow: 0 24px 70px rgb(15 23 42 / 30%);
+    }
+
+    dialog::backdrop {
+      background: rgb(15 23 42 / 65%);
+    }
+
+    .dialog-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dialog-body {
+      padding: 16px;
+      background: #0b1020;
+    }
+
+    .dialog-body img {
+      max-width: 100%;
+      max-height: 78vh;
+      display: block;
+      margin: 0 auto;
+      object-fit: contain;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .warning-box {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .topbar,
+      .panel-title,
+      .job-head,
+      .command-detail-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side-menu {
+        position: static;
+        max-height: none;
+      }
+
+      .summary-grid,
+      .data-grid,
+      .param-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div>
+      <h1>YOLO 本地控制台</h1>
+      <div class="subtitle" id="projectRoot">正在读取项目配置...</div>
+    </div>
+    <div class="actions">
+      <button class="secondary" id="refreshSummaryBtn">刷新数据</button>
+      <button class="secondary" id="openLabelStudioBtn">打开 Label Studio</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side-menu">
+    <div class="side-menu-title">功能菜单</div>
+    <div id="sideMenu"></div>
+  </aside>
+
+  <main>
+    <section class="panel" id="overviewPanel">
+      <div class="panel-title">
+        <div>
+          <h2>数据总览</h2>
+          <div class="muted">扫描本地 datasets、outputs、models/train、artifacts、data/samples 等目录。</div>
+        </div>
+      </div>
+      <div class="grid summary-grid" id="summaryCards"></div>
+      <div class="panel-title" style="margin-top: 18px;">
+        <h3>训练集拆分</h3>
+      </div>
+      <div id="splitSummary"></div>
+      <div class="panel-title" style="margin-top: 18px;">
+        <h3>报告摘要</h3>
+      </div>
+      <div id="reportSummary"></div>
+    </section>
+
+    <section class="panel" id="commandsPanel">
+      <div class="panel-title">
+        <div>
+          <h2 id="groupTitle">命令</h2>
+          <div class="muted" id="groupDescription"></div>
+        </div>
+      </div>
+      <div class="warning-box hidden" id="ec2Warning">
+        EC2 相关命令默认是 dry-run。只有把 <b>EC2_EXECUTE</b> 改成 <b>1</b>，才会真实连接远端机器执行。
+      </div>
+      <div id="commandDetail"></div>
+    </section>
+
+    <section class="panel" id="dataPanel">
+      <div class="panel-title">
+        <div>
+          <h2>图片浏览</h2>
+          <div class="muted">只展示项目内白名单数据目录中的图片，点击可查看大图。</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <select id="dataRootSelect"></select>
+        <input id="imageSearch" placeholder="按文件名或路径搜索">
+        <button class="secondary" id="loadImagesBtn">加载图片</button>
+        <button class="secondary" id="prevPageBtn">上一页</button>
+        <button class="secondary" id="nextPageBtn">下一页</button>
+        <span class="muted" id="pageInfo"></span>
+      </div>
+      <div class="grid data-grid" id="imageGrid" style="margin-top: 14px;"></div>
+    </section>
+
+    <section class="panel job-panel hidden" id="jobPanel">
+      <div class="job-head">
+        <div>
+          <h2>任务日志</h2>
+          <div class="muted" id="jobCommand"></div>
+        </div>
+        <div class="actions">
+          <span class="status" id="jobStatus">idle</span>
+          <button class="danger" id="stopJobBtn">停止任务</button>
+        </div>
+      </div>
+      <pre class="log" id="jobLog"></pre>
+    </section>
+  </main>
+</div>
+
+<dialog id="imageDialog">
+  <div class="dialog-head">
+    <div>
+      <strong id="dialogTitle">图片预览</strong>
+      <div class="muted" id="dialogPath"></div>
+    </div>
+    <button class="secondary" id="closeDialogBtn">关闭</button>
+  </div>
+  <div class="dialog-body">
+    <img id="dialogImage" alt="图片预览">
+  </div>
+</dialog>
+
+<script>
+  const state = {
+    config: null,
+    activeGroup: 'overview',
+    activeCommandByGroup: {},
+    imagePage: 1,
+    imagePageSize: 48,
+    imageTotal: 0,
+    currentJobId: null,
+    jobTimer: null,
+  };
+
+  const $ = (selector) => document.querySelector(selector);
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;',
+    }[char]));
+  }
+
+  async function fetchJson(url, options) {
+    const response = await fetch(url, options);
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `请求失败：${response.status}`);
+    }
+    return payload;
+  }
+
+  function buildCommandPreview(target, form) {
+    const parts = ['make', target];
+    form.querySelectorAll('[data-param]').forEach((input) => {
+      const value = input.value.trim();
+      if (!value) return;
+      const safeValue = /[\s'"\\]/.test(value) ? JSON.stringify(value) : value;
+      parts.push(`${input.dataset.param}=${safeValue}`);
+    });
+    return parts.join(' ');
+  }
+
+  function currentCommand(group) {
+    const activeTarget = state.activeCommandByGroup[group.id] || group.commands[0]?.target;
+    return group.commands.find((command) => command.target === activeTarget) || group.commands[0];
+  }
+
+  function paramInput(paramName) {
+    const definition = state.config.params[paramName] || { label: paramName, type: 'text', defaultValue: '' };
+    const label = document.createElement('label');
+    label.innerHTML = `<span>${escapeHtml(definition.label || paramName)} <span class="muted">${escapeHtml(paramName)}</span></span>`;
+    let input;
+    if (definition.type === 'select') {
+      input = document.createElement('select');
+      const options = definition.options || [definition.defaultValue || ''];
+      options.forEach((optionValue) => {
+        const option = document.createElement('option');
+        option.value = optionValue;
+        option.textContent = optionValue;
+        input.appendChild(option);
+      });
+      input.value = definition.defaultValue || options[0] || '';
+    } else {
+      input = document.createElement('input');
+      input.type = definition.type === 'number' ? 'number' : 'text';
+      input.value = definition.defaultValue || '';
+      if (definition.type === 'number') input.step = 'any';
+    }
+    input.dataset.param = paramName;
+    input.placeholder = definition.help || '';
+    label.appendChild(input);
+    return label;
+  }
+
+  function renderSideMenu() {
+    const menu = $('#sideMenu');
+    menu.innerHTML = '';
+    const overviewButton = menuButton({ id: 'overview', title: '数据总览' });
+    menu.appendChild(overviewButton);
+
+    state.config.commandGroups.forEach((group) => {
+      const section = document.createElement('div');
+      section.className = 'menu-section';
+      section.appendChild(menuButton({ id: group.id, title: group.title, count: group.commands.length }));
+
+      if (state.activeGroup === group.id) {
+        const submenu = document.createElement('div');
+        submenu.className = 'submenu-list';
+        const activeCommand = currentCommand(group);
+        group.commands.forEach((command) => {
+          const button = document.createElement('button');
+          button.className = `submenu-button ${activeCommand.target === command.target ? 'active' : ''}`;
+          button.type = 'button';
+          button.textContent = command.title;
+          button.onclick = () => {
+            state.activeGroup = group.id;
+            state.activeCommandByGroup[group.id] = command.target;
+            renderSideMenu();
+            renderCommands();
+          };
+          submenu.appendChild(button);
+        });
+        section.appendChild(submenu);
+      }
+      menu.appendChild(section);
+    });
+
+    menu.appendChild(menuButton({ id: 'data', title: '图片浏览' }));
+  }
+
+  function menuButton(item) {
+    const button = document.createElement('button');
+    button.className = `menu-button ${state.activeGroup === item.id ? 'active' : ''}`;
+    button.type = 'button';
+    button.innerHTML = `<span>${escapeHtml(item.title)}</span>${item.count ? `<span class="menu-count">${item.count}</span>` : ''}`;
+    button.onclick = () => setActiveGroup(item.id);
+    return button;
+  }
+
+  function renderCommandDetail(command) {
+    const detail = $('#commandDetail');
+    detail.innerHTML = '';
+
+    const panel = document.createElement('div');
+    panel.className = 'command-detail';
+
+    const form = document.createElement('div');
+    form.className = 'param-grid';
+    command.params.forEach((paramName) => form.appendChild(paramInput(paramName)));
+
+    const preview = document.createElement('code');
+    preview.className = 'command-preview';
+    preview.textContent = buildCommandPreview(command.target, form);
+    form.addEventListener('input', () => {
+      preview.textContent = buildCommandPreview(command.target, form);
+    });
+
+    const header = document.createElement('div');
+    header.className = 'command-detail-head';
+    header.innerHTML = `
+      <div>
+        <h3>${escapeHtml(command.title)}</h3>
+        <div class="muted">${escapeHtml(command.description)}</div>
+      </div>
+    `;
+
+    const runButton = document.createElement('button');
+    runButton.className = 'primary';
+    runButton.textContent = '执行';
+    runButton.onclick = () => startJob(command.target, form);
+
+    const copyButton = document.createElement('button');
+    copyButton.className = 'secondary';
+    copyButton.textContent = '复制命令';
+    copyButton.onclick = async () => {
+      await navigator.clipboard.writeText(preview.textContent);
+      copyButton.textContent = '已复制';
+      setTimeout(() => { copyButton.textContent = '复制命令'; }, 1200);
+    };
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.appendChild(runButton);
+    actions.appendChild(copyButton);
+    header.appendChild(actions);
+
+    panel.appendChild(header);
+    if (command.params.length > 0) {
+      panel.appendChild(form);
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'muted';
+      empty.style.margin = '14px 0';
+      empty.textContent = '该命令无需常用参数。';
+      panel.appendChild(empty);
+    }
+    panel.appendChild(preview);
+    detail.appendChild(panel);
+  }
+
+  function renderCommands() {
+    const group = state.config.commandGroups.find((item) => item.id === state.activeGroup);
+    $('#overviewPanel').classList.toggle('hidden', state.activeGroup !== 'overview');
+    $('#commandsPanel').classList.toggle('hidden', !group);
+    $('#dataPanel').classList.toggle('hidden', state.activeGroup !== 'data');
+    if (!group) return;
+
+    const activeCommand = currentCommand(group);
+    state.activeCommandByGroup[group.id] = activeCommand.target;
+    $('#groupTitle').textContent = group.title;
+    $('#groupDescription').textContent = group.description;
+    $('#ec2Warning').classList.toggle('hidden', group.id !== 'diaper_ec2');
+    renderCommandDetail(activeCommand);
+  }
+
+  function setActiveGroup(groupId) {
+    state.activeGroup = groupId;
+    const group = state.config.commandGroups.find((item) => item.id === groupId);
+    if (group && !state.activeCommandByGroup[group.id]) {
+      state.activeCommandByGroup[group.id] = group.commands[0]?.target;
+    }
+    renderSideMenu();
+    renderCommands();
+    if (groupId === 'data') {
+      loadImages(1);
+    }
+    if (groupId === 'overview') {
+      refreshSummary();
+    }
+  }
+
+  async function startJob(target, form) {
+    const variables = {};
+    form.querySelectorAll('[data-param]').forEach((input) => {
+      const value = input.value.trim();
+      if (value) variables[input.dataset.param] = value;
+    });
+    const job = await fetchJson('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target, variables }),
+    });
+    state.currentJobId = job.id;
+    $('#jobPanel').classList.remove('hidden');
+    updateJobPanel(job);
+    if (state.jobTimer) clearInterval(state.jobTimer);
+    state.jobTimer = setInterval(pollJob, 1500);
+  }
+
+  async function pollJob() {
+    if (!state.currentJobId) return;
+    const job = await fetchJson(`/api/jobs/${encodeURIComponent(state.currentJobId)}`);
+    updateJobPanel(job);
+    if (!['running', 'stopping'].includes(job.status) && state.jobTimer) {
+      clearInterval(state.jobTimer);
+      state.jobTimer = null;
+      refreshSummary();
+    }
+  }
+
+  function updateJobPanel(job) {
+    $('#jobCommand').textContent = job.commandLine;
+    const status = $('#jobStatus');
+    status.textContent = job.status;
+    status.className = `status ${job.status}`;
+    $('#jobLog').textContent = job.log || '';
+    $('#stopJobBtn').disabled = !['running', 'stopping'].includes(job.status);
+    $('#jobLog').scrollTop = $('#jobLog').scrollHeight;
+  }
+
+  async function stopCurrentJob() {
+    if (!state.currentJobId) return;
+    const result = await fetchJson(`/api/jobs/${encodeURIComponent(state.currentJobId)}/stop`, { method: 'POST' });
+    updateJobPanel(result.job);
+  }
+
+  function renderSummary(summary) {
+    const cards = $('#summaryCards');
+    cards.innerHTML = '';
+    summary.roots.forEach((root) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="muted">${escapeHtml(root.label)}</div>
+        <div class="metric-value">${root.imageFiles}</div>
+        <div class="muted">图片 / ${escapeHtml(root.readableSize)}</div>
+        <div class="muted">总文件 ${root.totalFiles}，JSON ${root.jsonFiles}，CSV ${root.csvFiles}</div>
+      `;
+      cards.appendChild(card);
+    });
+
+    const split = $('#splitSummary');
+    if (summary.splits.length === 0) {
+      split.innerHTML = '<div class="muted">暂无正式训练集拆分。</div>';
+    } else {
+      split.innerHTML = `
+        <table>
+          <thead><tr><th>数据集</th><th>train</th><th>val</th><th>test</th></tr></thead>
+          <tbody>
+            ${summary.splits.map((item) => `
+              <tr>
+                <td>${escapeHtml(item.dataset)}</td>
+                <td>${item.splits.train.images} 图 / ${item.splits.train.labels} 标</td>
+                <td>${item.splits.val.images} 图 / ${item.splits.val.labels} 标</td>
+                <td>${item.splits.test.images} 图 / ${item.splits.test.labels} 标</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    const reports = $('#reportSummary');
+    if (summary.reports.length === 0) {
+      reports.innerHTML = '<div class="muted">暂无可解析报告。</div>';
+    } else {
+      reports.innerHTML = `
+        <table>
+          <thead><tr><th>报告</th><th>摘要</th></tr></thead>
+          <tbody>
+            ${summary.reports.map((report) => `
+              <tr>
+                <td>${escapeHtml(report.path)}</td>
+                <td><pre style="white-space: pre-wrap; margin: 0;">${escapeHtml(JSON.stringify(report, null, 2))}</pre></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  async function refreshSummary() {
+    const cards = $('#summaryCards');
+    cards.innerHTML = '<div class="muted">正在扫描本地目录...</div>';
+    const summary = await fetchJson('/api/data/summary');
+    renderSummary(summary);
+  }
+
+  function renderDataRoots() {
+    const select = $('#dataRootSelect');
+    select.innerHTML = '';
+    state.config.dataRoots.forEach((root) => {
+      const option = document.createElement('option');
+      option.value = root.id;
+      option.textContent = root.label;
+      select.appendChild(option);
+    });
+  }
+
+  async function loadImages(page = state.imagePage) {
+    state.imagePage = page;
+    const root = $('#dataRootSelect').value;
+    const q = $('#imageSearch').value.trim();
+    const url = `/api/images?root=${encodeURIComponent(root)}&page=${state.imagePage}&pageSize=${state.imagePageSize}&q=${encodeURIComponent(q)}`;
+    const payload = await fetchJson(url);
+    state.imageTotal = payload.total;
+    $('#pageInfo').textContent = `第 ${payload.page} 页 / 共 ${payload.total} 张`;
+    $('#prevPageBtn').disabled = payload.page <= 1;
+    $('#nextPageBtn').disabled = payload.page * payload.pageSize >= payload.total;
+
+    const grid = $('#imageGrid');
+    grid.innerHTML = '';
+    if (payload.items.length === 0) {
+      grid.innerHTML = '<div class="muted">当前目录没有匹配图片。</div>';
+      return;
+    }
+    payload.items.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'card image-card';
+      card.innerHTML = `
+        <img class="thumb" src="${item.url}" alt="${escapeHtml(item.name)}" loading="lazy">
+        <div class="image-meta">
+          <div class="image-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+          <div class="muted">${escapeHtml(item.readableSize)}</div>
+          <div class="muted" title="${escapeHtml(item.relativePath)}">${escapeHtml(item.relativePath)}</div>
+        </div>
+      `;
+      card.onclick = () => openImageDialog(item);
+      grid.appendChild(card);
+    });
+  }
+
+  function openImageDialog(item) {
+    $('#dialogTitle').textContent = item.name;
+    $('#dialogPath').textContent = item.relativePath;
+    $('#dialogImage').src = item.url;
+    $('#imageDialog').showModal();
+  }
+
+  async function init() {
+    state.config = await fetchJson('/api/config');
+    $('#projectRoot').textContent = `项目根目录：${state.config.projectRoot}`;
+    renderSideMenu();
+    renderCommands();
+    renderDataRoots();
+    await refreshSummary();
+  }
+
+  $('#refreshSummaryBtn').onclick = refreshSummary;
+  $('#loadImagesBtn').onclick = () => loadImages(1);
+  $('#prevPageBtn').onclick = () => loadImages(Math.max(1, state.imagePage - 1));
+  $('#nextPageBtn').onclick = () => loadImages(state.imagePage + 1);
+  $('#dataRootSelect').onchange = () => loadImages(1);
+  $('#imageSearch').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') loadImages(1);
+  });
+  $('#stopJobBtn').onclick = stopCurrentJob;
+  $('#openLabelStudioBtn').onclick = () => window.open('http://localhost:9001', '_blank');
+  $('#closeDialogBtn').onclick = () => $('#imageDialog').close();
+
+  init().catch((error) => {
+    document.body.innerHTML = `<pre style="padding: 24px; color: #dc2626;">启动页面失败：${escapeHtml(error.message)}</pre>`;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "yoloexample-web-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "本地 YOLO Make 命令与数据可视化控制台",
+  "scripts": {
+    "start": "node web-console/server.js",
+    "web-console": "node web-console/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
