@@ -59,6 +59,13 @@ const DATA_ROOTS = [
     recursive: true,
   },
   {
+    id: 'local_datasets',
+    label: '本地目录导入数据',
+    description: 'datasets/local',
+    relativePath: 'datasets/local',
+    recursive: true,
+  },
+  {
     id: 'softcare_dataset',
     label: 'Softcare 单品牌数据',
     description: 'datasets/softcare',
@@ -232,6 +239,97 @@ const COMMAND_GROUPS = [
         title: 'Label Studio 导出转 YOLO',
         description: '把 Label Studio JSON 转换为正式 images/labels 训练集。',
         params: ['BRAND', 'LS_EXPORT_PATH', 'LS_TO_YOLO_CLEAR', 'LS_TO_YOLO_SKIP_EMPTY'],
+      },
+    ],
+  },
+  {
+    id: 'local_dir_labeling',
+    title: '本地目录导入 / 标注',
+    description: '把本机已有图片目录导入 Label Studio，人工标注后导出为 YOLO 训练集。',
+    commands: [
+      {
+        target: '1-local-dir-workflow-to-ls',
+        title: '一键导入本地目录到 Label Studio',
+        description: '扫描本地图片目录，生成单类别导入 JSON 和标签配置，并创建 Label Studio 项目。',
+        params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_RECURSIVE', 'LOCAL_LIMIT'],
+      },
+      {
+        target: 'local-dir-yaml',
+        title: '生成本地目录 YOLO YAML',
+        description: '为本地目录单类别训练集生成 Ultralytics 数据集配置。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_DATA_YAML'],
+      },
+      {
+        target: 'local-dir-ls-import-json',
+        title: '生成本地目录 LS 导入 JSON',
+        description: '只扫描图片目录并生成 Label Studio 导入 JSON / XML，不创建项目。',
+        params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_RECURSIVE', 'LOCAL_LIMIT'],
+      },
+      {
+        target: 'local-dir-ls-apply',
+        title: '导入本地目录任务到 Label Studio',
+        description: '使用已生成的导入 JSON 创建 Label Studio 项目和本地文件存储。',
+        params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME'],
+      },
+      {
+        target: 'local-dir-ls-export',
+        title: '导出本地目录 Label Studio JSON',
+        description: '从指定 Label Studio 项目导出标注结果 JSON。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LS_PROJECT_ID', 'LOCAL_LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'],
+      },
+      {
+        target: 'local-dir-ls-to-yolo',
+        title: '本地目录标注转 YOLO 训练集',
+        description: '把本地目录 Label Studio 导出 JSON 转换为 images/labels 训练集。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_LS_EXPORT_PATH', 'LOCAL_LS_TO_YOLO_CLEAR', 'LOCAL_LS_TO_YOLO_SKIP_EMPTY'],
+      },
+      {
+        target: '2-local-dir-workflow-after-ls',
+        title: '一键导出并转换 YOLO 训练集',
+        description: '人工标注完成后，从 Label Studio 导出并转换为 YOLO 训练集。',
+        params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LS_PROJECT_ID', 'LOCAL_LS_TO_YOLO_CLEAR', 'LOCAL_LS_TO_YOLO_SKIP_EMPTY'],
+      },
+      {
+        target: 'local-dir-ec2-upload-data',
+        title: '上传本地目录数据到 EC2',
+        description: '上传本地目录 YOLO 数据集和 YAML 到 EC2，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_EXECUTE'],
+      },
+      {
+        target: 'local-dir-ec2-train-smoke',
+        title: 'EC2 smoke 训练本地目录数据',
+        description: '使用 smoke 档位训练本地目录数据集，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_EXECUTE'],
+      },
+      {
+        target: 'local-dir-ec2-train-baseline',
+        title: 'EC2 baseline 训练本地目录数据',
+        description: '使用 baseline 档位训练本地目录数据集，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_EXECUTE'],
+      },
+      {
+        target: 'local-dir-ec2-train-improve',
+        title: 'EC2 improve 训练本地目录数据',
+        description: '使用 improve 档位训练本地目录数据集，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_EXECUTE'],
+      },
+      {
+        target: 'local-dir-ec2-evaluate',
+        title: 'EC2 评估归档本地目录训练',
+        description: '归档 EC2 本地目录训练产物并生成评估摘要，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_TRAIN_PROFILE', 'EC2_EVAL_NOTES', 'EC2_EXECUTE'],
+      },
+      {
+        target: 'local-dir-ec2-download-artifacts',
+        title: '下载本地目录 EC2 训练归档',
+        description: '下载本地目录训练归档目录，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_TRAIN_PROFILE', 'LOCAL_EC2_LOCAL_ARTIFACT_ROOT', 'EC2_EXECUTE'],
+      },
+      {
+        target: 'local-dir-ec2-download-model',
+        title: '下载本地目录 EC2 best.pt',
+        description: '下载本地目录训练得到的 best.pt，默认 dry-run。',
+        params: ['LOCAL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_TRAIN_PROFILE', 'LOCAL_FINAL_MODEL', 'EC2_EXECUTE'],
       },
     ],
   },
@@ -433,6 +531,22 @@ const PARAM_DEFINITIONS = {
   LS_EXPORT_FORMAT: { label: 'LS 导出格式', defaultValue: 'JSON', type: 'text' },
   LS_TO_YOLO_CLEAR: { label: '转换前清空旧训练集', defaultValue: '0', type: 'select', options: ['0', '1'] },
   LS_TO_YOLO_SKIP_EMPTY: { label: '跳过空标注', defaultValue: '0', type: 'select', options: ['0', '1'] },
+  LOCAL_DATASET_NAME: { label: '本地数据集短名称', defaultValue: 'local_dataset', type: 'text', help: '只能填短名称，不要填路径。' },
+  LOCAL_IMAGES_DIR: { label: '源图片目录', defaultValue: 'data/local_import/images', type: 'text' },
+  LOCAL_DATASET_ROOT: { label: '导出数据集目录', defaultValue: '', type: 'text', help: '留空时使用 datasets/local/<本地数据集短名称>。' },
+  LOCAL_LABEL_NAME: { label: '标注类别名', defaultValue: 'diaper', type: 'text' },
+  LOCAL_RECURSIVE: { label: '递归扫描子目录', defaultValue: '1', type: 'select', options: ['1', '0'] },
+  LOCAL_LIMIT: { label: '导入图片上限', defaultValue: '', type: 'number', help: '留空表示全量。' },
+  LOCAL_DATA_YAML: { label: '本地目录 YOLO YAML', defaultValue: '', type: 'text' },
+  LOCAL_LS_EXPORT_PATH: { label: '本地目录 LS 导出 JSON', defaultValue: '', type: 'text' },
+  LOCAL_LS_TO_YOLO_CLEAR: { label: '转换前清空旧训练集', defaultValue: '0', type: 'select', options: ['0', '1'] },
+  LOCAL_LS_TO_YOLO_SKIP_EMPTY: { label: '跳过空标注', defaultValue: '0', type: 'select', options: ['0', '1'] },
+  LOCAL_FINAL_MODEL: { label: '本地下载模型路径', defaultValue: '', type: 'text' },
+  LOCAL_EC2_REMOTE_DATASET_ROOT: { label: 'EC2 数据集目录', defaultValue: '', type: 'text' },
+  LOCAL_EC2_TRAIN_NAME: { label: 'EC2 训练名称', defaultValue: '', type: 'text' },
+  LOCAL_EC2_REMOTE_FINAL_MODEL: { label: 'EC2 best.pt 路径', defaultValue: '', type: 'text' },
+  LOCAL_EC2_ARTIFACT_ROOT: { label: 'EC2 归档目录', defaultValue: '', type: 'text' },
+  LOCAL_EC2_LOCAL_ARTIFACT_ROOT: { label: '本地归档下载目录', defaultValue: '', type: 'text' },
   POSTGRE_USER: { label: 'PostgreSQL 用户', defaultValue: 'guobiao', type: 'text' },
   POSTGRE_NAME: { label: 'PostgreSQL 数据库', defaultValue: 'labelstudio', type: 'text' },
   POSTGRE_HOST: { label: 'PostgreSQL Host', defaultValue: 'localhost', type: 'text' },
@@ -719,6 +833,17 @@ async function discoverDatasetSplits() {
     'datasets/multibrand',
     'datasets/softcare',
   ];
+  const localRoot = path.join(PROJECT_ROOT, 'datasets/local');
+  try {
+    const localDatasets = await fsp.readdir(localRoot, { withFileTypes: true });
+    for (const dataset of localDatasets) {
+      if (dataset.isDirectory() && !dataset.name.startsWith('.')) {
+        candidates.push(`datasets/local/${dataset.name}`);
+      }
+    }
+  } catch (_error) {
+    // 没有本地目录导入数据集时忽略。
+  }
   const diaperRoot = path.join(PROJECT_ROOT, 'datasets/diaper_category');
   const discovered = [];
   try {

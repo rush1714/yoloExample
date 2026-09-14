@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import posixpath
 import shlex
 import subprocess
 from pathlib import Path
@@ -69,15 +70,30 @@ def remote_python_command(args: argparse.Namespace, command: str) -> list[str]:
     return ["ssh", *ssh_base_args(args.port, args.key), ssh_target(args.user, args.host), remote]
 
 
+def remote_project_path(args: argparse.Namespace, path_value: str) -> str:
+    """把相对 EC2 项目根目录的路径转换为远端绝对路径。"""
+    if path_value.startswith("/"):
+        return path_value
+    return posixpath.join(args.ec2_project_root, path_value)
+
+
+def remote_dataset_root(args: argparse.Namespace) -> str:
+    """返回远端数据集相对或绝对路径，默认兼容纸尿裤国家/版本目录。"""
+    if args.remote_dataset_root:
+        return args.remote_dataset_root
+    return f"datasets/diaper_category/{args.country}/{args.version}"
+
+
 def upload_data(args: argparse.Namespace) -> None:
     """上传当前国家/版本数据集和 YAML 到 EC2。"""
     target = ssh_target(args.user, args.host)
     dataset_root = Path(args.dataset_root).resolve()
     data_yaml = Path(args.data_yaml).resolve()
+    remote_dataset_abs = remote_project_path(args, remote_dataset_root(args))
+    remote_data_yaml_abs = remote_project_path(args, args.remote_data_yaml)
     mkdir_command = (
-        f"mkdir -p {shlex.quote(args.ec2_project_root)}/datasets/diaper_category/"
-        f"{shlex.quote(args.country)}/{shlex.quote(args.version)} "
-        f"{shlex.quote(args.ec2_project_root)}/config/generated"
+        f"mkdir -p {shlex.quote(remote_dataset_abs)} "
+        f"{shlex.quote(posixpath.dirname(remote_data_yaml_abs))}"
     )
     run_or_print(["ssh", *ssh_base_args(args.port, args.key), target, mkdir_command], args.execute)
     run_or_print(
@@ -87,7 +103,7 @@ def upload_data(args: argparse.Namespace) -> None:
             "-e",
             rsync_ssh_arg(args.port, args.key),
             f"{dataset_root}/",
-            f"{target}:{args.ec2_project_root}/datasets/diaper_category/{args.country}/{args.version}/",
+            f"{target}:{remote_dataset_abs}/",
         ],
         args.execute,
     )
@@ -98,7 +114,7 @@ def upload_data(args: argparse.Namespace) -> None:
             "-e",
             rsync_ssh_arg(args.port, args.key),
             str(data_yaml),
-            f"{target}:{args.ec2_project_root}/config/generated/{data_yaml.name}",
+            f"{target}:{remote_data_yaml_abs}",
         ],
         args.execute,
     )
@@ -126,12 +142,10 @@ def upload_project(args: argparse.Namespace) -> None:
 
 def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
     """在 EC2 生成使用绝对数据目录的单类别 YAML，避免相对路径解析偏差。"""
-    remote_dataset_root = (
-        f"{args.ec2_project_root}/datasets/diaper_category/{args.country}/{args.version}"
-    )
+    remote_dataset_abs = remote_project_path(args, remote_dataset_root(args))
     yaml_content = "\n".join(
         [
-            f"path: {remote_dataset_root}",
+            f"path: {remote_dataset_abs}",
             "train: images/train",
             "val: images/val",
             "test: images/test",
@@ -142,9 +156,10 @@ def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
         ]
     )
     encoded_content = base64.b64encode(yaml_content.encode("utf-8")).decode("ascii")
+    remote_data_yaml_abs = remote_project_path(args, args.remote_data_yaml)
     return (
-        f"mkdir -p config/generated && echo {encoded_content} | base64 --decode > "
-        f"{shlex.quote(args.remote_data_yaml)}"
+        f"mkdir -p {shlex.quote(posixpath.dirname(remote_data_yaml_abs))} && "
+        f"echo {encoded_content} | base64 --decode > {shlex.quote(remote_data_yaml_abs)}"
     )
 
 
@@ -196,7 +211,7 @@ def evaluate(args: argparse.Namespace) -> None:
         f"{shell_join([*args.python_cmd.split(), 'scripts/reports/summarize_yolo_run.py'])} "
         f"--run-dir {resolve_remote_run_dir(args)} "
         f"--export-model {shlex.quote(args.remote_final_model)} "
-        f"--dataset-root {shlex.quote(f'datasets/diaper_category/{args.country}/{args.version}')} "
+        f"--dataset-root {shlex.quote(remote_dataset_root(args))} "
         f"--dataset-yaml {shlex.quote(args.remote_data_yaml)} "
         f"--artifact-dir {shlex.quote(args.artifact_root)} "
         f"--profile {shlex.quote(args.profile)} "
@@ -300,6 +315,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--label-name", default="diaper", help="单类别显示名，写入训练 YAML 的 names[0]")
     parser.add_argument("--dataset-root", default="datasets/diaper_category/default/v1", help="本地数据集根目录")
     parser.add_argument("--data-yaml", default="config/generated/diaper_category_default_v1.yaml", help="本地 YAML 路径")
+    parser.add_argument("--remote-dataset-root", default="", help="EC2 上数据集根目录；相对路径按项目根目录解析")
     parser.add_argument("--remote-data-yaml", default="config/generated/diaper_category_default_v1.yaml", help="EC2 上 YAML 相对项目路径")
     parser.add_argument("--train-name", default="diaper_category_default_v1", help="EC2 训练 run 名称")
     parser.add_argument("--base-model", default=None, help="EC2 上基座模型路径或 Ultralytics 模型名")

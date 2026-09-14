@@ -1,0 +1,7 @@
+path: ../../datasets/local//Users/guobiao/DOC/森大2.0/18.陈列数据/GH/Softcare
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: diaper

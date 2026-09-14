@@ -287,7 +287,121 @@ http://localhost:3000
 
 页面使用左侧菜单展示功能大类，包括品牌多类别流程、Label Studio、训练与推理、纸尿裤大类/EC2、维护工具和图片浏览。命令类功能会在左侧展开二级子菜单；点击某个命令子菜单后，右侧只展示该命令的单独页面，包括说明、常用参数、命令预览、复制和执行按钮。未填写的参数继续使用 Makefile 默认值；点击“执行”后会在页面下方显示实时日志，也可以复制生成的命令到终端手动执行。
 
-数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
+数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`datasets/local/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
+### 本地目录图片导入 Label Studio
+
+如果图片已经在本机某个目录中，不需要通过 Excel 下载，可以直接把该目录导入 Label Studio 做单类别矩形框标注。
+
+1. 启动 Label Studio：
+
+```bash
+make ls-start
+```
+
+2. 扫描本地目录并创建 Label Studio 项目：
+
+```bash
+make 1-local-dir-workflow-to-ls \
+  LOCAL_IMAGES_DIR=/Users/guobiao/Downloads/my_images \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_LABEL_NAME=纸尿裤
+```
+
+常用参数：
+
+| 参数 | 作用 |
+| --- | --- |
+| `LOCAL_IMAGES_DIR` | 要导入的源图片目录，可以是绝对路径或相对路径。 |
+| `LOCAL_DATASET_NAME` | 数据集短名称，只能填 `my_images_v1` 这类名字，不能填路径。 |
+| `LOCAL_DATASET_ROOT` | 导出数据集目录；留空默认是 `datasets/local/<LOCAL_DATASET_NAME>/`，如需指定目录请改这个参数。 |
+| `LOCAL_LABEL_NAME` | Label Studio 和 YOLO 单类别名称。 |
+| `LOCAL_RECURSIVE` | 是否递归扫描子目录，默认 `1`；设为 `0` 只扫描当前层。 |
+| `LOCAL_LIMIT` | 最多导入多少张图片，留空表示全量。 |
+
+该流程会生成：
+
+```text
+datasets/local/<LOCAL_DATASET_NAME>/label_studio/local_dir_label_studio_import.json
+datasets/local/<LOCAL_DATASET_NAME>/label_studio/label_config.xml
+```
+
+并创建一个 Label Studio 项目。命令输出里的 `project_id` 用于后续导出。
+
+3. 人工标注完成后导出并转换为 YOLO 训练集：
+
+```bash
+make 2-local-dir-workflow-after-ls \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_LABEL_NAME=纸尿裤 \
+  LS_PROJECT_ID=<项目ID>
+```
+
+输出训练集：
+
+```text
+datasets/local/<LOCAL_DATASET_NAME>/images/train|val|test
+datasets/local/<LOCAL_DATASET_NAME>/labels/train|val|test
+config/generated/local_<LOCAL_DATASET_NAME>.yaml
+```
+
+如果只想分步执行，可使用：
+
+```bash
+make local-dir-ls-import-json LOCAL_IMAGES_DIR=/path/to/images LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/path/to/output LOCAL_LABEL_NAME=纸尿裤
+make local-dir-ls-apply LOCAL_IMAGES_DIR=/path/to/images LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/path/to/output LOCAL_LABEL_NAME=纸尿裤
+make local-dir-ls-export LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/path/to/output LS_PROJECT_ID=<项目ID>
+make local-dir-ls-to-yolo LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/path/to/output LOCAL_LABEL_NAME=纸尿裤
+```
+
+注意：`LOCAL_DATASET_NAME` 只用于命名，不能写成本地目录路径；如果要指定导出位置，请使用 `LOCAL_DATASET_ROOT`。
+
+### 本地目录数据衔接 EC2 训练
+
+本地目录标注转换完成后，可以直接上传到 EC2 并训练。默认远端目录为：
+
+```text
+/home/<EC2_USER>/yoloExample/datasets/local/<LOCAL_DATASET_NAME>/
+/home/<EC2_USER>/yoloExample/config/generated/local_<LOCAL_DATASET_NAME>.yaml
+/home/<EC2_USER>/yoloExample/models/ec2/local/<LOCAL_DATASET_NAME>/<profile>/best.pt
+/home/<EC2_USER>/yoloExample/artifacts/local/<LOCAL_DATASET_NAME>/<profile>/
+```
+
+推荐顺序：
+
+```bash
+# 1. 上传本地目录 YOLO 数据集和 YAML；默认 dry-run，确认后加 EC2_EXECUTE=1
+make local-dir-ec2-upload-data \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_LABEL_NAME=纸尿裤 \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+
+# 2. smoke 训练；默认 dry-run，确认后加 EC2_EXECUTE=1
+make local-dir-ec2-train-smoke \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_LABEL_NAME=纸尿裤 \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+
+# 3. 评估归档并下载产物
+make local-dir-ec2-evaluate LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROFILE=smoke EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+make local-dir-ec2-download-artifacts LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROFILE=smoke EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+make local-dir-ec2-download-model LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROFILE=smoke EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+```
+
+如需调整远端目录，可以覆盖：
+
+```bash
+LOCAL_EC2_REMOTE_DATASET_ROOT=datasets/local/my_images_v1
+LOCAL_EC2_REMOTE_DATA_YAML=config/generated/local_my_images_v1.yaml
+LOCAL_EC2_TRAIN_NAME=local_my_images_v1
+LOCAL_EC2_REMOTE_FINAL_MODEL=models/ec2/local/my_images_v1/smoke/best.pt
+LOCAL_EC2_ARTIFACT_ROOT=artifacts/local/my_images_v1/smoke
+```
+
+Web 控制台中也可以在左侧选择“本地目录导入 / 标注”，填写同样参数后执行。
 
 | 顺序 | 命令 | 作用 |
 | --- | --- | --- |

@@ -44,6 +44,9 @@ outputs/
 logs/
 .tmp/
 
+# Optional local image import staging directory
+data/local_import/
+
 # Label Studio data directory
 .label-studio-data/
 
@@ -110,3 +113,11 @@ datasets/softcare/labels/*.cache
 /datasets/diaper_category/**/images/
 /datasets/diaper_category/**/labels/
 !/datasets/diaper_category/**/.gitkeep
+
+# Local directory Label Studio imports and generated YOLO datasets
+/datasets/local/**/label_studio/local_dir_label_studio_import.json
+/datasets/local/**/label_studio/label_config.xml
+/datasets/local/**/label_studio/exports/
+/datasets/local/**/images/
+/datasets/local/**/labels/
+!/datasets/local/**/.gitkeep

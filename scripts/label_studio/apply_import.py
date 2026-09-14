@@ -64,11 +64,17 @@ def get_default_organization(user: User) -> Organization | None:
     return Organization.objects.order_by("id").first()
 
 
-def create_project(title: str, user: User, organization: Organization | None, label_config: str) -> Project:
-    """创建多品牌 Label Studio 项目。"""
+def create_project(
+    title: str,
+    user: User,
+    organization: Organization | None,
+    label_config: str,
+    description: str,
+) -> Project:
+    """创建 Label Studio 项目。"""
     project = Project.objects.create(
         title=title,
-        description="多品牌包装图片复核项目：原图来自 Excel，YOLO-World 多品牌伪标注作为 predictions 导入。",
+        description=description,
         label_config=label_config,
         created_by=user,
         organization=organization,
@@ -79,12 +85,17 @@ def create_project(title: str, user: User, organization: Organization | None, la
     return project
 
 
-def create_local_files_storage(project: Project, local_files_path: Path) -> LocalFilesImportStorage:
+def create_local_files_storage(
+    project: Project,
+    local_files_path: Path,
+    title: str,
+    description: str,
+) -> LocalFilesImportStorage:
     """注册本地图片目录，使 /data/local-files/ 路径具有项目权限。"""
     storage = LocalFilesImportStorage.objects.create(
         project=project,
-        title="Multibrand raw local images",
-        description="Local image directory used by imported multi-brand review tasks.",
+        title=title,
+        description=description,
         path=str(local_files_path.resolve()),
         use_blob_urls=True,
     )
@@ -131,6 +142,15 @@ def main() -> None:
     brand_filter = os.environ.get("LS_BRAND_FILTER", "").strip() or None
     compact_class_ids = os.environ.get("LS_COMPACT_CLASS_IDS", "").lower() in {"1", "true", "yes"}
     label_config_path = os.environ.get("LS_LABEL_CONFIG_XML", "").strip()
+    project_description = os.environ.get(
+        "LS_PROJECT_DESCRIPTION",
+        "多品牌包装图片复核项目：原图来自 Excel，YOLO-World 多品牌伪标注作为 predictions 导入。",
+    )
+    storage_title = os.environ.get("LS_LOCAL_FILES_STORAGE_TITLE", "Local images")
+    storage_description = os.environ.get(
+        "LS_LOCAL_FILES_STORAGE_DESCRIPTION",
+        "Local image directory used by imported review tasks.",
+    )
 
     print(f"LS_IMPORT_JSON={import_json}")
     print(f"LS_PROJECT_TITLE={base_title}")
@@ -183,8 +203,8 @@ def main() -> None:
     organization = get_default_organization(user)
 
     with transaction.atomic():
-        project = create_project(title, user, organization, label_config)
-        storage = create_local_files_storage(project, local_files_path)
+        project = create_project(title, user, organization, label_config, project_description)
+        storage = create_local_files_storage(project, local_files_path, storage_title, storage_description)
         task_count, prediction_task_count, prediction_count = import_tasks(project, tasks, storage)
 
     print(f"project_id={project.id}")
