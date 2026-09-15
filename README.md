@@ -582,6 +582,58 @@ make diaper-workflow-after-ls \
 
 该命令会导出 Label Studio JSON，并转换成 `images/` + `labels/` YOLO 训练集。
 
+如果同一批数据分散在多个 Label Studio 项目中，可以先导出并合并“有有效框”的任务，再统一转换训练集。例如把项目 21 和 20 合并到 GH 的 `v2026-09-15`：
+
+```bash
+make diaper-merge-ls-projects \
+  DIAPER_COUNTRY=GH \
+  DIAPER_VERSION=v2026-09-15 \
+  DIAPER_LABEL_NAME=diaper \
+  LS_PROJECT_IDS=21,20
+```
+
+该命令会按 `LS_PROJECT_IDS` 顺序逐个导出项目，输出到：
+
+```text
+datasets/diaper_category/GH/v2026-09-15/label_studio/exports/projects/project_21.json
+datasets/diaper_category/GH/v2026-09-15/label_studio/exports/projects/project_20.json
+```
+
+并只保留有有效矩形框的任务，按图片路径去重后生成：
+
+```text
+datasets/diaper_category/GH/v2026-09-15/label_studio/exports/merged_label_studio_export.json
+datasets/diaper_category/GH/v2026-09-15/label_studio/exports/merged_label_studio_export_report.json
+```
+
+如果希望合并后直接生成 YOLO 训练集，可以使用一键命令：
+
+```bash
+make diaper-merge-ls-projects-to-yolo \
+  DIAPER_COUNTRY=GH \
+  DIAPER_VERSION=v2026-09-15 \
+  DIAPER_LABEL_NAME=diaper \
+  LS_PROJECT_IDS=21,20 \
+  LS_TO_YOLO_CLEAR=1 \
+  LS_TO_YOLO_SKIP_EMPTY=1
+```
+
+它等价于先执行 `diaper-merge-ls-projects`，再用合并后的 JSON 执行 `diaper-ls-to-yolo`。
+
+如果只想分步处理，也可以再转换为 YOLO：
+
+```bash
+make diaper-ls-to-yolo \
+  DIAPER_COUNTRY=GH \
+  DIAPER_VERSION=v2026-09-15 \
+  DIAPER_LABEL_NAME=diaper \
+  DIAPER_LS_EXPORT_PATH=datasets/diaper_category/GH/v2026-09-15/label_studio/exports/merged_label_studio_export.json \
+  LS_TO_YOLO_CLEAR=1 \
+  LS_TO_YOLO_SKIP_EMPTY=1
+```
+
+注意：如果 Label Studio 项目里的标签实际是 `纸尿裤`，请把 `DIAPER_LABEL_NAME=diaper` 改为 `DIAPER_LABEL_NAME=纸尿裤`，否则合并时会把标签不匹配的框过滤掉。
+
 ### EC2 A10 目录规划
 
 建议 EC2 上使用：
@@ -604,9 +656,19 @@ make diaper-workflow-after-ls \
 make diaper-ec2-upload-project EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
 
 # 上传当前国家/版本数据和 YAML
-make diaper-ec2-upload-data \
+# Web 控制台入口：纸尿裤大类 / EC2 -> 02. 上传纸尿裤数据到 EC2
+make 02-diaper-ec2-upload-data \
   EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem \
   DIAPER_COUNTRY=ghana DIAPER_VERSION=v20260812
+
+# 如果要明确指定本地数据集目录和 YAML，可覆盖：
+make 02-diaper-ec2-upload-data \
+  DIAPER_COUNTRY=GH \
+  DIAPER_VERSION=v2026-09-15 \
+  DIAPER_LABEL_NAME=diaper \
+  DIAPER_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/diaper_category/GH/v2026-09-15 \
+  DIAPER_DATA_YAML=/Users/guobiao/PRO/me/yoloExample/config/generated/diaper_category_GH_v2026-09-15.yaml \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
 
 # 在 A10 GPU 上训练，默认 device=0
 make diaper-ec2-train \

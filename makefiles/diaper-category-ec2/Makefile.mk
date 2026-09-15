@@ -21,6 +21,10 @@ DIAPER_LS_LABEL_CONFIG_XML ?= $(DIAPER_DATASET_ROOT)/label_studio/label_config.x
 DIAPER_LS_EXPORT_DIR ?= $(DIAPER_DATASET_ROOT)/label_studio/exports
 DIAPER_LS_EXPORT_PATH ?= $(DIAPER_LS_EXPORT_DIR)/label_studio_export.json
 DIAPER_LS_TO_YOLO_REPORT ?= $(DIAPER_LS_EXPORT_DIR)/label_studio_to_yolo_report.json
+LS_PROJECT_IDS ?=
+DIAPER_LS_PROJECT_EXPORT_DIR ?= $(DIAPER_LS_EXPORT_DIR)/projects
+DIAPER_MERGED_LS_EXPORT_PATH ?= $(DIAPER_LS_EXPORT_DIR)/merged_label_studio_export.json
+DIAPER_MERGE_REPORT ?= $(DIAPER_LS_EXPORT_DIR)/merged_label_studio_export_report.json
 DIAPER_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/$(DIAPER_DATASET_NAME).yaml
 DIAPER_TRAIN_NAME ?= $(DIAPER_DATASET_NAME)
 DIAPER_FINAL_MODEL ?= $(PROJECT_ROOT)/models/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/best.pt
@@ -64,7 +68,7 @@ EC2_EXECUTE_ARG := $(if $(filter 1 true yes,$(EC2_EXECUTE)),--execute,)
 EC2_KEY_ARG := $(if $(EC2_KEY),--key $(EC2_KEY),)
 EC2_RESUME_ARG := $(if $(filter 1 true yes,$(TRAIN_RESUME)),--resume,)
 
-.PHONY: diaper-yaml diaper-import-excel diaper-ls-import-json diaper-ls-apply diaper-ls-export diaper-ls-to-yolo \
+.PHONY: diaper-yaml diaper-import-excel diaper-ls-import-json diaper-ls-apply diaper-ls-export diaper-merge-ls-projects diaper-merge-ls-projects-to-yolo diaper-ls-to-yolo \
 	diaper-workflow-to-ls diaper-workflow-after-ls diaper-prepare-dirs \
 	01-diaper-ec2-upload-project 02-diaper-ec2-upload-data \
 	03-1-diaper-ec2-train-smoke 03-2-diaper-ec2-evaluate-smoke 03-3-diaper-ec2-download-artifacts-smoke \
@@ -118,6 +122,28 @@ diaper-ls-export: ls-db-check diaper-prepare-dirs ## 从 Label Studio 导出纸�
 		--export-path $(DIAPER_LS_EXPORT_PATH) \
 		$(LS_PROJECT_ID) $(LS_EXPORT_FORMAT)
 
+diaper-merge-ls-projects: ls-db-check diaper-prepare-dirs ## 导出多个 LS 项目并合并有有效框的任务；需传 LS_PROJECT_IDS=21,20
+	@[ -n "$(LS_PROJECT_IDS)" ] || (echo "错误：请传入 LS_PROJECT_IDS，例如：make diaper-merge-ls-projects LS_PROJECT_IDS=21,20" && exit 1)
+	@mkdir -p $(DIAPER_LS_PROJECT_EXPORT_DIR)
+	@exports=""; \
+	ids="$$(printf '%s' "$(LS_PROJECT_IDS)" | tr ',' ' ')"; \
+	for project_id in $$ids; do \
+		export_path="$(DIAPER_LS_PROJECT_EXPORT_DIR)/project_$${project_id}.json"; \
+		echo "导出 Label Studio 项目 $$project_id -> $$export_path"; \
+		cd $(LS_WORK_DIR) && PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio export \
+			--data-dir $(LS_DATA_DIR) \
+			--export-path "$$export_path" \
+			$$project_id $(LS_EXPORT_FORMAT) || exit $$?; \
+		exports="$$exports $$export_path"; \
+	done; \
+	$(VENV_BIN)/python $(PROJECT_ROOT)/scripts/label_studio/merge_label_studio_exports.py \
+		--input $$exports \
+		--output $(DIAPER_MERGED_LS_EXPORT_PATH) \
+		--label-name '$(DIAPER_LABEL_NAME)' \
+		--report $(DIAPER_MERGE_REPORT); \
+	echo "合并完成，后续可执行："; \
+	echo "make diaper-ls-to-yolo DIAPER_COUNTRY=$(DIAPER_COUNTRY) DIAPER_VERSION=$(DIAPER_VERSION) DIAPER_LABEL_NAME=$(DIAPER_LABEL_NAME) DIAPER_LS_EXPORT_PATH=$(DIAPER_MERGED_LS_EXPORT_PATH) LS_TO_YOLO_CLEAR=1 LS_TO_YOLO_SKIP_EMPTY=1"
+
 diaper-ls-to-yolo: diaper-yaml ## 转换纸尿裤大类 LS 导出为 YOLO 数据集
 	$(VENV_BIN)/python scripts/label_studio/export_single_class_to_yolo.py \
 		--input $(DIAPER_LS_EXPORT_PATH) \
@@ -126,6 +152,16 @@ diaper-ls-to-yolo: diaper-yaml ## 转换纸尿裤大类 LS 导出为 YOLO 数据
 		--report $(DIAPER_LS_TO_YOLO_REPORT) \
 		$(LS_TO_YOLO_CLEAR_ARG) \
 		$(LS_TO_YOLO_SKIP_EMPTY_ARG)
+
+diaper-merge-ls-projects-to-yolo: diaper-merge-ls-projects ## 导出多个 LS 项目、合并有效框并转换为 YOLO 训练集
+	$(MAKE) --no-print-directory diaper-ls-to-yolo \
+		DIAPER_COUNTRY='$(DIAPER_COUNTRY)' \
+		DIAPER_VERSION='$(DIAPER_VERSION)' \
+		DIAPER_LABEL_NAME='$(DIAPER_LABEL_NAME)' \
+		DIAPER_LS_EXPORT_PATH='$(DIAPER_MERGED_LS_EXPORT_PATH)' \
+		DIAPER_LS_TO_YOLO_REPORT='$(DIAPER_LS_TO_YOLO_REPORT)' \
+		LS_TO_YOLO_CLEAR='$(LS_TO_YOLO_CLEAR)' \
+		LS_TO_YOLO_SKIP_EMPTY='$(LS_TO_YOLO_SKIP_EMPTY)'
 
 1-diaper-workflow-to-ls: diaper-import-excel diaper-yaml diaper-ls-import-json diaper-ls-apply ## 下载纸尿裤大类正式图片并导入 LS，无预标注
 
