@@ -19,6 +19,7 @@ from scripts.label_studio.generate_s3_import import build_tasks as build_s3_impo
 from scripts.s3.brand_s3_config import (
     https_url_for_object,
     load_config,
+    normalize_training_prefix,
     s3_key_for_relative_path,
 )
 from scripts.s3.upload_images_to_s3 import build_manifest_record
@@ -35,6 +36,12 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             s3_key_for_relative_path("training/demo", "../bad.jpg")
+
+    def test_training_prefix_is_rooted_under_yolo_training(self) -> None:
+        """用户业务前缀应自动归入 yolo-training 根目录。"""
+        self.assertEqual(normalize_training_prefix("prefix/demo", "demo"), "yolo-training/prefix/demo")
+        self.assertEqual(normalize_training_prefix("/yolo-training/demo/", "demo"), "yolo-training/demo")
+        self.assertEqual(normalize_training_prefix("", "demo"), "yolo-training/demo")
 
     def test_manifest_record_contains_urls(self) -> None:
         """上传清单记录应同时包含 s3、https 和 proxy 地址。"""
@@ -54,12 +61,12 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
 
             record = build_manifest_record(config, image, "shelf 1.jpg", uploaded=False)
 
-            self.assertEqual(record["s3_uri"], "s3://bucket-a/prefix/demo/shelf 1.jpg")
+            self.assertEqual(record["s3_uri"], "s3://bucket-a/yolo-training/prefix/demo/shelf 1.jpg")
             self.assertIn("bucket-a.s3.ap-southeast-1.amazonaws.com", record["https_url"])
             parsed = urlsplit(str(record["proxy_url"]))
             self.assertEqual(parsed.path, "/image")
             self.assertEqual(parse_qs(parsed.query)["dataset"], ["demo"])
-            self.assertEqual(parse_qs(parsed.query)["key"], ["prefix/demo/shelf 1.jpg"])
+            self.assertEqual(parse_qs(parsed.query)["key"], ["yolo-training/prefix/demo/shelf 1.jpg"])
 
     def test_s3_import_tasks_use_proxy_and_keep_s3_metadata(self) -> None:
         """Label Studio 任务默认用 proxy URL，同时保留 S3 元数据供后续 EC2 使用。"""

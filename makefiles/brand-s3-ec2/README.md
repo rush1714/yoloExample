@@ -47,7 +47,7 @@ cp config/brand_s3_ec2.example.yaml config/brand_s3_ec2.local.yaml
 | `S3_LABEL_NAME` | 单类别标签名 | `diaper` |
 | `S3_LOCAL_IMAGES_DIR` | 本地待上传图片目录 | `/Users/you/images` |
 | `S3_BUCKET` | S3 桶名 | `my-yolo-bucket` |
-| `S3_PREFIX` | S3 对象前缀 | `yolo-training/ci_20260916_01` |
+| `S3_PREFIX` | S3 业务对象前缀；实际上传自动归入 `yolo-training/<S3_PREFIX>` | `ci_20260916_01` |
 | `S3_REGION` | S3 区域 | `ap-southeast-1` |
 | `S3_PROFILE` | 本机 AWS profile，可为空 | `default` |
 | `S3_IMAGE_URL_MODE` | LS 图片地址模式：`proxy`/`https`/`s3` | `proxy` |
@@ -62,7 +62,7 @@ cp config/brand_s3_ec2.example.yaml config/brand_s3_ec2.local.yaml
 make brand-s3-check-config \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=yolo-training/ci_20260916_01
+  S3_PREFIX=ci_20260916_01
 ```
 
 ### 1. 上传本地图片到 S3
@@ -75,7 +75,7 @@ make brand-s3-upload-images \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_LOCAL_IMAGES_DIR=/path/to/images \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=yolo-training/ci_20260916_01
+  S3_PREFIX=ci_20260916_01
 ```
 
 确认无误后真实上传：
@@ -85,7 +85,7 @@ make brand-s3-upload-images \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_LOCAL_IMAGES_DIR=/path/to/images \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=yolo-training/ci_20260916_01
+  S3_PREFIX=ci_20260916_01
 ```
 
 输出：
@@ -125,7 +125,7 @@ make 1-brand-s3-workflow-to-ls \
   S3_LABEL_NAME=diaper \
   S3_LOCAL_IMAGES_DIR=/path/to/images \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=yolo-training/ci_20260916_01
+  S3_PREFIX=ci_20260916_01
 ```
 
 > 注意：proxy 模式下，一键命令不会自动在后台托管长期代理。标注时请另开终端运行 `make brand-s3-proxy-start ...`。
@@ -239,8 +239,8 @@ make web-console
 
 | 命令 | 作用 | 示例 |
 |---|---|---|
-| `brand-s3-check-config` | 检查 S3 工作流关键参数 | `make brand-s3-check-config S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PREFIX=yolo-training/ci_20260916_01` |
-| `brand-s3-upload-images` | 上传本地图片目录到 S3 并生成图片地址清单；S3_DRY_RUN=1 只生成清单 | `make brand-s3-upload-images S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_PREFIX=yolo-training/ci_20260916_01` |
+| `brand-s3-check-config` | 检查 S3 工作流关键参数 | `make brand-s3-check-config S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01` |
+| `brand-s3-upload-images` | 上传本地图片目录到 S3 并生成图片地址清单；S3_DRY_RUN=1 只生成清单 | `make brand-s3-upload-images S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01` |
 | `brand-s3-ls-import-json` | 根据 S3 图片清单生成 Label Studio 导入 JSON 和标签配置 | `make brand-s3-ls-import-json S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper` |
 | `brand-s3-proxy-start` | 启动本地 S3 图片代理，供 Label Studio 加载私有桶图片 | `make brand-s3-proxy-start S3_BUCKET=<bucket> S3_REGION=ap-southeast-1` |
 | `brand-s3-ls-apply` | 将 S3/proxy 图片任务导入 Label Studio | `make brand-s3-ls-apply S3_DATASET_NAME=ci_20260916_01` |

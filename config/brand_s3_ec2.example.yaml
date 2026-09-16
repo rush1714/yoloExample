@@ -11,7 +11,8 @@ dataset_root: datasets/s3/local_dataset
 
 s3:
   bucket: your-bucket-name
-  prefix: yolo-training/local_dataset
+  # 只填写业务子目录；程序会自动上传到 yolo-training/<prefix>/...
+  prefix: local_dataset
   region: ap-southeast-1
   profile: default
   endpoint_url:

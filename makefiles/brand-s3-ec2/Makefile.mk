@@ -11,9 +11,9 @@ S3_LABEL_NAME ?= diaper
 S3_LOCAL_IMAGES_DIR ?= $(LOCAL_IMAGES_DIR)
 # S3 工作流本地输出根目录，只保存清单、LS 导出、YOLO 标签，不保存训练图片大文件。
 S3_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/s3/$(S3_DATASET_NAME)
-# S3 桶名、对象前缀、区域和可选 profile/endpoint；实际值可由配置文件或 Make 变量提供。
+# S3 桶名、业务对象前缀、区域和可选 profile/endpoint；实际上传会自动归入 yolo-training/<S3_PREFIX>。
 S3_BUCKET ?=
-S3_PREFIX ?= yolo-training/$(S3_DATASET_NAME)
+S3_PREFIX ?= $(S3_DATASET_NAME)
 S3_REGION ?= ap-southeast-1
 S3_PROFILE ?=
 S3_ENDPOINT_URL ?=

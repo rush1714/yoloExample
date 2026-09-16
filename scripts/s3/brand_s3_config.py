@@ -111,6 +111,22 @@ def normalize_s3_prefix(prefix: str) -> str:
     return "/".join(part for part in prefix.strip("/").split("/") if part)
 
 
+def normalize_training_prefix(prefix: str, dataset_name: str) -> str:
+    """把业务前缀统一归入 yolo-training 根目录。
+
+    用户在 Make/Web/配置中填写的 `S3_PREFIX` 只表示业务子目录，例如
+    `ci_20260916_01`。最终写入 S3 的完整 prefix 必须稳定落在
+    `yolo-training/<业务子目录>` 下。如果用户已经显式传入
+    `yolo-training/...`，则保持原样，避免重复拼接。
+    """
+    clean_prefix = normalize_s3_prefix(prefix)
+    if not clean_prefix:
+        clean_prefix = normalize_s3_prefix(dataset_name)
+    if clean_prefix == "yolo-training" or clean_prefix.startswith("yolo-training/"):
+        return clean_prefix
+    return normalize_s3_prefix(f"yolo-training/{clean_prefix}")
+
+
 def s3_key_for_relative_path(prefix: str, relative_path: str) -> str:
     """根据数据集 prefix 和图片相对路径生成稳定 S3 key。
 
@@ -186,8 +202,9 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
         PROJECT_ROOT / "data" / "local_import" / "images",
     )
     bucket = _first_text(overrides.get("bucket"), os.environ.get("S3_BUCKET"), _nested_get(payload, "s3.bucket"))
-    prefix = normalize_s3_prefix(
-        _first_text(overrides.get("prefix"), _nested_get(payload, "s3.prefix"), default=f"yolo-training/{dataset_name}")
+    prefix = normalize_training_prefix(
+        _first_text(overrides.get("prefix"), _nested_get(payload, "s3.prefix")),
+        dataset_name,
     )
     region = _first_text(overrides.get("region"), os.environ.get("AWS_REGION"), _nested_get(payload, "s3.region"), default="ap-southeast-1")
     profile = _first_text(overrides.get("profile"), os.environ.get("AWS_PROFILE"), _nested_get(payload, "s3.profile"))

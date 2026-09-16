@@ -114,7 +114,7 @@ uv run python scripts/s3/upload_images_to_s3.py \
   --label-name diaper \
   --input-dir /path/to/images \
   --bucket <bucket> \
-  --prefix yolo-training/demo
+  --prefix demo
 uv run python scripts/s3/s3_image_proxy.py \
   --config config/brand_s3_ec2.local.yaml \
   --bucket <bucket> \
