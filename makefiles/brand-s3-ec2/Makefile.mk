@@ -27,6 +27,7 @@ S3_PROXY_ALLOWED_ORIGIN ?= http://localhost:$(LS_PORT)
 S3_RECURSIVE ?= 1
 S3_LIMIT ?=
 S3_DRY_RUN ?= 0
+S3_UPLOAD_WORKERS ?= 8
 S3_LIMIT_ARG := $(if $(S3_LIMIT),--limit $(S3_LIMIT),)
 S3_RECURSIVE_ARG := $(if $(filter 0 false no,$(S3_RECURSIVE)),--no-recursive,--recursive)
 S3_DRY_RUN_ARG := $(if $(filter 1 true yes,$(S3_DRY_RUN)),--dry-run,)
@@ -55,7 +56,7 @@ S3_EC2_ARTIFACT_ROOT ?= artifacts/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 S3_EC2_LATEST_RUN_FILE ?= $(S3_EC2_ARTIFACT_ROOT)/latest-run.txt
 S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 
-.PHONY: brand-s3-check-config brand-s3-upload-images brand-s3-ls-import-json brand-s3-proxy-start brand-s3-ls-apply \
+.PHONY: brand-s3-check-config brand-s3-upload-images brand-s3-sync-manifest-from-s3 brand-s3-ls-import-json brand-s3-proxy-start brand-s3-ls-apply \
 	1-brand-s3-workflow-to-ls brand-s3-ls-export brand-s3-ls-to-yolo 2-brand-s3-workflow-after-ls \
 	brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train brand-s3-ec2-evaluate brand-s3-ec2-download-artifacts \
 	brand-s3-ec2-download-model
@@ -85,7 +86,25 @@ brand-s3-upload-images: ## 上传本地图片目录到 S3 并生成图片地址�
 		--endpoint-url '$(S3_ENDPOINT_URL)' \
 		--public-base-url '$(S3_PUBLIC_BASE_URL)' \
 		--proxy-base-url '$(S3_PROXY_BASE_URL)' \
+		--workers $(S3_UPLOAD_WORKERS) \
 		$(S3_RECURSIVE_ARG) $(S3_LIMIT_ARG) $(S3_DRY_RUN_ARG)
+
+brand-s3-sync-manifest-from-s3: ## 从 S3 目标目录反查对象并生成可续传上传清单
+	$(VENV_BIN)/python scripts/s3/upload_images_to_s3.py \
+		--config '$(BRAND_S3_CONFIG)' \
+		--dataset-name '$(S3_DATASET_NAME)' \
+		--label-name '$(S3_LABEL_NAME)' \
+		--input-dir '$(S3_LOCAL_IMAGES_DIR)' \
+		--dataset-root '$(S3_DATASET_ROOT)' \
+		--bucket '$(S3_BUCKET)' \
+		--prefix '$(S3_PREFIX)' \
+		--region '$(S3_REGION)' \
+		--profile '$(S3_PROFILE)' \
+		--endpoint-url '$(S3_ENDPOINT_URL)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' \
+		--proxy-base-url '$(S3_PROXY_BASE_URL)' \
+		$(S3_RECURSIVE_ARG) $(S3_LIMIT_ARG) \
+		--sync-from-s3
 
 brand-s3-ls-import-json: ## 根据 S3 图片清单生成 Label Studio 导入 JSON 和标签配置
 	$(VENV_BIN)/python scripts/label_studio/generate_s3_import.py \

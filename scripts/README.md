@@ -114,7 +114,8 @@ uv run python scripts/s3/upload_images_to_s3.py \
   --label-name diaper \
   --input-dir /path/to/images \
   --bucket <bucket> \
-  --prefix demo
+  --prefix demo \
+  --workers 8
 uv run python scripts/s3/s3_image_proxy.py \
   --config config/brand_s3_ec2.local.yaml \
   --bucket <bucket> \

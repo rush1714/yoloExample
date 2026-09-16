@@ -48,6 +48,7 @@ cp config/brand_s3_ec2.example.yaml config/brand_s3_ec2.local.yaml
 | `S3_LOCAL_IMAGES_DIR` | 本地待上传图片目录 | `/Users/you/images` |
 | `S3_BUCKET` | S3 桶名 | `my-yolo-bucket` |
 | `S3_PREFIX` | S3 业务对象前缀；实际上传自动归入 `yolo-training/<S3_PREFIX>` | `ci_20260916_01` |
+| `S3_UPLOAD_WORKERS` | 并发上传线程数；断点续传会跳过已成功上传图片 | `8` |
 | `S3_REGION` | S3 区域 | `ap-southeast-1` |
 | `S3_PROFILE` | 本机 AWS profile，可为空 | `default` |
 | `S3_IMAGE_URL_MODE` | LS 图片地址模式：`proxy`/`https`/`s3` | `proxy` |
@@ -67,7 +68,7 @@ make brand-s3-check-config \
 
 ### 1. 上传本地图片到 S3
 
-先 dry-run 验证扫描范围：
+先 dry-run 验证扫描范围；脚本会读取已有 `s3_images.json`，跳过 `relative_path + s3_key + size_bytes` 一致且已成功上传的图片：
 
 ```bash
 make brand-s3-upload-images \
@@ -75,7 +76,8 @@ make brand-s3-upload-images \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_LOCAL_IMAGES_DIR=/path/to/images \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=ci_20260916_01
+  S3_PREFIX=ci_20260916_01 \
+  S3_UPLOAD_WORKERS=8
 ```
 
 确认无误后真实上传：
@@ -85,7 +87,8 @@ make brand-s3-upload-images \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_LOCAL_IMAGES_DIR=/path/to/images \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=ci_20260916_01
+  S3_PREFIX=ci_20260916_01 \
+  S3_UPLOAD_WORKERS=8
 ```
 
 输出：
@@ -93,6 +96,20 @@ make brand-s3-upload-images \
 - `datasets/s3/<name>/metadata/s3_images.json`
 - `datasets/s3/<name>/metadata/s3_images.csv`
 - `datasets/s3/<name>/metadata/s3_download_urls.txt`
+
+如果旧上传进程已经上传了一部分但本地没有新清单，可先从 S3 目标目录反查对象并生成可续传清单：
+
+```bash
+make brand-s3-sync-manifest-from-s3 \
+  S3_DATASET_NAME=GH_2026_09_15 \
+  S3_LOCAL_IMAGES_DIR=datasets/diaper_category/GH/v2026-09-15/raw/images \
+  S3_BUCKET=uat-smdp4cust-bak \
+  S3_PREFIX=GH/2026_09_15/images \
+  S3_REGION=af-south-1 \
+  S3_PROFILE=smdp-yolo
+```
+
+该命令会写出 `s3_images.json|csv|txt`，其中 S3 上已存在且大小匹配的对象会标记为 `uploaded=true` / `status=s3_existing`，后续再执行 `brand-s3-upload-images` 会直接跳过。
 
 ### 2. 启动本地 S3 图片代理
 
@@ -125,7 +142,8 @@ make 1-brand-s3-workflow-to-ls \
   S3_LABEL_NAME=diaper \
   S3_LOCAL_IMAGES_DIR=/path/to/images \
   S3_BUCKET=<bucket> \
-  S3_PREFIX=ci_20260916_01
+  S3_PREFIX=ci_20260916_01 \
+  S3_UPLOAD_WORKERS=8
 ```
 
 > 注意：proxy 模式下，一键命令不会自动在后台托管长期代理。标注时请另开终端运行 `make brand-s3-proxy-start ...`。
@@ -240,11 +258,12 @@ make web-console
 | 命令 | 作用 | 示例 |
 |---|---|---|
 | `brand-s3-check-config` | 检查 S3 工作流关键参数 | `make brand-s3-check-config S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01` |
-| `brand-s3-upload-images` | 上传本地图片目录到 S3 并生成图片地址清单；S3_DRY_RUN=1 只生成清单 | `make brand-s3-upload-images S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01` |
+| `brand-s3-upload-images` | 上传本地图片目录到 S3 并生成图片地址清单；S3_DRY_RUN=1 只生成清单 | `make brand-s3-upload-images S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01 S3_UPLOAD_WORKERS=8` |
+| `brand-s3-sync-manifest-from-s3` | 从 S3 目标目录反查对象并生成可续传上传清单 | `make brand-s3-sync-manifest-from-s3 S3_DATASET_NAME=GH_2026_09_15 S3_LOCAL_IMAGES_DIR=datasets/diaper_category/GH/v2026-09-15/raw/images S3_BUCKET=uat-smdp4cust-bak S3_PREFIX=GH/2026_09_15/images S3_REGION=af-south-1 S3_PROFILE=smdp-yolo` |
 | `brand-s3-ls-import-json` | 根据 S3 图片清单生成 Label Studio 导入 JSON 和标签配置 | `make brand-s3-ls-import-json S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper` |
 | `brand-s3-proxy-start` | 启动本地 S3 图片代理，供 Label Studio 加载私有桶图片 | `make brand-s3-proxy-start S3_BUCKET=<bucket> S3_REGION=ap-southeast-1` |
 | `brand-s3-ls-apply` | 将 S3/proxy 图片任务导入 Label Studio | `make brand-s3-ls-apply S3_DATASET_NAME=ci_20260916_01` |
-| `1-brand-s3-workflow-to-ls` | 上传 S3、生成并导入 Label Studio | `make 1-brand-s3-workflow-to-ls S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket>` |
+| `1-brand-s3-workflow-to-ls` | 上传 S3、生成并导入 Label Studio | `make 1-brand-s3-workflow-to-ls S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_UPLOAD_WORKERS=8` |
 | `brand-s3-ls-export` | 从 Label Studio 导出 S3 图片标注 JSON；需传 LS_PROJECT_ID=<项目ID> | `make brand-s3-ls-export S3_DATASET_NAME=ci_20260916_01 LS_PROJECT_ID=<项目ID>` |
 | `brand-s3-ls-to-yolo` | 将 S3 图片 Label Studio 导出转换为 YOLO 标签和 EC2 下载清单 | `make brand-s3-ls-to-yolo S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper S3_LS_TO_YOLO_CLEAR=1` |
 | `2-brand-s3-workflow-after-ls` | 导出 S3 图片标注并生成 YOLO 标签/EC2 图片清单 | `make 2-brand-s3-workflow-after-ls S3_DATASET_NAME=ci_20260916_01 LS_PROJECT_ID=<项目ID> S3_LS_TO_YOLO_CLEAR=1` |

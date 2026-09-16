@@ -22,7 +22,7 @@ from scripts.s3.brand_s3_config import (
     normalize_training_prefix,
     s3_key_for_relative_path,
 )
-from scripts.s3.upload_images_to_s3 import build_manifest_record
+from scripts.s3.upload_images_to_s3 import build_manifest_record, upload_images, write_manifest
 
 
 class BrandS3Ec2WorkflowTest(unittest.TestCase):
@@ -67,6 +67,70 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertEqual(parsed.path, "/image")
             self.assertEqual(parse_qs(parsed.query)["dataset"], ["demo"])
             self.assertEqual(parse_qs(parsed.query)["key"], ["yolo-training/prefix/demo/shelf 1.jpg"])
+
+    def test_upload_images_dry_run_resumes_from_existing_manifest(self) -> None:
+        """dry-run 续传应跳过已有成功记录，仅计划未上传图片。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            image_a = root / "a.jpg"
+            image_b = root / "nested" / "b.jpg"
+            image_b.parent.mkdir()
+            image_a.write_bytes(b"image-a")
+            image_b.write_bytes(b"image-b")
+            config = load_config(
+                None,
+                dataset_name="demo",
+                local_images_dir=root,
+                dataset_root=root / "dataset",
+                bucket="bucket-a",
+                prefix="prefix/demo",
+                region="ap-southeast-1",
+            )
+            existing = build_manifest_record(
+                config,
+                image_a,
+                "a.jpg",
+                uploaded=True,
+                extra={"status": "uploaded", "etag": "etag-a"},
+            )
+            write_manifest([existing], config)
+
+            records = upload_images(config, recursive=True, limit=None, dry_run=True, workers=2)
+
+            statuses = {str(item["relative_path"]): item["status"] for item in records}
+            self.assertEqual(statuses["a.jpg"], "skipped_existing")
+            self.assertEqual(statuses["nested/b.jpg"], "planned")
+            self.assertTrue(records[0]["s3_key"].startswith("yolo-training/prefix/demo/"))
+
+
+    def test_record_from_s3_object_marks_existing_uploaded(self) -> None:
+        """从 S3 反建清单时，大小匹配的对象应被标记为已上传。"""
+        from scripts.s3.upload_images_to_s3 import record_from_s3_object
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            image = root / "a.jpg"
+            image.write_bytes(b"image-a")
+            config = load_config(
+                None,
+                dataset_name="demo",
+                local_images_dir=root,
+                dataset_root=root / "dataset",
+                bucket="bucket-a",
+                prefix="prefix/demo",
+                region="ap-southeast-1",
+            )
+
+            record = record_from_s3_object(config, image, "a.jpg", {"Size": image.stat().st_size, "ETag": '"etag"'})
+            mismatch = record_from_s3_object(config, image, "a.jpg", {"Size": image.stat().st_size + 1})
+            missing = record_from_s3_object(config, image, "a.jpg", None)
+
+            self.assertTrue(record["uploaded"])
+            self.assertEqual(record["status"], "s3_existing")
+            self.assertFalse(mismatch["uploaded"])
+            self.assertEqual(mismatch["status"], "size_mismatch")
+            self.assertFalse(missing["uploaded"])
+            self.assertEqual(missing["status"], "missing_on_s3")
 
     def test_s3_import_tasks_use_proxy_and_keep_s3_metadata(self) -> None:
         """Label Studio 任务默认用 proxy URL，同时保留 S3 元数据供后续 EC2 使用。"""
