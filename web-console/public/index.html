@@ -603,9 +603,12 @@
     imageTotal: 0,
     currentJobId: null,
     jobTimer: null,
+    expandedMenuIds: new Set(['prepare_labeling', 'excel_ocr_yoloworld']),
+    paramCache: {},
   };
 
   const $ = (selector) => document.querySelector(selector);
+  const PARAM_CACHE_KEY = 'yoloConsole:paramValues:v1';
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
@@ -615,6 +618,51 @@
       "'": '&#39;',
       '"': '&quot;',
     }[char]));
+  }
+
+
+  function loadParamCache() {
+    try {
+      const raw = window.localStorage.getItem(PARAM_CACHE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function saveParamCache() {
+    try {
+      window.localStorage.setItem(PARAM_CACHE_KEY, JSON.stringify(state.paramCache));
+    } catch (_error) {
+      // 浏览器禁用 localStorage 时忽略，表单仍按当前会话正常工作。
+    }
+  }
+
+  function cachedParamValue(paramName, definition) {
+    if (Object.prototype.hasOwnProperty.call(state.paramCache, paramName)) {
+      return String(state.paramCache[paramName] ?? '');
+    }
+    return String(definition.defaultValue ?? '');
+  }
+
+  function updateParamCache(paramName, rawValue) {
+    const value = String(rawValue ?? '').trim();
+    if (value) {
+      state.paramCache[paramName] = value;
+    } else {
+      delete state.paramCache[paramName];
+    }
+    saveParamCache();
+  }
+
+  function clearParamCache() {
+    state.paramCache = {};
+    try {
+      window.localStorage.removeItem(PARAM_CACHE_KEY);
+    } catch (_error) {
+      // 浏览器禁用 localStorage 时忽略。
+    }
   }
 
   async function fetchJson(url, options) {
@@ -637,15 +685,46 @@
     return parts.join(' ');
   }
 
+  function countCommands(node) {
+    const ownCommands = Array.isArray(node.commands) ? node.commands.length : 0;
+    const childCommands = Array.isArray(node.children) ? node.children.reduce((total, child) => total + countCommands(child), 0) : 0;
+    return ownCommands + childCommands;
+  }
+
+  function findNodeById(nodes, id) {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (Array.isArray(node.children)) {
+        const found = findNodeById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function nodeContainsActive(node) {
+    if (node.id === state.activeGroup) return true;
+    return Array.isArray(node.children) && node.children.some((child) => nodeContainsActive(child));
+  }
+
+  function nodeHasEc2(node) {
+    if (node.ec2) return true;
+    const ownCommands = Array.isArray(node.commands) ? node.commands : [];
+    if (ownCommands.some((command) => command.target.includes('ec2'))) return true;
+    return Array.isArray(node.children) && node.children.some((child) => nodeHasEc2(child));
+  }
+
   function currentCommand(group) {
-    const activeTarget = state.activeCommandByGroup[group.id] || group.commands[0]?.target;
-    return group.commands.find((command) => command.target === activeTarget) || group.commands[0];
+    const commands = Array.isArray(group?.commands) ? group.commands : [];
+    const activeTarget = state.activeCommandByGroup[group.id] || commands[0]?.target;
+    return commands.find((command) => command.target === activeTarget) || commands[0];
   }
 
   function paramInput(paramName) {
     const definition = state.config.params[paramName] || { label: paramName, type: 'text', defaultValue: '' };
     const label = document.createElement('label');
     label.innerHTML = `<span>${escapeHtml(definition.label || paramName)} <span class="muted">${escapeHtml(paramName)}</span></span>`;
+    const cachedValue = cachedParamValue(paramName, definition);
     let input;
     if (definition.type === 'select') {
       input = document.createElement('select');
@@ -656,15 +735,17 @@
         option.textContent = optionValue;
         input.appendChild(option);
       });
-      input.value = definition.defaultValue || options[0] || '';
+      input.value = options.includes(cachedValue) ? cachedValue : (definition.defaultValue || options[0] || '');
     } else {
       input = document.createElement('input');
       input.type = definition.type === 'number' ? 'number' : 'text';
-      input.value = definition.defaultValue || '';
+      input.value = cachedValue;
       if (definition.type === 'number') input.step = 'any';
     }
     input.dataset.param = paramName;
     input.placeholder = definition.help || '';
+    input.addEventListener('input', () => updateParamCache(paramName, input.value));
+    input.addEventListener('change', () => updateParamCache(paramName, input.value));
     label.appendChild(input);
     return label;
   }
@@ -672,45 +753,56 @@
   function renderSideMenu() {
     const menu = $('#sideMenu');
     menu.innerHTML = '';
-    const overviewButton = menuButton({ id: 'overview', title: '数据总览' });
-    menu.appendChild(overviewButton);
-
-    state.config.commandGroups.forEach((group) => {
-      const section = document.createElement('div');
-      section.className = 'menu-section';
-      section.appendChild(menuButton({ id: group.id, title: group.title, count: group.commands.length }));
-
-      if (state.activeGroup === group.id) {
-        const submenu = document.createElement('div');
-        submenu.className = 'submenu-list';
-        const activeCommand = currentCommand(group);
-        group.commands.forEach((command) => {
-          const button = document.createElement('button');
-          button.className = `submenu-button ${activeCommand.target === command.target ? 'active' : ''}`;
-          button.type = 'button';
-          button.textContent = command.title;
-          button.onclick = () => {
-            state.activeGroup = group.id;
-            state.activeCommandByGroup[group.id] = command.target;
-            renderSideMenu();
-            renderCommands();
-          };
-          submenu.appendChild(button);
-        });
-        section.appendChild(submenu);
-      }
-      menu.appendChild(section);
-    });
-
-    menu.appendChild(menuButton({ id: 'data', title: '图片浏览' }));
+    menu.appendChild(menuButton({ id: 'overview', title: '数据总览' }, 0, false));
+    renderMenuNodes(state.config.commandGroups, menu, 0);
+    menu.appendChild(menuButton({ id: 'data', title: '图片浏览' }, 0, false));
   }
 
-  function menuButton(item) {
+  function renderMenuNodes(nodes, parent, depth) {
+    nodes.forEach((node) => {
+      const section = document.createElement('div');
+      section.className = 'menu-section';
+      section.appendChild(menuButton(node, depth, true));
+      if (state.expandedMenuIds.has(node.id)) {
+        const nested = document.createElement('div');
+        nested.className = 'submenu-list';
+        if (Array.isArray(node.children)) {
+          renderMenuNodes(node.children, nested, depth + 1);
+        }
+        (node.commands || []).forEach((command) => nested.appendChild(commandButton(node, command, depth + 1)));
+        section.appendChild(nested);
+      }
+      parent.appendChild(section);
+    });
+  }
+
+  function commandButton(group, command, depth) {
     const button = document.createElement('button');
-    button.className = `menu-button ${state.activeGroup === item.id ? 'active' : ''}`;
+    button.className = `submenu-button ${state.activeGroup === group.id && currentCommand(group)?.target === command.target ? 'active' : ''}`;
     button.type = 'button';
-    button.innerHTML = `<span>${escapeHtml(item.title)}</span>${item.count ? `<span class="menu-count">${item.count}</span>` : ''}`;
-    button.onclick = () => setActiveGroup(item.id);
+    button.textContent = command.title;
+    button.style.paddingLeft = `${26 + depth * 18}px`;
+    button.onclick = () => {
+      state.activeGroup = group.id;
+      state.expandedMenuIds.add(group.id);
+      state.activeCommandByGroup[group.id] = command.target;
+      renderSideMenu();
+      renderCommands();
+    };
+    return button;
+  }
+
+  function menuButton(item, depth = 0, canToggle = false) {
+    const button = document.createElement('button');
+    const active = state.activeGroup === item.id || nodeContainsActive(item);
+    const expanded = state.expandedMenuIds?.has(item.id);
+    button.className = `${depth === 0 ? 'menu-button' : 'submenu-button'} ${active ? 'active' : ''}`;
+    button.type = 'button';
+    button.style.paddingLeft = depth === 0 ? '' : `${18 + depth * 18}px`;
+    const marker = canToggle ? (expanded ? '▾' : '▸') : '';
+    const count = canToggle ? countCommands(item) : item.count;
+    button.innerHTML = `<span>${marker ? `${marker} ` : ''}${escapeHtml(item.title)}</span>${count ? `<span class="menu-count">${count}</span>` : ''}`;
+    button.onclick = () => setActiveGroup(item.id, canToggle);
     return button;
   }
 
@@ -728,9 +820,11 @@
     const preview = document.createElement('code');
     preview.className = 'command-preview';
     preview.textContent = buildCommandPreview(command.target, form);
-    form.addEventListener('input', () => {
+    const refreshPreview = () => {
       preview.textContent = buildCommandPreview(command.target, form);
-    });
+    };
+    form.addEventListener('input', refreshPreview);
+    form.addEventListener('change', refreshPreview);
 
     const header = document.createElement('div');
     header.className = 'command-detail-head';
@@ -755,13 +849,27 @@
       setTimeout(() => { copyButton.textContent = '复制命令'; }, 1200);
     };
 
+    const clearCacheButton = document.createElement('button');
+    clearCacheButton.className = 'secondary';
+    clearCacheButton.textContent = '清空参数缓存';
+    clearCacheButton.onclick = () => {
+      clearParamCache();
+      renderCommandDetail(command);
+    };
+
     const actions = document.createElement('div');
     actions.className = 'actions';
     actions.appendChild(runButton);
     actions.appendChild(copyButton);
+    actions.appendChild(clearCacheButton);
     header.appendChild(actions);
 
     panel.appendChild(header);
+    const cacheHint = document.createElement('div');
+    cacheHint.className = 'muted';
+    cacheHint.style.marginBottom = '10px';
+    cacheHint.textContent = '参数会自动保存到本浏览器，同名参数会在不同命令页面共享；清空输入框会恢复使用 Makefile 默认值。';
+    panel.appendChild(cacheHint);
     if (command.params.length > 0) {
       panel.appendChild(form);
     } else {
@@ -776,34 +884,50 @@
   }
 
   function renderCommands() {
-    const group = state.config.commandGroups.find((item) => item.id === state.activeGroup);
+    const group = findNodeById(state.config.commandGroups, state.activeGroup);
     $('#overviewPanel').classList.toggle('hidden', state.activeGroup !== 'overview');
     $('#commandsPanel').classList.toggle('hidden', !group);
     $('#dataPanel').classList.toggle('hidden', state.activeGroup !== 'data');
     if (!group) return;
 
-    const activeCommand = currentCommand(group);
-    state.activeCommandByGroup[group.id] = activeCommand.target;
     $('#groupTitle').textContent = group.title;
     $('#groupDescription').textContent = group.description;
-    $('#ec2Warning').classList.toggle('hidden', group.id !== 'diaper_ec2');
+    $('#ec2Warning').classList.toggle('hidden', !nodeHasEc2(group));
+    if (!Array.isArray(group.commands) || group.commands.length === 0) {
+      $('#commandDetail').innerHTML = '<div class="muted">请选择左侧展开后的具体命令。</div>';
+      return;
+    }
+
+    const activeCommand = currentCommand(group);
+    state.activeCommandByGroup[group.id] = activeCommand.target;
     renderCommandDetail(activeCommand);
   }
 
-  function setActiveGroup(groupId) {
+  function setActiveGroup(groupId, canToggle = false) {
+    if (groupId === 'overview' || groupId === 'data') {
+      state.activeGroup = groupId;
+      renderSideMenu();
+      renderCommands();
+      if (groupId === 'data') loadImages(1);
+      if (groupId === 'overview') refreshSummary();
+      return;
+    }
+
+    const group = findNodeById(state.config.commandGroups, groupId);
+    if (!group) return;
     state.activeGroup = groupId;
-    const group = state.config.commandGroups.find((item) => item.id === groupId);
-    if (group && !state.activeCommandByGroup[group.id]) {
-      state.activeCommandByGroup[group.id] = group.commands[0]?.target;
+    if (canToggle) {
+      if (state.expandedMenuIds.has(groupId)) {
+        state.expandedMenuIds.delete(groupId);
+      } else {
+        state.expandedMenuIds.add(groupId);
+      }
+    }
+    if (Array.isArray(group.commands) && group.commands.length > 0 && !state.activeCommandByGroup[group.id]) {
+      state.activeCommandByGroup[group.id] = group.commands[0].target;
     }
     renderSideMenu();
     renderCommands();
-    if (groupId === 'data') {
-      loadImages(1);
-    }
-    if (groupId === 'overview') {
-      refreshSummary();
-    }
   }
 
   async function startJob(target, form) {
@@ -967,6 +1091,7 @@
 
   async function init() {
     state.config = await fetchJson('/api/config');
+    state.paramCache = loadParamCache();
     $('#projectRoot').textContent = `项目根目录：${state.config.projectRoot}`;
     renderSideMenu();
     renderCommands();

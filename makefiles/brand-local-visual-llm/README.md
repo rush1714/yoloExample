@@ -47,3 +47,11 @@ make local-visual-llm-ocr \
 | `LLM_OCR_WORKERS` | 并发数，本地建议 1。 | `LLM_OCR_WORKERS=1` |
 | `OCR_RESUME` | 从已有 OCR JSON 恢复。 | `OCR_RESUME=1` |
 | `PSEUDO_LIMIT` | 后续预标注图片数上限。 | `PSEUDO_LIMIT=20` |
+
+## 命令示例索引
+
+| 命令 | 作用 | 示例 |
+|---|---|---|
+| `local-visual-llm-ocr` | 本地视觉大模型 OCR 别名 | `make local-visual-llm-ocr BRAND=SOFTCARE LLM_OCR_MODEL=gemma3:12b OCR_LIMIT=20` |
+| `workflow-to-ls-local-visual-llm` | 本地视觉大模型 OCR + YOLO-World 到 Label Studio | `make workflow-to-ls-local-visual-llm BRAND=SOFTCARE LLM_OCR_MODEL=gemma3:12b PSEUDO_LIMIT=20` |
+| `local-visual-llm-workflow-after-ls` | 本地视觉大模型流程人工复核后导出、训练并验证 | `make local-visual-llm-workflow-after-ls BRAND=SOFTCARE LS_PROJECT_ID=<项目ID> TRAIN_EPOCHS=50` |

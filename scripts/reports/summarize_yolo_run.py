@@ -1,5 +1,7 @@
 """汇总 Ultralytics 训练结果并归档关键产物。"""
 
+# pylint: disable=line-too-long,too-many-arguments,too-many-positional-arguments,duplicate-code
+
 from __future__ import annotations
 
 import argparse
@@ -113,7 +115,7 @@ def write_summary(
     run_dir: Path,
     dataset_root: Path,
     dataset_yaml: Path,
-    profile: str,
+    run_name: str,
     model: str,
     imgsz: int,
     epochs: int,
@@ -130,7 +132,7 @@ def write_summary(
         "",
         "## 训练配置",
         "",
-        f"- profile: `{profile}`",
+        f"- run_name: `{run_name}`",
         f"- model: `{model}`",
         f"- imgsz: `{imgsz}`",
         f"- epochs: `{epochs}`",
@@ -196,7 +198,7 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, required=True, help="数据集根目录")
     parser.add_argument("--dataset-yaml", type=Path, required=True, help="数据集 YAML 路径")
     parser.add_argument("--artifact-dir", type=Path, required=True, help="归档输出目录")
-    parser.add_argument("--profile", default="custom", help="训练档位：smoke/baseline/improve/custom")
+    parser.add_argument("--run-name", default="default", help="训练运行标识，仅用于归档和报告")
     parser.add_argument("--model", default="", help="训练模型")
     parser.add_argument("--imgsz", type=int, default=960, help="训练尺寸")
     parser.add_argument("--epochs", type=int, default=100, help="训练轮数")
@@ -215,7 +217,7 @@ def main() -> None:
         run_dir=args.run_dir.resolve(),
         dataset_root=args.dataset_root.resolve(),
         dataset_yaml=args.dataset_yaml,
-        profile=args.profile,
+        run_name=args.run_name,
         model=args.model,
         imgsz=args.imgsz,
         epochs=args.epochs,

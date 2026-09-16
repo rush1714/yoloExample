@@ -74,3 +74,11 @@ make workflow-to-ls-llm \
   OCR_RESUME=1 \
   LLM_OCR_MODEL=gemma3:12b
 ```
+
+## 命令示例索引
+
+| 命令 | 作用 | 示例 |
+|---|---|---|
+| `step-2-ocr-llm` | 2. 使用 Ollama 本地视觉大模型 OCR 生成候选图片清单 | `make step-2-ocr-llm BRAND=SOFTCARE LLM_OCR_MODEL=gemma3:12b OCR_LIMIT=20 OCR_RESUME=1` |
+| `workflow-to-ls-llm` | Ollama OCR + YOLO-World 到 Label Studio | `make workflow-to-ls-llm BRAND=SOFTCARE LLM_OCR_MODEL=gemma3:12b OCR_LIMIT=20 PSEUDO_LIMIT=20` |
+| `ocr-llm` | 使用 Ollama 本地视觉大模型 OCR 生成品牌候选图片清单 | `make ocr-llm BRAND=SOFTCARE LLM_OCR_MODEL=gemma3:12b OCR_LIMIT=20` |

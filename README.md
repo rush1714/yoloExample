@@ -23,7 +23,7 @@ uv run python scripts/training/train.py --device mps --imgsz 960 --batch -1
 | 模型 | 适合阶段 | 说明 |
 | --- | --- | --- |
 | `yolo26n.pt` | 冒烟测试、快速验证流程 | 最快、显存压力最低，但包装较小或遮挡多时容易漏检。 |
-| `yolo26s.pt` | **推荐首选 baseline** | M1 Max 32G 通常可以承受，速度和准确率更平衡；本项目训练脚本默认使用它。 |
+| `yolo26s.pt` | **推荐首选基线模型** | M1 Max 32G 通常可以承受，速度和准确率更平衡；本项目训练脚本默认使用它。 |
 | `yolo26m.pt` | 数据量更多后的精度对比 | 训练更慢，但可能提升小目标和复杂货架场景效果。建议有 1000+ 张高质量标注后再比较。 |
 | `yolo26l.pt` / `yolo26x.pt` | 不建议本地首轮使用 | 对 M1 Max 也能尝试，但迭代慢，不适合当前只有原始未标注图片的阶段。 |
 
@@ -285,7 +285,9 @@ make web-console
 http://localhost:3000
 ```
 
-页面使用左侧菜单展示功能大类，包括品牌多类别流程、Label Studio、训练与推理、纸尿裤大类/EC2、维护工具和图片浏览。命令类功能会在左侧展开二级子菜单；点击某个命令子菜单后，右侧只展示该命令的单独页面，包括说明、常用参数、命令预览、复制和执行按钮。未填写的参数继续使用 Makefile 默认值；点击“执行”后会在页面下方显示实时日志，也可以复制生成的命令到终端手动执行。
+页面使用左侧多级菜单展示功能大类，包括图片来源/标注准备、Label Studio、本地 Mac 训练/推理、EC2 训练/推理/下载、维护工具和图片浏览。命令类功能可展开到二级或三级菜单；再次点击同一分组可折叠/展开，点击某个命令子菜单后，右侧只展示该命令的单独页面，包括说明、常用参数、命令预览、复制和执行按钮。未填写的参数继续使用 Makefile 默认值；点击“执行”后会在页面下方显示实时日志，也可以复制生成的命令到终端手动执行。
+
+参数输入会自动缓存到浏览器 `localStorage`，缓存 key 为 `yoloConsole:paramValues:v1`。缓存按 Make 参数名共享，例如在一个命令中填写过 `EC2_HOST`、`EC2_KEY`、`S3_DATASET_NAME` 后，切换到其它包含同名参数的命令会自动带出；清空某个输入框会删除该参数缓存并恢复使用 Makefile 默认值，页面也提供“清空参数缓存”按钮。
 
 数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`datasets/local/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
 ### 本地目录图片导入 Label Studio
@@ -364,8 +366,8 @@ make local-dir-ls-to-yolo LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/pa
 ```text
 /home/<EC2_USER>/yoloExample/datasets/local/<LOCAL_DATASET_NAME>/
 /home/<EC2_USER>/yoloExample/config/generated/local_<LOCAL_DATASET_NAME>.yaml
-/home/<EC2_USER>/yoloExample/models/ec2/local/<LOCAL_DATASET_NAME>/<profile>/best.pt
-/home/<EC2_USER>/yoloExample/artifacts/local/<LOCAL_DATASET_NAME>/<profile>/
+/home/<EC2_USER>/yoloExample/models/ec2/local/<LOCAL_DATASET_NAME>/<EC2_RUN_NAME>/best.pt
+/home/<EC2_USER>/yoloExample/artifacts/local/<LOCAL_DATASET_NAME>/<EC2_RUN_NAME>/
 ```
 
 推荐顺序：
@@ -378,17 +380,30 @@ make local-dir-ec2-upload-data \
   LOCAL_LABEL_NAME=纸尿裤 \
   EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
 
-# 2. smoke 训练；默认 dry-run，确认后加 EC2_EXECUTE=1
-make local-dir-ec2-train-smoke \
+# 2. 训练；默认 dry-run，确认后加 EC2_EXECUTE=1
+make local-dir-ec2-train \
   LOCAL_DATASET_NAME=my_images_v1 \
   LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
   LOCAL_LABEL_NAME=纸尿裤 \
+  EC2_BASE_MODEL=yolo26m.pt \
+  EC2_TRAIN_EPOCHS=100 \
+  EC2_TRAIN_IMGSZ=960 \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
   EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
 
 # 3. 评估归档并下载产物
-make local-dir-ec2-evaluate LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROFILE=smoke EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
-make local-dir-ec2-download-artifacts LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROFILE=smoke EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
-make local-dir-ec2-download-model LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROFILE=smoke EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+make local-dir-ec2-evaluate \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+make local-dir-ec2-download-artifacts \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
+make local-dir-ec2-download-model \
+  LOCAL_DATASET_NAME=my_images_v1 \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
 ```
 
 如需调整远端目录，可以覆盖：
@@ -397,11 +412,12 @@ make local-dir-ec2-download-model LOCAL_DATASET_NAME=my_images_v1 EC2_TRAIN_PROF
 LOCAL_EC2_REMOTE_DATASET_ROOT=datasets/local/my_images_v1
 LOCAL_EC2_REMOTE_DATA_YAML=config/generated/local_my_images_v1.yaml
 LOCAL_EC2_TRAIN_NAME=local_my_images_v1
-LOCAL_EC2_REMOTE_FINAL_MODEL=models/ec2/local/my_images_v1/smoke/best.pt
-LOCAL_EC2_ARTIFACT_ROOT=artifacts/local/my_images_v1/smoke
+LOCAL_EC2_REMOTE_FINAL_MODEL=models/ec2/local/my_images_v1/yolo26m_img960_e100/best.pt
+LOCAL_EC2_ARTIFACT_ROOT=artifacts/local/my_images_v1/yolo26m_img960_e100
 ```
 
-Web 控制台中也可以在左侧选择“本地目录导入 / 标注”，填写同样参数后执行。
+Web 控制台中也可以在左侧选择“图片来源 / 标注准备 → 本地目录 → LS”或“EC2 训练 / 推理 / 下载 → 本地目录数据集 → EC2”，填写同样参数后执行。
+
 
 | 顺序 | 命令 | 作用 |
 | --- | --- | --- |

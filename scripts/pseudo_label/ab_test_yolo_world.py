@@ -56,7 +56,7 @@ from pseudo_label.generate_yolo_world import (  # type: ignore[import-not-found]
 )
 from ultralytics import YOLO
 
-# 默认对比模型：当前 s-world baseline + 两个 v2 候选模型。
+# 默认对比模型：当前 s-world 参考模型 + 两个 v2 候选模型。
 DEFAULT_MODELS = [
     "models/yolov8s-world.pt",
     "yolov8m-worldv2.pt",
@@ -299,7 +299,7 @@ def write_markdown_report(
 
 def resolve_model_for_yolo(model_path: Path) -> str:
     """解析传给 Ultralytics 的模型参数，兼顾本地权重和自动下载。"""
-    # 明确存在的路径直接使用，确保当前 baseline 走项目内权重。
+    # 明确存在的路径直接使用，确保当前 reference 走项目内权重。
     if model_path.exists():
         return str(model_path)
     # 对默认官方权重，传裸文件名可让 Ultralytics 按已配置 weights_dir 下载到 models/。

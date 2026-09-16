@@ -74,3 +74,12 @@ make workflow-after-ls \
 | `PSEUDO_CONF` | `0.03` | 候选框置信度。 | `PSEUDO_CONF=0.01` |
 | `PSEUDO_MAX_AREA_RATIO` | `0.45` | 过滤整图大框。 | `PSEUDO_MAX_AREA_RATIO=0.30` |
 | `PSEUDO_USE_OCR_CANDIDATES` | `1` | 是否只处理 OCR 候选清单。 | `PSEUDO_USE_OCR_CANDIDATES=0` |
+
+## 命令示例索引
+
+| 命令 | 作用 | 示例 |
+|---|---|---|
+| `visual-prompts-import` | 从品牌图片 Excel 下载 YOLOE visual prompt 参考图 | `make visual-prompts-import VISUAL_PROMPTS_EXCEL=/path/brand-images.xlsx VISUAL_PROMPTS_LIMIT=3` |
+| `step-3-pseudo-label-visual` | 3. 使用 YOLOE visual prompt 和品牌参考图生成预标注 | `make step-3-pseudo-label-visual BRAND=SOFTCARE PSEUDO_VISUAL_DEVICE=mps PSEUDO_LIMIT=20` |
+| `workflow-to-ls-visual` | YOLOE visual prompt 到 Label Studio | `make workflow-to-ls-visual BRAND=SOFTCARE PSEUDO_VISUAL_DEVICE=mps PSEUDO_LIMIT=20` |
+| `pseudo-label-visual` | 使用 YOLOE visual prompt 和品牌参考图生成预标注 | `make pseudo-label-visual BRAND=SOFTCARE PSEUDO_USE_OCR_CANDIDATES=0 PSEUDO_LIMIT=5` |

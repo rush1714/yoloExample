@@ -27,62 +27,26 @@ DIAPER_MERGED_LS_EXPORT_PATH ?= $(DIAPER_LS_EXPORT_DIR)/merged_label_studio_expo
 DIAPER_MERGE_REPORT ?= $(DIAPER_LS_EXPORT_DIR)/merged_label_studio_export_report.json
 DIAPER_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/$(DIAPER_DATASET_NAME).yaml
 DIAPER_TRAIN_NAME ?= $(DIAPER_DATASET_NAME)
-DIAPER_FINAL_MODEL ?= $(PROJECT_ROOT)/models/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/best.pt
+DIAPER_FINAL_MODEL ?= $(PROJECT_ROOT)/models/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_RUN_NAME)/best.pt
 
-# ── AWS EC2 A10 参数 ────────────────────────────────────────
-# EC2 地址或 SSH Host 别名；默认空，dry-run 时也会保留占位。
-EC2_HOST ?= 3.232.95.101
-# EC2 SSH 用户；Ubuntu AMI 默认 ubuntu。
-EC2_USER ?= ec2-user
-# SSH 私钥路径；未设置时不传 -i。
-EC2_KEY ?= ~/.ssh/smdp-yolo-gpu-key.pem
-# SSH 端口。
-EC2_PORT ?= 22
-# EC2 上项目根目录。
-EC2_PROJECT_ROOT ?= /home/$(EC2_USER)/yoloExample
-# EC2 上执行训练/推理前激活 PyTorch 环境；用户当前环境已使用该路径。
-EC2_ACTIVATE_CMD ?= source /opt/pytorch/bin/activate
-# EC2 上 Python 执行命令；激活 PyTorch 环境后默认使用 python3。
-EC2_PYTHON_CMD ?= python3
-# 训练档位：smoke=yolo11n/640/5，baseline=yolo11s/960/100，improve=yolo11m/960/150，custom=使用显式参数。
-EC2_TRAIN_PROFILE ?= smoke
-# A10 GPU 设备号。
-EC2_TRAIN_DEVICE ?= 0
-# EC2 训练 batch。
-EC2_TRAIN_BATCH ?= -1
-# EC2 训练轮数；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
-EC2_TRAIN_EPOCHS ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),5,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),60,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),100,100)))
-# EC2 训练/推理尺寸；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
-EC2_TRAIN_IMGSZ ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),640,960)
-# EC2 基座模型；默认由 EC2_TRAIN_PROFILE 派生，也可手动覆盖。
-EC2_BASE_MODEL ?= $(if $(filter smoke,$(EC2_TRAIN_PROFILE)),yolo26n.pt,$(if $(filter baseline,$(EC2_TRAIN_PROFILE)),yolo26s.pt,$(if $(filter improve,$(EC2_TRAIN_PROFILE)),yolo26m.pt,models/yolo26m.pt)))
+# ── 纸尿裤大类 EC2 路径参数 ───────────────────────────────────
+# EC2 连接和训练规模参数统一由 makefiles/ec2/Makefile.mk 提供。
 EC2_REMOTE_DATA_YAML ?= config/generated/$(DIAPER_DATASET_NAME).yaml
-EC2_REMOTE_FINAL_MODEL ?= models/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)/best.pt
-EC2_ARTIFACT_ROOT ?= artifacts/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)
+EC2_REMOTE_FINAL_MODEL ?= models/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_RUN_NAME)/best.pt
+EC2_ARTIFACT_ROOT ?= artifacts/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_RUN_NAME)
 EC2_LATEST_RUN_FILE ?= $(EC2_ARTIFACT_ROOT)/latest-run.txt
-EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_TRAIN_PROFILE)
+EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/diaper_category/$(DIAPER_COUNTRY)/$(DIAPER_VERSION)/$(EC2_RUN_NAME)
 EC2_PREDICT_SOURCE ?= data/samples/multibrand-shelf.webp
-EC2_EVAL_NOTES ?= training start
-EC2_EXECUTE ?= 0
-EC2_EXECUTE_ARG := $(if $(filter 1 true yes,$(EC2_EXECUTE)),--execute,)
-EC2_KEY_ARG := $(if $(EC2_KEY),--key $(EC2_KEY),)
-EC2_RESUME_ARG := $(if $(filter 1 true yes,$(TRAIN_RESUME)),--resume,)
 
 .PHONY: diaper-yaml diaper-import-excel diaper-ls-import-json diaper-ls-apply diaper-ls-export diaper-merge-ls-projects diaper-merge-ls-projects-to-yolo diaper-ls-to-yolo \
 	diaper-workflow-to-ls diaper-workflow-after-ls diaper-prepare-dirs \
-	01-diaper-ec2-upload-project 02-diaper-ec2-upload-data \
-	03-1-diaper-ec2-train-smoke 03-2-diaper-ec2-evaluate-smoke 03-3-diaper-ec2-download-artifacts-smoke \
-	04-1-diaper-ec2-train-baseline 04-2-diaper-ec2-evaluate-baseline 04-3-diaper-ec2-download-artifacts-baseline \
-	05-1-diaper-ec2-train-improve 05-2-diaper-ec2-evaluate-improve 05-3-diaper-ec2-download-artifacts-improve \
-	06-diaper-ec2-predict 07-diaper-ec2-download-model \
-	diaper-ec2-upload-project diaper-ec2-upload-data diaper-ec2-train diaper-ec2-train-smoke diaper-ec2-train-baseline diaper-ec2-train-improve \
-	diaper-ec2-evaluate diaper-ec2-predict diaper-ec2-download-model diaper-ec2-download-artifacts
+	diaper-ec2-upload-project diaper-ec2-upload-data diaper-ec2-train diaper-ec2-evaluate diaper-ec2-predict diaper-ec2-download-model diaper-ec2-download-artifacts \
+	01-diaper-ec2-upload-project 02-diaper-ec2-upload-data 03-diaper-ec2-train 04-diaper-ec2-evaluate 05-diaper-ec2-download-artifacts 06-diaper-ec2-predict 07-diaper-ec2-download-model
 
-# EC2 推荐执行顺序：01/02（按需）→ 03-* smoke → 04-* baseline → 05-* improve → 06 推理 → 07 下载模型。
-# 03/04/05 每组必须按“训练 → 评估 → 下载归档”顺序执行。
-# EC2 通过 Git 部署代码时跳过 01；仅新国家/版本数据首次上传时执行 02。
-# 注释不影响目标执行。
-# 顺序别名定义见下方。
+# EC2 推荐执行顺序：上传项目（按需）→ 上传数据（按需）→ 训练 → 评估 → 下载归档/模型 → 推理。
+# 训练规模不再用固定档位分类，统一通过 EC2_BASE_MODEL、EC2_TRAIN_EPOCHS、EC2_TRAIN_IMGSZ 等显式参数控制。
+# EC2 通过 Git 部署代码时跳过项目上传；仅新国家/版本数据首次上传时执行数据上传。
+
 diaper-yaml: ## 生成纸尿裤大类单类别 YOLO YAML
 	$(VENV_BIN)/python scripts/config/write_single_class_yolo_yaml.py \
 		--output $(DIAPER_DATA_YAML) \
@@ -172,40 +136,17 @@ diaper-prepare-dirs: ## 创建纸尿裤大类流程需要的临时、日志和�
 
 01-diaper-ec2-upload-project: diaper-ec2-upload-project ## 01. 仅非 Git 部署环境：上传项目代码到 EC2
 
-02-diaper-ec2-upload-data: diaper-ec2-upload-data ## 02. 仅新国家/版本首次使用：上传数据集到 EC2（训练 YAML 自动生成）
+02-diaper-ec2-upload-data: diaper-ec2-upload-data ## 02. 上传当前纸尿裤数据集到 EC2（训练 YAML 自动生成）
 
-03-1-diaper-ec2-train-smoke: ## 03-1. smoke 训练：yolo11n.pt / 640 / 5 epochs
-	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=smoke
+03-diaper-ec2-train: diaper-ec2-train ## 03. 使用显式 EC2_* 模型参数训练
 
-03-2-diaper-ec2-evaluate-smoke: ## 03-2. 归档 smoke 训练产物并生成 evaluation-summary.md
-	$(MAKE) --no-print-directory diaper-ec2-evaluate EC2_TRAIN_PROFILE=smoke
+04-diaper-ec2-evaluate: diaper-ec2-evaluate ## 04. 归档训练产物并生成 evaluation-summary.md
 
-03-3-diaper-ec2-download-artifacts-smoke: ## 03-3. 下载 smoke 完整训练归档目录
-	$(MAKE) --no-print-directory diaper-ec2-download-artifacts EC2_TRAIN_PROFILE=smoke
+05-diaper-ec2-download-artifacts: diaper-ec2-download-artifacts ## 05. 下载完整训练归档目录
 
-04-1-diaper-ec2-train-baseline: ## 04-1. baseline 训练：yolo11s.pt / 960 / 100 epochs
-	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=baseline
+06-diaper-ec2-predict: diaper-ec2-predict ## 06. 使用 EC2 模型做推理验证
 
-04-2-diaper-ec2-evaluate-baseline: ## 04-2. 归档 baseline 训练产物并生成 evaluation-summary.md
-	$(MAKE) --no-print-directory diaper-ec2-evaluate EC2_TRAIN_PROFILE=baseline
-
-04-3-diaper-ec2-download-artifacts-baseline: ## 04-3. 下载 baseline 完整训练归档目录
-	$(MAKE) --no-print-directory diaper-ec2-download-artifacts EC2_TRAIN_PROFILE=baseline
-
-05-1-diaper-ec2-train-improve: ## 05-1. improve 训练：yolo11m.pt / 960 / 150 epochs
-	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=improve
-
-05-2-diaper-ec2-evaluate-improve: ## 05-2. 归档 improve 训练产物并生成 evaluation-summary.md
-	$(MAKE) --no-print-directory diaper-ec2-evaluate EC2_TRAIN_PROFILE=improve
-
-05-3-diaper-ec2-download-artifacts-improve: ## 05-3. 下载 improve 完整训练归档目录
-	$(MAKE) --no-print-directory diaper-ec2-download-artifacts EC2_TRAIN_PROFILE=improve
-
-06-diaper-ec2-predict: ## 06. 使用 EC2 模型做推理验证
-	$(MAKE) --no-print-directory diaper-ec2-predict
-
-07-diaper-ec2-download-model: ## 07. 仅下载 EC2 best.pt 模型
-	$(MAKE) --no-print-directory diaper-ec2-download-model
+07-diaper-ec2-download-model: diaper-ec2-download-model ## 07. 下载 EC2 best.pt 模型
 
 # 下面为底层 EC2 操作目标。
 
@@ -214,7 +155,7 @@ diaper-ec2-upload-project: ## 仅非 Git 部署环境：dry-run 输出 rsync 上
 # EC2 已通过 git clone 部署代码时：在本地提交后，登录 EC2 项目目录执行 git pull；不要执行本目标。
 # 仅当 EC2 尚无某个国家/版本数据集时，使用下一个目标上传数据；训练 YAML 会由训练命令自动生成绝对路径版本。
 # 下面保留 rsync 上传项目能力，供不使用 Git 部署的环境使用.
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-project \
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py upload-project \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
@@ -226,7 +167,7 @@ diaper-ec2-upload-project: ## 仅非 Git 部署环境：dry-run 输出 rsync 上
 diaper-ec2-upload-data: diaper-yaml ## 仅首次需要：上传当前纸尿裤数据到 EC2；训练 YAML 会由 EC2 训练命令自动生成绝对路径版本
 
 # 说明：EC2 已通过 git clone 管理代码时，不需要用本命令上传项目代码；使用 git pull 获取提交后的更新。
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py upload-data \
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py upload-data \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
@@ -235,8 +176,8 @@ diaper-ec2-upload-data: diaper-yaml ## 仅首次需要：上传当前纸尿裤�
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
 		$(EC2_EXECUTE_ARG)
 
-diaper-ec2-train: ## dry-run 输出 EC2 A10 训练命令；EC2_EXECUTE=1 才执行
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py train \
+diaper-ec2-train: ## dry-run 输出 EC2 训练命令；EC2_EXECUTE=1 才执行
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py train \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
@@ -245,21 +186,12 @@ diaper-ec2-train: ## dry-run 输出 EC2 A10 训练命令；EC2_EXECUTE=1 才执�
 		--base-model '$(EC2_BASE_MODEL)' --remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' \
 		--local-model '$(DIAPER_FINAL_MODEL)' --epochs $(EC2_TRAIN_EPOCHS) --imgsz $(EC2_TRAIN_IMGSZ) \
 		--batch $(EC2_TRAIN_BATCH) --device $(EC2_TRAIN_DEVICE) \
-		--profile '$(EC2_TRAIN_PROFILE)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
+		--run-name '$(EC2_RUN_NAME)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
 		--latest-run-file '$(EC2_LATEST_RUN_FILE)' \
 		$(EC2_RESUME_ARG) $(EC2_EXECUTE_ARG)
 
-diaper-ec2-train-smoke: ## 使用 smoke 档位训练：yolo11n.pt / imgsz=640 / epochs=5
-	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=smoke
-
-diaper-ec2-train-baseline: ## 使用 baseline 档位训练：yolo11s.pt / imgsz=960 / epochs=100
-	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=baseline
-
-diaper-ec2-train-improve: ## 使用 improve 档位训练：yolo11m.pt / imgsz=960 / epochs=150
-	$(MAKE) --no-print-directory diaper-ec2-train EC2_TRAIN_PROFILE=improve
-
 diaper-ec2-evaluate: ## dry-run 输出 EC2 训练产物归档与 evaluation-summary.md 生成命令
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py evaluate \
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py evaluate \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
@@ -267,12 +199,12 @@ diaper-ec2-evaluate: ## dry-run 输出 EC2 训练产物归档与 evaluation-summ
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--base-model '$(EC2_BASE_MODEL)' --remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' \
 		--local-model '$(DIAPER_FINAL_MODEL)' --epochs $(EC2_TRAIN_EPOCHS) --imgsz $(EC2_TRAIN_IMGSZ) \
-		--batch $(EC2_TRAIN_BATCH) --device $(EC2_TRAIN_DEVICE) --profile '$(EC2_TRAIN_PROFILE)' \
+		--batch $(EC2_TRAIN_BATCH) --device $(EC2_TRAIN_DEVICE) --run-name '$(EC2_RUN_NAME)' \
 		--artifact-root '$(EC2_ARTIFACT_ROOT)' --latest-run-file '$(EC2_LATEST_RUN_FILE)' \
 		--notes '$(EC2_EVAL_NOTES)' $(EC2_EXECUTE_ARG)
 
 diaper-ec2-predict: ## dry-run 输出 EC2 推理验证命令；EC2_EXECUTE=1 才执行
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py predict \
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py predict \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
@@ -283,23 +215,23 @@ diaper-ec2-predict: ## dry-run 输出 EC2 推理验证命令；EC2_EXECUTE=1 才
 		$(EC2_EXECUTE_ARG)
 
 diaper-ec2-download-model: ## dry-run 输出从 EC2 下载 best.pt 的 rsync 命令；EC2_EXECUTE=1 才执行
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py download-model \
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py download-model \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
-		--profile '$(EC2_TRAIN_PROFILE)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
+		--run-name '$(EC2_RUN_NAME)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
 		$(EC2_EXECUTE_ARG)
 
 diaper-ec2-download-artifacts: ## dry-run 输出从 EC2 下载完整训练归档目录的 rsync 命令
-	$(VENV_BIN)/python scripts/cloud/ec2_diaper_workflow.py download-artifacts \
+	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py download-artifacts \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
 		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' \
 		--country '$(DIAPER_COUNTRY)' --version '$(DIAPER_VERSION)' --label-name '$(DIAPER_LABEL_NAME)' \
 		--dataset-root '$(DIAPER_DATASET_ROOT)' --data-yaml '$(DIAPER_DATA_YAML)' \
 		--remote-data-yaml '$(EC2_REMOTE_DATA_YAML)' --train-name '$(DIAPER_TRAIN_NAME)' \
 		--remote-final-model '$(EC2_REMOTE_FINAL_MODEL)' --local-model '$(DIAPER_FINAL_MODEL)' \
-		--profile '$(EC2_TRAIN_PROFILE)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
+		--run-name '$(EC2_RUN_NAME)' --artifact-root '$(EC2_ARTIFACT_ROOT)' \
 		--local-artifact-root '$(EC2_LOCAL_ARTIFACT_ROOT)' $(EC2_EXECUTE_ARG)

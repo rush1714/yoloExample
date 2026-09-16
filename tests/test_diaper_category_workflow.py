@@ -10,7 +10,7 @@ from pathlib import Path
 from scripts.config.write_single_class_yolo_yaml import yaml_text
 from scripts.label_studio.export_single_class_to_yolo import convert_tasks, result_to_yolo_line
 from scripts.label_studio.generate_single_class_import import build_tasks, label_config_xml
-from scripts.cloud.ec2_diaper_workflow import quote_cmd, rsync_ssh_arg, ssh_target
+from scripts.ec2.common import quote_cmd, rsync_ssh_arg, ssh_target
 
 
 class DiaperCategoryWorkflowTest(unittest.TestCase):
