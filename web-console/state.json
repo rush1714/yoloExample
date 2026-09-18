@@ -3,7 +3,24 @@
     "COUNTRY": "default",
     "DATA_VERSION": "v2026-09-18",
     "LABEL_SET": "general",
-    "LABELS": "all"
+    "LABELS": "all",
+    "LS_PROJECT_ID": "25",
+    "S3_DATASET_ROOT": "datasets/allround_purple/v2026-09-17/",
+    "S3_DATASET_NAME": "allround_purple",
+    "LOCAL_DATASET_NAME": "allround_purple",
+    "LOCAL_DATASET_ROOT": "datasets/allround_purple/GH/v2026-09-17",
+    "LOCAL_LABEL_NAME": "allround_purple",
+    "LOCAL_LS_TO_YOLO_SKIP_EMPTY": "1",
+    "LOCAL_LS_TO_YOLO_CLEAR": "1",
+    "S3_LABEL_NAME": "allround_purple",
+    "S3_UPLOAD_WORKERS": "10",
+    "S3_PREFIX": "datasets/allround_purple/GH/v2026-09-17/images",
+    "S3_LOCAL_IMAGES_DIR": "datasets/allround_purple/GH/v2026-09-17/images",
+    "S3_DRY_RUN": "0",
+    "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
+    "S3_LS_TO_YOLO_CLEAR": "1",
+    "EC2_HOST": "3.238.13.254",
+    "EC2_EXECUTE": "1"
   },
   "favorites": []
 }
