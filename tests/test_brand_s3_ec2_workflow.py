@@ -19,10 +19,12 @@ from scripts.label_studio.generate_s3_import import build_tasks as build_s3_impo
 from scripts.s3.brand_s3_config import (
     https_url_for_object,
     load_config,
+    nginx_url_for_object,
     normalize_training_prefix,
     s3_key_for_relative_path,
 )
-from scripts.s3.upload_images_to_s3 import build_manifest_record, upload_images, write_manifest
+from scripts.s3.render_nginx_image_proxy import render_config, render_map, upstream_url_for_record, write_nginx_files
+from scripts.s3.upload_images_to_s3 import build_manifest_record, record_from_s3_object, upload_images, write_manifest
 
 
 class BrandS3Ec2WorkflowTest(unittest.TestCase):
@@ -44,7 +46,7 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         self.assertEqual(normalize_training_prefix("", "demo"), "yolo-training/demo")
 
     def test_manifest_record_contains_urls(self) -> None:
-        """上传清单记录应同时包含 s3、https 和 proxy 地址。"""
+        """上传清单记录应同时包含 s3、https、nginx 和 proxy 地址。"""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             image = root / "shelf 1.jpg"
@@ -63,10 +65,25 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
 
             self.assertEqual(record["s3_uri"], "s3://bucket-a/yolo-training/prefix/demo/shelf 1.jpg")
             self.assertIn("bucket-a.s3.ap-southeast-1.amazonaws.com", record["https_url"])
+            nginx_parsed = urlsplit(str(record["nginx_url"]))
+            self.assertTrue(nginx_parsed.path.startswith("/image/demo/"))
+            self.assertTrue(nginx_parsed.path.endswith(".jpg"))
+            self.assertNotIn("yolo-training", nginx_parsed.path)
             parsed = urlsplit(str(record["proxy_url"]))
             self.assertEqual(parsed.path, "/image")
             self.assertEqual(parse_qs(parsed.query)["dataset"], ["demo"])
             self.assertEqual(parse_qs(parsed.query)["key"], ["yolo-training/prefix/demo/shelf 1.jpg"])
+
+    def test_nginx_url_for_object_is_stable_short_path(self) -> None:
+        """Nginx 本地 URL 应稳定、短路径化，并保留原图片扩展名。"""
+        first = nginx_url_for_object("http://127.0.0.1:3010", "demo", "prefix/中文 shelf 1.jpg")
+        second = nginx_url_for_object("http://127.0.0.1:3010", "demo", "prefix/中文 shelf 1.jpg")
+
+        self.assertEqual(first, second)
+        parsed = urlsplit(first)
+        self.assertTrue(parsed.path.startswith("/image/demo/"))
+        self.assertTrue(parsed.path.endswith(".jpg"))
+        self.assertNotIn("中文", parsed.path)
 
     def test_upload_images_dry_run_resumes_from_existing_manifest(self) -> None:
         """dry-run 续传应跳过已有成功记录，仅计划未上传图片。"""
@@ -105,8 +122,6 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
 
     def test_record_from_s3_object_marks_existing_uploaded(self) -> None:
         """从 S3 反建清单时，大小匹配的对象应被标记为已上传。"""
-        from scripts.s3.upload_images_to_s3 import record_from_s3_object
-
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             image = root / "a.jpg"
@@ -132,8 +147,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertFalse(missing["uploaded"])
             self.assertEqual(missing["status"], "missing_on_s3")
 
-    def test_s3_import_tasks_use_proxy_and_keep_s3_metadata(self) -> None:
-        """Label Studio 任务默认用 proxy URL，同时保留 S3 元数据供后续 EC2 使用。"""
+    def test_s3_import_tasks_use_nginx_and_keep_s3_metadata(self) -> None:
+        """Label Studio 任务可使用 Nginx URL，同时保留 S3 元数据供后续 EC2 使用。"""
         records = [
             {
                 "dataset_name": "demo",
@@ -146,13 +161,67 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             }
         ]
 
-        tasks = build_s3_import_tasks(records, "diaper", "proxy", "http://127.0.0.1:3010")
+        tasks = build_s3_import_tasks(records, "diaper", "nginx", "http://127.0.0.1:3010")
 
         self.assertEqual(len(tasks), 1)
-        self.assertIn("http://127.0.0.1:3010/image", tasks[0]["data"]["image"])
+        self.assertIn("http://127.0.0.1:3010/image/demo/", tasks[0]["data"]["image"])
+        self.assertNotIn("prefix/a.jpg", tasks[0]["data"]["image"])
         self.assertEqual(tasks[0]["data"]["s3_uri"], "s3://bucket-a/prefix/a.jpg")
         self.assertEqual(tasks[0]["meta"]["source"], "s3")
         self.assertNotIn("predictions", tasks[0])
+
+    def test_s3_import_tasks_still_support_python_proxy_mode(self) -> None:
+        """旧 Python proxy 模式仍可生成 query-string 形式的图片地址。"""
+        records = [
+            {
+                "dataset_name": "demo",
+                "image_name": "a.jpg",
+                "relative_path": "a.jpg",
+                "s3_bucket": "bucket-a",
+                "s3_key": "prefix/a.jpg",
+                "s3_uri": "s3://bucket-a/prefix/a.jpg",
+            }
+        ]
+
+        tasks = build_s3_import_tasks(records, "diaper", "proxy", "http://127.0.0.1:3010")
+
+        parsed = urlsplit(str(tasks[0]["data"]["image"]))
+        self.assertEqual(parsed.path, "/image")
+        self.assertEqual(parse_qs(parsed.query)["key"], ["prefix/a.jpg"])
+
+    def test_nginx_config_renderer_writes_cache_cors_and_map(self) -> None:
+        """Nginx 配置应包含本地缓存、CORS 响应头和 URI 到 S3 的映射。"""
+        records = [
+            {
+                "dataset_name": "demo",
+                "s3_bucket": "bucket-a",
+                "s3_key": "prefix/a.jpg",
+                "https_url": "https://cdn.example.test/prefix/a.jpg",
+            }
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            config = load_config(None, dataset_name="demo", dataset_root=root, bucket="bucket-a", proxy_base_url="http://127.0.0.1:3010")
+            routes = write_nginx_files(
+                records,
+                config,
+                "direct",
+                3600,
+                "127.0.0.1",
+                3010,
+                root / "nginx.conf",
+                root / "s3_image_map.conf",
+                root / "cache",
+                root / "nginx.pid",
+            )
+
+            self.assertEqual(len(routes), 1)
+            self.assertEqual(upstream_url_for_record(records[0], config), "https://cdn.example.test/prefix/a.jpg")
+            self.assertIn("proxy_cache_path", (root / "nginx.conf").read_text(encoding="utf-8"))
+            self.assertIn("Access-Control-Allow-Origin", (root / "nginx.conf").read_text(encoding="utf-8"))
+            self.assertIn("/image/demo/", (root / "s3_image_map.conf").read_text(encoding="utf-8"))
+            self.assertIn("https://cdn.example.test/prefix/a.jpg", render_map(routes))
+            self.assertIn("proxy_pass $s3_image_upstream", render_config("127.0.0.1", 3010, "*", root / "map.conf", root / "cache", root / "nginx.pid", root / "logs"))
 
     def test_s3_export_writes_labels_without_local_images(self) -> None:
         """S3 导出转换不需要本地图片文件，只写 labels 和 EC2 manifest 元数据。"""

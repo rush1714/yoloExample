@@ -51,7 +51,10 @@ cp config/brand_s3_ec2.example.yaml config/brand_s3_ec2.local.yaml
 | `S3_UPLOAD_WORKERS` | 并发上传线程数；断点续传会跳过已成功上传图片 | `8` |
 | `S3_REGION` | S3 区域 | `ap-southeast-1` |
 | `S3_PROFILE` | 本机 AWS profile，可为空 | `default` |
-| `S3_IMAGE_URL_MODE` | LS 图片地址模式：`proxy`/`https`/`s3` | `proxy` |
+| `S3_IMAGE_URL_MODE` | LS 图片地址模式：`nginx`/`proxy`/`https`/`s3` | `nginx` |
+| `S3_PROXY_BACKEND` | `brand-s3-proxy-start` 使用的后端：`nginx` 或旧 `python` | `nginx` |
+| `S3_NGINX_MODE` | Nginx 回源模式：私有桶用 `presign`，公开桶可用 `direct` | `presign` |
+| `S3_NGINX_PRESIGN_EXPIRES` | 预签名 URL 有效秒数；到期前 reload 刷新 | `604800` |
 | `S3_PROXY_PORT` | 本地图片代理端口 | `3010` |
 | `EC2_EXECUTE` | 是否真实执行 EC2 SSH/rsync | `0` / `1` |
 
@@ -113,22 +116,32 @@ make brand-s3-sync-manifest-from-s3 \
 
 ### 2. 启动本地 S3 图片代理
 
-如果桶是私有的、或者没有权限配置 S3 CORS，请使用默认 proxy 模式：
+默认代理后端已经切换为 Nginx。私有桶使用 `presign` 模式时，启动命令会先根据 `s3_images.json` 生成本地短 URL 到 S3 预签名 URL 的映射，再由 Nginx 负责转发和本地缓存；图片请求不再逐张经过 Python。
 
 ```bash
 make brand-s3-proxy-start \
+  S3_DATASET_NAME=ci_20260916_01 \
   S3_BUCKET=<bucket> \
-  S3_REGION=ap-southeast-1
+  S3_REGION=ap-southeast-1 \
+  S3_PROFILE=<profile> \
+  S3_NGINX_MODE=presign
 ```
 
-保持该命令运行，然后打开 Label Studio。代理默认地址：`http://127.0.0.1:3010`。
+代理默认地址：`http://127.0.0.1:3010`。预签名 URL 默认 7 天有效，接近过期时执行：
+
+```bash
+make brand-s3-nginx-reload S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PROFILE=<profile>
+```
+
+如果对象已经公开可读，可改用 `S3_NGINX_MODE=direct`。如果本机未安装 Nginx，可临时回退旧 Python 代理：`make brand-s3-proxy-start S3_PROXY_BACKEND=python ...`。
 
 ### 3. 生成并导入 Label Studio
 
 ```bash
 make brand-s3-ls-import-json \
   S3_DATASET_NAME=ci_20260916_01 \
-  S3_LABEL_NAME=diaper
+  S3_LABEL_NAME=diaper \
+  S3_IMAGE_URL_MODE=nginx
 
 make brand-s3-ls-apply \
   S3_DATASET_NAME=ci_20260916_01
@@ -251,7 +264,7 @@ make web-console
 
 ## CORS 说明
 
-如果没有权限修改 AWS S3 CORS，请不要使用 `S3_IMAGE_URL_MODE=https` 直连私有或无 CORS 的对象。默认 `proxy` 模式由本地代理读取 S3 对象并加上 CORS 响应头，Label Studio 只访问本机 `http://127.0.0.1:3010/image?...`。
+如果没有权限修改 AWS S3 CORS，请不要使用 `S3_IMAGE_URL_MODE=https` 直连私有或无 CORS 的对象。默认 `nginx` 模式由本地 Nginx 代理读取 S3 对象、加上 CORS 响应头并启用本地缓存，Label Studio 只访问本机 `http://127.0.0.1:3010/image/<dataset>/<hash>.<ext>`。私有桶的 `presign` 映射有有效期，到期前执行 `brand-s3-nginx-reload` 刷新。
 
 ## 命令示例索引
 
@@ -260,10 +273,13 @@ make web-console
 | `brand-s3-check-config` | 检查 S3 工作流关键参数 | `make brand-s3-check-config S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01` |
 | `brand-s3-upload-images` | 上传本地图片目录到 S3 并生成图片地址清单；S3_DRY_RUN=1 只生成清单 | `make brand-s3-upload-images S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_PREFIX=ci_20260916_01 S3_UPLOAD_WORKERS=8` |
 | `brand-s3-sync-manifest-from-s3` | 从 S3 目标目录反查对象并生成可续传上传清单 | `make brand-s3-sync-manifest-from-s3 S3_DATASET_NAME=GH_2026_09_15 S3_LOCAL_IMAGES_DIR=datasets/diaper_category/GH/v2026-09-15/raw/images S3_BUCKET=uat-smdp4cust-bak S3_PREFIX=GH/2026_09_15/images S3_REGION=af-south-1 S3_PROFILE=smdp-yolo` |
-| `brand-s3-ls-import-json` | 根据 S3 图片清单生成 Label Studio 导入 JSON 和标签配置 | `make brand-s3-ls-import-json S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper` |
-| `brand-s3-proxy-start` | 启动本地 S3 图片代理，供 Label Studio 加载私有桶图片 | `make brand-s3-proxy-start S3_BUCKET=<bucket> S3_REGION=ap-southeast-1` |
-| `brand-s3-ls-apply` | 将 S3/proxy 图片任务导入 Label Studio | `make brand-s3-ls-apply S3_DATASET_NAME=ci_20260916_01` |
-| `1-brand-s3-workflow-to-ls` | 上传 S3、生成并导入 Label Studio | `make 1-brand-s3-workflow-to-ls S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_UPLOAD_WORKERS=8` |
+| `brand-s3-ls-import-json` | 根据 S3 图片清单生成 Label Studio 导入 JSON 和标签配置 | `make brand-s3-ls-import-json S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper S3_IMAGE_URL_MODE=nginx` |
+| `brand-s3-nginx-start` | 生成配置并启动本地 Nginx 图片代理 | `make brand-s3-nginx-start S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PROFILE=<profile>` |
+| `brand-s3-nginx-reload` | 刷新 Nginx map/预签名 URL 并 reload | `make brand-s3-nginx-reload S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PROFILE=<profile>` |
+| `brand-s3-nginx-stop` | 停止本地 Nginx 图片代理 | `make brand-s3-nginx-stop S3_DATASET_NAME=ci_20260916_01` |
+| `brand-s3-proxy-start` | 启动本地图片代理；默认 Nginx，可 `S3_PROXY_BACKEND=python` 回退旧代理 | `make brand-s3-proxy-start S3_DATASET_NAME=ci_20260916_01 S3_BUCKET=<bucket> S3_PROFILE=<profile>` |
+| `brand-s3-ls-apply` | 将 S3/Nginx/proxy 图片任务导入 Label Studio | `make brand-s3-ls-apply S3_DATASET_NAME=ci_20260916_01` |
+| `1-brand-s3-workflow-to-ls` | 上传 S3、启动 Nginx 代理、生成并导入 Label Studio | `make 1-brand-s3-workflow-to-ls S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_BUCKET=<bucket> S3_UPLOAD_WORKERS=8` |
 | `brand-s3-ls-export` | 从 Label Studio 导出 S3 图片标注 JSON；需传 LS_PROJECT_ID=<项目ID> | `make brand-s3-ls-export S3_DATASET_NAME=ci_20260916_01 LS_PROJECT_ID=<项目ID>` |
 | `brand-s3-ls-to-yolo` | 将 S3 图片 Label Studio 导出转换为 YOLO 标签和 EC2 下载清单 | `make brand-s3-ls-to-yolo S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper S3_LS_TO_YOLO_CLEAR=1` |
 | `2-brand-s3-workflow-after-ls` | 导出 S3 图片标注并生成 YOLO 标签/EC2 图片清单 | `make 2-brand-s3-workflow-after-ls S3_DATASET_NAME=ci_20260916_01 LS_PROJECT_ID=<项目ID> S3_LS_TO_YOLO_CLEAR=1` |

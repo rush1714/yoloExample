@@ -24,6 +24,7 @@ from scripts.s3.brand_s3_config import (  # pylint: disable=wrong-import-positio
     https_url_for_object,
     iter_image_files,
     load_config,
+    nginx_url_for_object,
     proxy_url_for_object,
     s3_key_for_relative_path,
 )
@@ -69,6 +70,7 @@ def build_manifest_record(
         "s3_key": key,
         "s3_uri": f"s3://{config.bucket}/{key}",
         "https_url": https_url_for_object(config.bucket, key, config.region, config.public_base_url),
+        "nginx_url": nginx_url_for_object(config.proxy_base_url, config.dataset_name, key),
         "proxy_url": proxy_url_for_object(config.proxy_base_url, config.dataset_name, key),
         "size_bytes": image_path.stat().st_size,
         "uploaded": uploaded,
@@ -264,6 +266,7 @@ def write_manifest(records: list[dict[str, object]], config: BrandS3Config) -> N
         "s3_key",
         "s3_uri",
         "https_url",
+        "nginx_url",
         "proxy_url",
         "size_bytes",
         "uploaded",

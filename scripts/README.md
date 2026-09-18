@@ -14,7 +14,7 @@
 | `label_studio/` | Label Studio 导入、导出和标注转 YOLO。 | `apply_import.py`、`generate_*_import.py`、`export*_to_yolo.py` |
 | `training/` | 本地训练和数据集校验。 | `train.py`、`validate_dataset.py` |
 | `inference/` | 本地推理。 | `predict.py` |
-| `s3/` | S3 配置、上传和本地图片代理。 | `upload_images_to_s3.py`、`s3_image_proxy.py` |
+| `s3/` | S3 配置、上传和本地图片代理。 | `upload_images_to_s3.py`、`render_nginx_image_proxy.py`、`s3_image_proxy.py` |
 | `ec2/` | EC2 远端编排。 | `diaper_workflow.py`、`s3_workflow.py` |
 | `cloud/` | 兼容旧路径的轻量入口，不再放主要实现。 | `ec2_diaper_workflow.py`、`ec2_s3_workflow.py` |
 
@@ -116,10 +116,17 @@ uv run python scripts/s3/upload_images_to_s3.py \
   --bucket <bucket> \
   --prefix demo \
   --workers 8
-uv run python scripts/s3/s3_image_proxy.py \
+uv run python scripts/s3/render_nginx_image_proxy.py \
   --config config/brand_s3_ec2.local.yaml \
+  --dataset-name demo \
+  --manifest datasets/s3/demo/metadata/s3_images.json \
   --bucket <bucket> \
-  --region ap-southeast-1
+  --region ap-southeast-1 \
+  --output-conf .tmp/s3-nginx/demo/nginx.conf \
+  --map-output .tmp/s3-nginx/demo/s3_image_map.conf \
+  --cache-dir .tmp/s3-nginx/demo/cache \
+  --pid-path .tmp/s3-nginx/demo/nginx.pid
+nginx -c .tmp/s3-nginx/demo/nginx.conf
 
 # EC2 编排（默认 dry-run；加 --execute 才真实执行）
 uv run python scripts/ec2/diaper_workflow.py train \

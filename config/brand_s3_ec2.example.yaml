@@ -19,9 +19,9 @@ s3:
   public_base_url:
 
 label_studio:
-  # proxy：Label Studio 通过本地代理加载 S3 图片，避免必须配置 S3 CORS。
-  # https：仅当对象可公开访问且浏览器可加载时使用。
-  image_url_mode: proxy
+  # nginx：Label Studio 通过本地 Nginx 代理加载 S3 图片；Nginx 可使用预签名 URL 并做本地缓存。
+  # proxy：回退到旧 Python 代理；https：仅当对象可公开访问且浏览器可加载时使用。
+  image_url_mode: nginx
   proxy_base_url: http://127.0.0.1:3010
   proxy_allowed_origin: http://localhost:9001
   project_title: S3 Images local_dataset

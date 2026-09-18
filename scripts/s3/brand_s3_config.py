@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlencode
@@ -161,6 +162,22 @@ def proxy_url_for_object(proxy_base_url: str, dataset_name: str, key: str) -> st
     return f"{proxy_base_url.rstrip('/')}/image?{query}"
 
 
+def nginx_url_for_object(proxy_base_url: str, dataset_name: str, key: str) -> str:
+    """生成本地 Nginx 图片代理 URL。
+
+    Nginx 代理会把该短路径映射到真实 S3 HTTPS 或预签名 URL。这里不直接把
+    S3 key 暴露到浏览器 URL 中，避免超长对象 key 影响 Label Studio 前端渲染，
+    也减少路径中空格、中文等字符对 Nginx location 匹配的影响。
+    """
+    digest = sha256(f"{dataset_name}\0{key}".encode("utf-8")).hexdigest()[:24]
+    suffix = Path(key).suffix.lower()
+    safe_dataset = "".join(
+        char if ord(char) < 128 and (char.isalnum() or char in "._-") else "_"
+        for char in (dataset_name.strip() or "local_dataset")
+    )
+    return f"{proxy_base_url.rstrip('/')}/image/{safe_dataset}/{digest}{suffix}"
+
+
 def iter_image_files(input_dir: Path, recursive: bool) -> list[Path]:
     """扫描图片目录并按相对路径稳定排序。"""
     pattern = "**/*" if recursive else "*"
@@ -210,7 +227,7 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
     profile = _first_text(overrides.get("profile"), os.environ.get("AWS_PROFILE"), _nested_get(payload, "s3.profile"))
     endpoint_url = _first_text(overrides.get("endpoint_url"), _nested_get(payload, "s3.endpoint_url"))
     public_base_url = _first_text(overrides.get("public_base_url"), _nested_get(payload, "s3.public_base_url"))
-    image_url_mode = _first_text(overrides.get("image_url_mode"), _nested_get(payload, "label_studio.image_url_mode"), default="proxy")
+    image_url_mode = _first_text(overrides.get("image_url_mode"), _nested_get(payload, "label_studio.image_url_mode"), default="nginx")
     proxy_base_url = _first_text(
         overrides.get("proxy_base_url"),
         _nested_get(payload, "label_studio.proxy_base_url"),

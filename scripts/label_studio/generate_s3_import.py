@@ -20,6 +20,7 @@ from scripts.s3.brand_s3_config import (  # pylint: disable=wrong-import-positio
     https_url_for_object,
     load_config,
     load_manifest_records,
+    nginx_url_for_object,
     proxy_url_for_object,
 )
 
@@ -46,6 +47,8 @@ def image_value_for_record(record: dict[str, Any], image_url_mode: str) -> str:
         return str(record.get("https_url", ""))
     if image_url_mode == "s3":
         return str(record.get("s3_uri", ""))
+    if image_url_mode == "nginx":
+        return str(record.get("nginx_url", ""))
     return str(record.get("proxy_url", ""))
 
 
@@ -59,6 +62,7 @@ def enrich_manifest_record(record: dict[str, Any], proxy_base_url: str, image_ur
     if bucket and key:
         enriched.setdefault("s3_uri", f"s3://{bucket}/{key}")
         enriched.setdefault("https_url", https_url_for_object(bucket, key, region))
+        enriched["nginx_url"] = nginx_url_for_object(proxy_base_url, dataset_name, key)
         enriched["proxy_url"] = proxy_url_for_object(proxy_base_url, dataset_name, key)
     enriched["image"] = image_value_for_record(enriched, image_url_mode)
     return enriched
@@ -115,7 +119,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-name", default="", help="数据集短名称")
     parser.add_argument("--label-name", default="", help="单类别标签名")
     parser.add_argument("--dataset-root", default="", help="本地 S3 工作流输出根目录")
-    parser.add_argument("--image-url-mode", choices=["proxy", "https", "s3"], default="", help="LS 图片地址模式")
+    parser.add_argument("--image-url-mode", choices=["nginx", "proxy", "https", "s3"], default="", help="LS 图片地址模式")
     parser.add_argument("--proxy-base-url", default="", help="本地 S3 图片代理 base URL")
     return parser.parse_args()
 
