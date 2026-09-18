@@ -2,6 +2,8 @@
 
 本目录负责“图片已经在本机目录中”的流程：扫描本地目录、导入 Label Studio、人工标注后转 YOLO，以及把转换后的 YOLO 数据集上传到 EC2 训练。
 
+> 新项目建议优先使用 `makefiles/label-workflow/README.md` 中的通用 `label-*` 命令，通过 `LABEL_SET` / `LABELS` 选择一个或多个类别。本目录命令保留为历史单类别兼容入口。
+
 ## 本地标注闭环
 
 ```bash

@@ -24,7 +24,7 @@ EXCEL_TIMEOUT      ?= 30
 
 # ── 品牌与数据目录公共参数 ───────────────────────────────────
 BRAND              ?= all
-BRAND_LIBRARY      ?= $(PROJECT_ROOT)/config/brand_keywords.json
+BRAND_LIBRARY      ?= $(PROJECT_ROOT)/config/label_categories.json
 BRAND_PROFILE_SCRIPT := $(PROJECT_ROOT)/scripts/config/brand_profile.py
 DATASET_NAME       := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field dataset-name)
 BRAND_DISPLAY_NAME := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field display-name)
@@ -125,7 +125,16 @@ help-params: ## 显示公共 Make 参数默认值；流程专属参数详见 mak
 	@printf "  EXCEL_COLUMN=%s\n" "$(EXCEL_COLUMN)"
 	@printf "  EXCEL_WORKERS=%s\n" "$(EXCEL_WORKERS)"
 	@printf "  EXCEL_TIMEOUT=%s\n" "$(EXCEL_TIMEOUT)"
-	@printf "\n[品牌与数据集]\n"
+	@printf "\n[通用类别与数据集]\n"
+	@printf "  LABEL_CATALOG=%s\n" "$(LABEL_CATALOG)"
+	@printf "  COUNTRY=%s\n" "$(COUNTRY)"
+	@printf "  DATA_VERSION=%s\n" "$(DATA_VERSION)"
+	@printf "  LABEL_SET=%s\n" "$(LABEL_SET)"
+	@printf "  LABELS=%s\n" "$(LABELS)"
+	@printf "  LABEL_DATASET_NAME=%s\n" "$(LABEL_DATASET_NAME)"
+	@printf "  LABEL_DATASET_ROOT=%s\n" "$(LABEL_DATASET_ROOT)"
+	@printf "  LABEL_DATA_YAML=%s\n" "$(LABEL_DATA_YAML)"
+	@printf "\n[兼容品牌与数据集]\n"
 	@printf "  BRAND=%s\n" "$(BRAND)"
 	@printf "  DATASET_ROOT=%s\n" "$(DATASET_ROOT)"
 	@printf "  TRAIN_DATA_YAML=%s\n" "$(TRAIN_DATA_YAML)"
@@ -150,6 +159,7 @@ help-params: ## 显示公共 Make 参数默认值；流程专属参数详见 mak
 	@printf "  EC2_RUN_NAME=%s\n" "$(EC2_RUN_NAME)"
 	@printf "  EC2_EXECUTE=%s\n" "$(EC2_EXECUTE)"
 	@printf "\n更多流程专属变量示例请看：\n"
+	@printf "  makefiles/label-workflow/README.md\n"
 	@printf "  makefiles/local-dir/README.md\n"
 	@printf "  makefiles/ec2/README.md\n"
 	@printf "  makefiles/brand-ocr-yoloworld/README.md\n"

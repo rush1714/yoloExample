@@ -20,6 +20,7 @@ const { URL } = require('url');
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const PUBLIC_ROOT = path.join(__dirname, 'public');
 const CONSOLE_STATE_PATH = path.join(__dirname, 'state.json');
+const LABEL_CATALOG_PATH = path.join(PROJECT_ROOT, 'config', 'label_categories.json');
 const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const MAX_BODY_BYTES = 128 * 1024;
 const MAX_LOG_BYTES = 300 * 1024;
@@ -32,36 +33,22 @@ const TEXT_REPORT_EXTENSIONS = new Set(['.json', '.csv', '.txt', '.xml', '.yaml'
  */
 const DATA_ROOTS = [
   {
-    id: 'multibrand_raw',
-    label: '多品牌 / 原始图片',
-    description: 'datasets/multibrand/raw/images',
-    relativePath: 'datasets/multibrand/raw/images',
+    id: 'datasets_all',
+    label: '全部 datasets 图片',
+    description: 'datasets',
+    relativePath: 'datasets',
     recursive: true,
   },
   {
-    id: 'multibrand_pseudo',
-    label: '多品牌 / 预标注图片',
-    description: 'datasets/multibrand/pseudo/images',
-    relativePath: 'datasets/multibrand/pseudo/images',
-    recursive: true,
-  },
-  {
-    id: 'multibrand_train',
-    label: '多品牌 / 正式训练图片',
-    description: 'datasets/multibrand/images',
-    relativePath: 'datasets/multibrand/images',
-    recursive: true,
-  },
-  {
-    id: 'diaper_category',
-    label: '纸尿裤大类 / 全部图片',
-    description: 'datasets/diaper_category',
-    relativePath: 'datasets/diaper_category',
+    id: 'excel_datasets',
+    label: 'Excel 导入数据',
+    description: 'datasets/excel',
+    relativePath: 'datasets/excel',
     recursive: true,
   },
   {
     id: 'local_datasets',
-    label: '本地目录导入数据',
+    label: '本地目录数据',
     description: 'datasets/local',
     relativePath: 'datasets/local',
     recursive: true,
@@ -74,17 +61,17 @@ const DATA_ROOTS = [
     recursive: true,
   },
   {
-    id: 'softcare_dataset',
-    label: 'Softcare 单品牌数据',
-    description: 'datasets/softcare',
-    relativePath: 'datasets/softcare',
+    id: 'legacy_multibrand',
+    label: '兼容 / 多品牌旧数据',
+    description: 'datasets/multibrand',
+    relativePath: 'datasets/multibrand',
     recursive: true,
   },
   {
-    id: 'visual_prompts',
-    label: 'YOLOE 参考图',
-    description: 'datasets/multibrand/visual_prompts',
-    relativePath: 'datasets/multibrand/visual_prompts',
+    id: 'legacy_diaper',
+    label: '兼容 / 纸尿裤旧数据',
+    description: 'datasets/diaper_category',
+    relativePath: 'datasets/diaper_category',
     recursive: true,
   },
   {
@@ -102,17 +89,10 @@ const DATA_ROOTS = [
     recursive: true,
   },
   {
-    id: 'ec2_artifacts',
-    label: 'EC2 训练归档图片',
-    description: 'artifacts/diaper_category',
-    relativePath: 'artifacts/diaper_category',
-    recursive: true,
-  },
-  {
-    id: 's3_ec2_artifacts',
-    label: 'S3 / EC2 训练归档',
-    description: 'artifacts/s3',
-    relativePath: 'artifacts/s3',
+    id: 'artifacts',
+    label: '训练归档图片',
+    description: 'artifacts',
+    relativePath: 'artifacts',
     recursive: true,
   },
   {
@@ -122,15 +102,7 @@ const DATA_ROOTS = [
     relativePath: 'data/samples',
     recursive: true,
   },
-  {
-    id: 'allround_images',
-    label: 'Allround',
-    description: 'datasets/allround_purple/v2026-09-17/raw/images',
-    relativePath: 'datasets/allround_purple/v2026-09-17/raw/images',
-    recursive: true,
-  },
 ];
-
 /**
  * 文件服务白名单目录。
  * 只要图片位于这些目录下，就允许通过 /api/file 读取。
@@ -139,6 +111,7 @@ const ALLOWED_FILE_ROOTS = [
   'datasets',
   'outputs',
   'models/train',
+  'artifacts',
   'artifacts/diaper_category',
   'artifacts/s3',
   'data/samples',
@@ -150,242 +123,59 @@ const ALLOWED_FILE_ROOTS = [
  */
 const COMMAND_GROUPS = [
   {
+    id: 'label_categories',
+    title: '类别管理',
+    description: '维护可提交 Git 的通用类别列表；命令中的 LABEL_SET/LABELS 会从这里读取。',
+    categoryManager: true,
+  },
+  {
     id: 'prepare_labeling',
     title: '图片来源 / 标注准备',
-    description: '按图片来源和前置处理方式组织：Excel、本地目录、S3、OCR、预标注和 Label Studio 导入。',
+    description: '按来源组织导入流程：Excel、本地目录、S3；类别统一由 LABEL_SET/LABELS 多选控制。',
     children: [
       {
-        id: 'excel_ocr_yoloworld',
-        title: 'Excel → OCR → YOLO-World → LS',
-        description: '业务 Excel 图片下载后，使用常规 OCR 筛选，再用 YOLO-World 预标注并导入 Label Studio。',
+        id: 'generic_excel',
+        title: 'Excel → LS',
+        description: '从 Excel 下载图片到国家/版本目录，并按通用类别导入 Label Studio。',
         commands: [
-          {
-            target: 'workflow-to-ls',
-            title: '一键到 Label Studio（常规 OCR + YOLO-World）',
-            description: '执行 Excel 导入、常规 OCR、YOLO-World 预标注、生成并导入 Label Studio。',
-            params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_CONF'],
-          },
-          {
-            target: 'step-1-import-excel',
-            title: '1. Excel 导入图片',
-            description: '从 Excel 图片 URL 列下载原始图片。',
-            params: ['EXCEL', 'EXCEL_COLUMN', 'EXCEL_WORKERS', 'EXCEL_TIMEOUT'],
-          },
-          {
-            target: 'step-2-ocr',
-            title: '2. 常规 OCR 筛选',
-            description: '使用 RapidOCR/EasyOCR 筛选品牌候选图片。',
-            params: ['BRAND', 'OCR_ENGINE', 'OCR_WORKERS', 'OCR_LIMIT', 'OCR_FUZZY_THRESHOLD', 'OCR_MIN_CONFIDENCE', 'OCR_RESUME'],
-          },
-          {
-            target: 'step-3-pseudo-label',
-            title: '3. YOLO-World 预标注',
-            description: '用开放词汇模型生成品牌包装候选框。',
-            params: ['BRAND', 'PSEUDO_MODEL', 'PSEUDO_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ', 'PSEUDO_USE_OCR_CANDIDATES', 'PSEUDO_NMS_IOU', 'PSEUDO_MAX_AREA_RATIO'],
-          },
-          {
-            target: 'yolo-world-ab-test',
-            title: 'YOLO-World A/B 测试',
-            description: '用同一批图片对比多个 YOLO-World 模型并生成报告。',
-            params: ['BRAND', 'AB_MODELS', 'AB_LIMIT', 'AB_PREVIEW_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ'],
-          },
+          { target: '1-label-excel-workflow-to-ls', title: '一键 Excel 导入到 LS', description: '下载 Excel 图片，生成通用类别 YAML/LS JSON，并创建 Label Studio 项目。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EXCEL', 'EXCEL_COLUMN', 'EXCEL_WORKERS', 'EXCEL_TIMEOUT', 'LABEL_IMPORT_LIMIT'] },
+          { target: '1-label-excel-ocr-yoloworld-workflow-to-ls', title: '一键 Excel + OCR + YOLO-World 到 LS', description: '使用 brands 类别列表时，下载图片、OCR 筛选、YOLO-World 预标注并导入 Label Studio。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_CONF'] },
+          { target: 'label-excel-import', title: '1. Excel 下载图片', description: '把 Excel 图片 URL 列下载到通用 raw/images 目录。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EXCEL', 'EXCEL_COLUMN', 'EXCEL_WORKERS', 'EXCEL_TIMEOUT'] },
+          { target: 'label-ls-import-json-from-raw', title: '2. 生成 LS 导入 JSON', description: '读取下载报告并生成通用类别 Label Studio 导入 JSON/标签配置。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_IMPORT_LIMIT'] },
+          { target: 'label-ls-apply', title: '3. 导入任务到 LS', description: '将已生成的通用类别导入 JSON 创建为 Label Studio 项目。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_DATA_DOMAIN', 'LABEL_LS_LOCAL_FILES_PATH'] },
         ],
       },
       {
-        id: 'excel_ollama_yoloworld',
-        title: 'Excel → Ollama OCR → YOLO-World → LS',
-        description: '业务 Excel 图片下载后，使用本地视觉大模型 OCR，再走 YOLO-World 预标注和 LS 导入。',
-        commands: [
-          {
-            target: 'workflow-to-ls-llm',
-            title: '一键到 Label Studio（Ollama OCR）',
-            description: '使用本地视觉大模型 OCR，其余流程复用 YOLO-World 和 Label Studio。',
-            params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'LLM_OCR_MODEL', 'LLM_OCR_WORKERS', 'PSEUDO_LIMIT'],
-          },
-          {
-            target: 'step-2-ocr-llm',
-            title: 'Ollama OCR 筛选',
-            description: '使用本地 Ollama 视觉模型提取图片文字。',
-            params: ['BRAND', 'OCR_LIMIT', 'LLM_OCR_MODEL', 'LLM_OCR_WORKERS', 'LLM_OCR_TIMEOUT', 'OCR_FUZZY_THRESHOLD', 'OCR_RESUME'],
-          },
-        ],
-      },
-      {
-        id: 'excel_ocr_yoloe_visual',
-        title: 'Excel → OCR → YOLOE Visual → LS',
-        description: '业务 Excel 图片下载后，使用 OCR 候选和品牌参考图进行 YOLOE visual prompt 预标注。',
-        commands: [
-          {
-            target: 'workflow-to-ls-visual',
-            title: '一键到 Label Studio（YOLOE 视觉参考图）',
-            description: '常规 OCR 后使用 YOLOE visual prompt 参考图生成预标注。',
-            params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_VISUAL_MODEL', 'PSEUDO_VISUAL_DEVICE'],
-          },
-          {
-            target: 'visual-prompts-import',
-            title: '导入 YOLOE 品牌参考图',
-            description: '从品牌图片 Excel 下载 visual prompt 参考图。',
-            params: ['VISUAL_PROMPTS_EXCEL', 'VISUAL_PROMPTS_BRAND_COLUMN', 'VISUAL_PROMPTS_ATTACH_COLUMN', 'VISUAL_PROMPTS_LIMIT'],
-          },
-          {
-            target: 'step-3-pseudo-label-visual',
-            title: 'YOLOE 视觉参考图预标注',
-            description: '读取品牌参考图，用 YOLOE visual prompt 生成候选框。',
-            params: ['BRAND', 'PSEUDO_VISUAL_MODEL', 'PSEUDO_VISUAL_DEVICE', 'PSEUDO_VISUAL_REFERENCE_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ'],
-          },
-        ],
-      },
-      {
-        id: 'local_dir_labeling',
+        id: 'generic_local_dir',
         title: '本地目录 → LS',
-        description: '本机已有图片目录直接导入 Label Studio，人工标注后转为 YOLO 训练集。',
+        description: '本机已有图片目录直接按通用类别导入 Label Studio。',
         commands: [
-          {
-            target: '1-local-dir-workflow-to-ls',
-            title: '一键导入本地目录到 Label Studio',
-            description: '扫描本地图片目录，生成单类别导入 JSON 和标签配置，并创建 Label Studio 项目。',
-            params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_RECURSIVE', 'LOCAL_LIMIT'],
-          },
-          {
-            target: 'local-dir-ls-import-json',
-            title: '生成本地目录 LS 导入 JSON',
-            description: '只扫描图片目录并生成 Label Studio 导入 JSON / XML，不创建项目。',
-            params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_RECURSIVE', 'LOCAL_LIMIT'],
-          },
-          {
-            target: 'local-dir-ls-apply',
-            title: '导入本地目录任务到 Label Studio',
-            description: '使用已生成的导入 JSON 创建 Label Studio 项目和本地文件存储。',
-            params: ['LOCAL_IMAGES_DIR', 'LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME'],
-          },
-          {
-            target: '2-local-dir-workflow-after-ls',
-            title: '一键导出并转换 YOLO 训练集',
-            description: '人工标注完成后，从 Label Studio 导出并转换为 YOLO 训练集。',
-            params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LS_PROJECT_ID', 'LOCAL_LS_TO_YOLO_CLEAR', 'LOCAL_LS_TO_YOLO_SKIP_EMPTY'],
-          },
+          { target: '1-label-local-workflow-to-ls', title: '一键本地目录导入到 LS', description: '扫描本地图片目录，生成通用类别 LS JSON/标签配置并创建项目。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_DATASET_ROOT', 'LABEL_RECURSIVE', 'LABEL_IMPORT_LIMIT'] },
+          { target: 'label-local-ls-import-json', title: '生成本地目录 LS JSON', description: '只生成导入 JSON 和标签配置，不创建 Label Studio 项目。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_DATASET_ROOT', 'LABEL_RECURSIVE', 'LABEL_IMPORT_LIMIT'] },
         ],
       },
       {
-        id: 's3_images_labeling',
+        id: 'generic_s3',
         title: '本地目录 → S3 → LS',
-        description: '本地图片上传 S3，Label Studio 通过 S3/proxy 图片地址标注。',
+        description: '本地图片上传 S3，再按通用类别导入 Label Studio。',
         commands: [
-          {
-            target: 'brand-s3-check-config',
-            title: '检查 S3 参数',
-            description: '打印当前 S3 数据集、桶、前缀、代理等关键参数。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_LOCAL_IMAGES_DIR', 'S3_BUCKET', 'S3_PREFIX', 'S3_REGION'],
-          },
-          {
-            target: 'brand-s3-upload-images',
-            title: '上传本地图片到 S3',
-            description: '扫描本地图片目录，上传到 S3，并生成 JSON/CSV/URL 清单。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_LOCAL_IMAGES_DIR', 'S3_BUCKET', 'S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_RECURSIVE', 'S3_LIMIT', 'S3_UPLOAD_WORKERS', 'S3_DRY_RUN'],
-          },
-          {
-            target: 'brand-s3-sync-manifest-from-s3',
-            title: '从 S3 反建上传清单',
-            description: '查询 S3 目标目录，结合本地图片目录生成可续传清单；适合旧上传中断后迁移到新续传流程。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_LOCAL_IMAGES_DIR', 'S3_BUCKET', 'S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_RECURSIVE', 'S3_LIMIT'],
-          },
-          {
-            target: 'brand-s3-proxy-start',
-            title: '启动 S3 图片代理',
-            description: '默认启动本地 Nginx 图片代理并缓存 S3 图片；需要时可切回旧 Python 代理。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_DATASET_ROOT', 'S3_MANIFEST_JSON', 'S3_BUCKET', 'S3_REGION', 'S3_PROFILE', 'S3_ENDPOINT_URL', 'S3_PUBLIC_BASE_URL', 'S3_PROXY_BACKEND', 'S3_PROXY_HOST', 'S3_PROXY_PORT', 'S3_PROXY_BASE_URL', 'S3_PROXY_ALLOWED_ORIGIN', 'S3_NGINX_BIN', 'S3_NGINX_MODE', 'S3_NGINX_PRESIGN_EXPIRES', 'S3_NGINX_CONF', 'S3_NGINX_MAP', 'S3_NGINX_CACHE_DIR', 'S3_NGINX_PID'],
-          },
-          // Nginx 代理相关命令拆成独立入口，方便只生成配置、直接启动、刷新或停止。
-          {
-            target: 'brand-s3-nginx-render-config',
-            title: '生成 Nginx 图片代理配置',
-            description: '根据 S3 图片清单生成本地 Nginx 配置和图片 URL 映射，不启动服务。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_DATASET_ROOT', 'S3_MANIFEST_JSON', 'S3_BUCKET', 'S3_REGION', 'S3_PROFILE', 'S3_ENDPOINT_URL', 'S3_PUBLIC_BASE_URL', 'S3_PROXY_HOST', 'S3_PROXY_PORT', 'S3_PROXY_BASE_URL', 'S3_PROXY_ALLOWED_ORIGIN', 'S3_NGINX_MODE', 'S3_NGINX_PRESIGN_EXPIRES', 'S3_NGINX_CONF', 'S3_NGINX_MAP', 'S3_NGINX_CACHE_DIR', 'S3_NGINX_PID'],
-          },
-          {
-            target: 'brand-s3-nginx-start',
-            title: '启动 Nginx 图片代理',
-            description: '生成配置后启动本地 Nginx 图片代理；已有 pid 时会 reload。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_DATASET_ROOT', 'S3_MANIFEST_JSON', 'S3_BUCKET', 'S3_REGION', 'S3_PROFILE', 'S3_ENDPOINT_URL', 'S3_PUBLIC_BASE_URL', 'S3_PROXY_HOST', 'S3_PROXY_PORT', 'S3_PROXY_BASE_URL', 'S3_PROXY_ALLOWED_ORIGIN', 'S3_NGINX_BIN', 'S3_NGINX_MODE', 'S3_NGINX_PRESIGN_EXPIRES', 'S3_NGINX_CONF', 'S3_NGINX_MAP', 'S3_NGINX_CACHE_DIR', 'S3_NGINX_PID'],
-          },
-          {
-            target: 'brand-s3-nginx-reload',
-            title: '刷新 Nginx 图片代理',
-            description: '重新生成 Nginx map 并 reload，适合刷新私有桶预签名 URL。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_DATASET_ROOT', 'S3_MANIFEST_JSON', 'S3_BUCKET', 'S3_REGION', 'S3_PROFILE', 'S3_ENDPOINT_URL', 'S3_PUBLIC_BASE_URL', 'S3_PROXY_HOST', 'S3_PROXY_PORT', 'S3_PROXY_BASE_URL', 'S3_PROXY_ALLOWED_ORIGIN', 'S3_NGINX_BIN', 'S3_NGINX_MODE', 'S3_NGINX_PRESIGN_EXPIRES', 'S3_NGINX_CONF', 'S3_NGINX_MAP', 'S3_NGINX_CACHE_DIR', 'S3_NGINX_PID'],
-          },
-          {
-            target: 'brand-s3-nginx-stop',
-            title: '停止 Nginx 图片代理',
-            description: '停止由本流程启动的本地 Nginx 图片代理。',
-            params: ['S3_DATASET_NAME', 'S3_NGINX_BIN', 'S3_NGINX_CONF', 'S3_NGINX_PID'],
-          },
-          {
-            target: 'brand-s3-python-proxy-start',
-            title: '启动旧 Python 图片代理',
-            description: '在 Nginx 不可用时启动旧 Python S3 图片代理作为回退。',
-            params: ['BRAND_S3_CONFIG', 'S3_BUCKET', 'S3_REGION', 'S3_PROFILE', 'S3_ENDPOINT_URL', 'S3_PROXY_HOST', 'S3_PROXY_PORT', 'S3_PROXY_ALLOWED_ORIGIN'],
-          },
-          {
-            target: 'brand-s3-ls-import-json',
-            title: '生成 S3 LS 导入 JSON',
-            description: '根据 S3 图片清单生成 Label Studio 导入 JSON 和单类别标签配置。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_MANIFEST_JSON', 'S3_IMAGE_URL_MODE', 'S3_PROXY_BASE_URL'],
-          },
-          {
-            target: 'brand-s3-ls-apply',
-            title: '导入 S3 图片任务到 LS',
-            description: '把 S3/proxy 图片任务导入 Label Studio；proxy 模式下需保持代理运行。',
-            params: ['S3_DATASET_NAME', 'S3_LS_IMPORT_JSON', 'S3_LS_LABEL_CONFIG_XML'],
-          },
-          {
-            target: '1-brand-s3-workflow-to-ls',
-            title: '一键上传 S3 并导入 LS',
-            description: '上传图片、生成 S3 LS 导入 JSON，并创建 Label Studio 项目。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_LOCAL_IMAGES_DIR', 'S3_BUCKET', 'S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_LIMIT', 'S3_UPLOAD_WORKERS', 'S3_DRY_RUN'],
-          },
-          {
-            target: 'brand-s3-ls-export',
-            title: '导出 S3 图片标注 JSON',
-            description: '从 Label Studio 导出 S3 图片标注 JSON；需要填写 LS_PROJECT_ID。',
-            params: ['S3_DATASET_NAME', 'LS_PROJECT_ID', 'S3_LS_EXPORT_PATH'],
-          },
-          {
-            target: 'brand-s3-ls-to-yolo',
-            title: 'S3 标注转 YOLO/EC2 清单',
-            description: '将 S3 图片标注转换为 YOLO labels、EC2 图片下载清单和数据集 YAML。',
-            params: ['BRAND_S3_CONFIG', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_LS_EXPORT_PATH', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
-          },
-          {
-            target: '2-brand-s3-workflow-after-ls',
-            title: '一键导出并生成 YOLO/EC2 清单',
-            description: '从 Label Studio 导出 S3 标注结果，并生成 YOLO labels、EC2 图片下载清单和数据集 YAML。',
-            params: ['S3_DATASET_NAME', 'S3_LABEL_NAME', 'LS_PROJECT_ID', 'S3_LS_EXPORT_PATH', 'S3_DATASET_ROOT', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
-          },
-          {
-            target: 'local-ls-s3-to-yolo',
-            title: '本地 LS 导出生成 S3 EC2 清单',
-            description: '读取本地地址 LS 导出和 s3_images.json，匹配后生成 YOLO labels 与 EC2 下载清单。',
-            params: ['LOCAL_LS_EXPORT_PATH', 'S3_MANIFEST_JSON', 'S3_LOCAL_IMAGES_DIR', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
-          },
-          {
-            target: '2-local-ls-s3-workflow-after-ls',
-            title: '一键导出本地 LS 并生成 S3 EC2 清单',
-            description: '先按本地目录流程从 LS 导出，再结合 S3 上传清单生成 YOLO labels 与 EC2 下载清单。',
-            params: ['LOCAL_DATASET_NAME', 'LOCAL_LS_EXPORT_PATH', 'S3_MANIFEST_JSON', 'S3_LOCAL_IMAGES_DIR', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'LS_PROJECT_ID', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
-          },
-          {
-            target: 'local-ls-s3-merge-projects',
-            title: '合并多个本地 LS 项目',
-            description: '按 LS_PROJECT_ID 顺序导出多个本地地址 LS 项目，仅保留有有效框的任务并去重合并。',
-            params: ['LS_PROJECT_ID', 'S3_LABEL_NAME', 'S3_LOCAL_MERGED_LS_EXPORT_PATH', 'S3_LOCAL_MERGE_REPORT'],
-          },
-          {
-            target: '2-local-ls-s3-merge-workflow-after-ls',
-            title: '合并多个本地 LS 项目生成 S3 EC2 清单',
-            description: '导出并合并多个本地地址 LS 项目，再匹配 s3_images.json 生成 YOLO labels 与 EC2 下载清单。',
-            params: ['LS_PROJECT_ID', 'S3_MANIFEST_JSON', 'S3_LOCAL_IMAGES_DIR', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'S3_LOCAL_MERGED_LS_EXPORT_PATH', 'S3_LOCAL_MERGE_REPORT', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
-          },
+          { target: 'label-s3-upload-images', title: '上传本地图片到 S3', description: '扫描本地图片目录，上传到 S3，并生成上传清单。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_S3_DATASET_ROOT', 'S3_BUCKET', 'LABEL_S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_UPLOAD_WORKERS', 'S3_DRY_RUN'] },
+          { target: 'label-s3-ls-import-json', title: '生成 S3 LS 导入 JSON', description: '读取 S3 上传清单，生成通用类别 LS JSON/标签配置。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_S3_DATASET_ROOT', 'LABEL_S3_MANIFEST_JSON', 'S3_IMAGE_URL_MODE', 'S3_PROXY_BASE_URL', 'LABEL_IMPORT_LIMIT'] },
+          { target: 'label-s3-ls-apply', title: '导入 S3 任务到 LS', description: '把 S3/proxy 图片任务导入 Label Studio；proxy 模式需保持代理运行。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_S3_LS_IMPORT_JSON', 'LABEL_S3_LS_LABEL_CONFIG_XML'] },
+          { target: '1-label-s3-workflow-to-ls', title: '一键上传 S3 并导入 LS', description: '上传本地图片到 S3，生成 LS 导入 JSON，并创建 Label Studio 项目。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LOCAL_IMAGES_DIR', 'S3_BUCKET', 'LABEL_S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_UPLOAD_WORKERS', 'S3_DRY_RUN'] },
+        ],
+      },
+      {
+        id: 'generic_pseudo',
+        title: '品牌 OCR / 预标注兼容',
+        description: '历史品牌 OCR、YOLO-World、YOLOE 预标注入口；类别仍来自品牌类别列表。',
+        commands: [
+          { target: 'workflow-to-ls', title: '兼容：品牌 OCR + YOLO-World 到 LS', description: '保留历史多品牌自动预标注流程，防止遗漏 OCR/YOLO-World 功能。', params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_CONF'] },
+          { target: 'workflow-to-ls-llm', title: '兼容：Ollama OCR 到 LS', description: '保留历史本地视觉大模型 OCR 分支。', params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'LLM_OCR_MODEL', 'LLM_OCR_WORKERS', 'PSEUDO_LIMIT'] },
+          { target: 'workflow-to-ls-visual', title: '兼容：YOLOE Visual 到 LS', description: '保留历史 YOLOE visual prompt 分支。', params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_VISUAL_MODEL', 'PSEUDO_VISUAL_DEVICE'] },
+          { target: 'label-ocr', title: '通用品牌 OCR 筛选', description: '在 LABEL_SET=brands 下按 LABELS 多选品牌执行 OCR 候选筛选。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'OCR_ENGINE', 'OCR_WORKERS', 'OCR_LIMIT', 'OCR_FUZZY_THRESHOLD', 'OCR_RESUME'] },
+          { target: 'label-pseudo-label', title: '通用品牌 YOLO-World 预标注', description: '在 LABEL_SET=brands 下按 LABELS 多选品牌生成 YOLO-World 预标注。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'PSEUDO_MODEL', 'PSEUDO_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ', 'PSEUDO_USE_OCR_CANDIDATES'] },
+          { target: 'yolo-world-ab-test', title: 'YOLO-World A/B 测试', description: '对比多个 YOLO-World 模型候选框质量。', params: ['BRAND', 'AB_MODELS', 'AB_LIMIT', 'AB_PREVIEW_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ'] },
         ],
       },
     ],
@@ -393,7 +183,7 @@ const COMMAND_GROUPS = [
   {
     id: 'label_studio',
     title: 'Label Studio',
-    description: '本地标注服务启停、通用导出和标注转 YOLO。',
+    description: '服务启停、导出、合并和通用类别转 YOLO。',
     children: [
       {
         id: 'label_studio_service',
@@ -401,25 +191,21 @@ const COMMAND_GROUPS = [
         description: '初始化、启动和停止本地 Label Studio。',
         commands: [
           { target: 'ls-setup', title: '首次初始化 Label Studio', description: '创建 PostgreSQL 数据库并执行迁移。', params: ['POSTGRE_USER', 'POSTGRE_NAME', 'POSTGRE_HOST', 'POSTGRE_PORT'] },
-          { target: 'ls-start', title: '启动 Label Studio', description: '后台启动 9001 端口的本地 Label Studio。', params: ['LS_PORT'] },
+          { target: 'ls-start', title: '启动 Label Studio', description: '后台启动本地 Label Studio。', params: ['LS_PORT'] },
           { target: 'ls-stop', title: '停止 Label Studio', description: '停止占用 LS_PORT 的 Label Studio 进程。', params: ['LS_PORT'] },
         ],
       },
       {
-        id: 'label_studio_export',
-        title: '导入 / 导出 / 转 YOLO',
-        description: '通用 Label Studio 导入、导出和 YOLO 转换命令。',
+        id: 'label_export_convert',
+        title: '导出 / 合并 / 转 YOLO',
+        description: '通用类别导出、合并和转换。',
         commands: [
-          { target: 'step-4-import-ls', title: '品牌流程导入 LS', description: '生成导入 JSON，并通过 label-studio shell 创建项目和任务。', params: ['BRAND', 'LS_PROJECT_TITLE'] },
-          { target: 'ls-export', title: '导出 Label Studio JSON', description: '从指定项目 ID 导出标注结果。', params: ['BRAND', 'LS_PROJECT_ID', 'LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
-          { target: 'ls-to-yolo', title: '品牌 LS 导出转 YOLO', description: '把 Label Studio JSON 转换为正式 images/labels 训练集。', params: ['BRAND', 'LS_EXPORT_PATH', 'LS_TO_YOLO_CLEAR', 'LS_TO_YOLO_SKIP_EMPTY'] },
-          { target: 'ls-clone-annotated-project', title: '复制已标注项目', description: '复制已有 Label Studio 项目，只保留带有效矩形框的已标注任务。', params: ['LS_SOURCE_PROJECT_ID', 'LS_CLONE_PROJECT_TITLE', 'LS_CLONE_LABEL_NAME', 'LS_CLONE_ANNOTATION_INDEX', 'LS_LOCAL_FILES_PATH'] },
-          { target: 'local-dir-ls-export', title: '本地目录 LS 导出', description: '从指定本地目录 Label Studio 项目导出标注结果 JSON。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LS_PROJECT_ID', 'LOCAL_LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
-          { target: 'local-dir-ls-to-yolo', title: '本地目录 LS 转 YOLO', description: '把本地目录 Label Studio 导出 JSON 转换为 images/labels 训练集。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_LS_EXPORT_PATH', 'LOCAL_LS_TO_YOLO_CLEAR', 'LOCAL_LS_TO_YOLO_SKIP_EMPTY'] },
-          { target: 'brand-s3-ls-export', title: 'S3 图片 LS 导出', description: '从指定 S3 图片 Label Studio 项目导出标注结果 JSON。', params: ['S3_DATASET_NAME', 'S3_DATASET_ROOT', 'LS_PROJECT_ID', 'S3_LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
-          { target: 'brand-s3-ls-to-yolo', title: 'S3 图片 LS 转 YOLO/manifest', description: '生成 YOLO labels 和 EC2 图片下载 manifest。', params: ['S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_LS_EXPORT_PATH', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'] },
-          { target: 'diaper-merge-ls-projects', title: '合并多个 LS 项目有效标注', description: '按 LS_PROJECT_ID 顺序导出多个项目，仅保留有有效框的任务并去重合并；多个 ID 用英文逗号分隔。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME', 'LS_PROJECT_ID', 'DIAPER_MERGED_LS_EXPORT_PATH', 'DIAPER_MERGE_REPORT'] },
-          { target: 'diaper-merge-ls-projects-to-yolo', title: '合并多个 LS 项目并生成 YOLO', description: '导出多个 LS 项目，合并有有效框的任务，然后转换为 YOLO 训练集；LS_PROJECT_ID 支持逗号分隔多个 ID。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME', 'LS_PROJECT_ID', 'LS_TO_YOLO_CLEAR', 'LS_TO_YOLO_SKIP_EMPTY', 'DIAPER_MERGED_LS_EXPORT_PATH', 'DIAPER_MERGE_REPORT'] },
+          { target: 'label-ls-export', title: '导出通用类别 LS JSON', description: '从指定项目 ID 导出标注结果。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LS_PROJECT_ID', 'LABEL_LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
+          { target: 'label-to-yolo', title: '通用本地 LS 转 YOLO', description: '把本地图片 LS 导出转换为 YOLO images/labels 和 YAML。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_DATASET_ROOT', 'LABEL_LS_EXPORT_PATH', 'LABEL_LS_TO_YOLO_CLEAR', 'LABEL_LS_TO_YOLO_SKIP_EMPTY'] },
+          { target: '2-label-workflow-after-ls', title: '一键导出并转 YOLO', description: '导出通用类别 LS 标注并转换为 YOLO 训练集。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LS_PROJECT_ID', 'LABEL_LS_TO_YOLO_CLEAR', 'LABEL_LS_TO_YOLO_SKIP_EMPTY'] },
+          { target: 'label-merge-ls-projects-to-yolo', title: '合并多个 LS 项目并转 YOLO', description: '多个项目 ID 用英文逗号分隔，合并有效框后转为 YOLO。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LS_PROJECT_IDS', 'LABEL_LS_TO_YOLO_CLEAR', 'LABEL_LS_TO_YOLO_SKIP_EMPTY'] },
+          { target: 'label-s3-to-yolo', title: 'S3 LS 转 YOLO/EC2 清单', description: 'S3 图片标注导出后，生成 YOLO labels、YAML 和 EC2 图片下载清单。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_S3_DATASET_ROOT', 'LABEL_S3_LS_EXPORT_PATH', 'LABEL_S3_EC2_IMAGE_MANIFEST_JSON', 'LABEL_S3_EC2_IMAGE_MANIFEST_CSV', 'LABEL_LS_TO_YOLO_CLEAR', 'LABEL_LS_TO_YOLO_SKIP_EMPTY'] },
+          { target: 'label-local-s3-to-yolo', title: '本地 LS + S3 清单转 EC2 清单', description: '本地地址 LS 标注后，结合 S3 上传清单生成 EC2 下载训练清单。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LS_EXPORT_PATH', 'LABEL_S3_MANIFEST_JSON', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_S3_DATASET_ROOT', 'LABEL_LS_TO_YOLO_CLEAR', 'LABEL_LS_TO_YOLO_SKIP_EMPTY'] },
         ],
       },
     ],
@@ -427,78 +213,47 @@ const COMMAND_GROUPS = [
   {
     id: 'local_mac_training',
     title: '本地 Mac 训练 / 推理',
-    description: '在本地 Mac 上校验数据、生成 YAML、训练模型和推理验证。',
-    children: [
-      {
-        id: 'local_mac_brand',
-        title: '品牌 / 多品牌',
-        description: '品牌或多品牌数据集的本地训练与推理。',
-        commands: [
-          { target: 'brand-list', title: '查看品牌列表', description: '输出当前品牌库支持的 BRAND 参数。', params: [] },
-          { target: 'brand-yaml', title: '生成品牌 YAML', description: '根据当前 BRAND 生成 YOLO 数据集 YAML。', params: ['BRAND'] },
-          { target: 'data-validate', title: '校验 YOLO 数据集', description: '检查图片、标签、类别和坐标是否合法。', params: ['BRAND'] },
-          { target: 'train', title: '本地训练 YOLO 模型', description: '训练当前品牌或多品牌模型，并导出 best.pt。', params: ['BRAND', 'TRAIN_BASE_MODEL', 'TRAIN_EPOCHS', 'TRAIN_IMGSZ', 'TRAIN_BATCH', 'TRAIN_DEVICE', 'TRAIN_RESUME', 'TRAIN_NAME'] },
-          { target: 'predict', title: '本地推理验证', description: '用指定模型对图片或 URL 推理，输出 JSON 和带框图片。', params: ['PREDICT_SOURCE', 'PREDICT_MODEL', 'PREDICT_CONF', 'PREDICT_IMGSZ', 'PREDICT_OUTPUT_DIR'] },
-        ],
-      },
-      {
-        id: 'local_mac_single_class',
-        title: '本地目录 / 纸尿裤 YAML',
-        description: '单类别数据集 YAML 生成。后续训练可用通用 train 命令并覆盖 TRAIN_DATA_YAML。',
-        commands: [
-          { target: 'local-dir-yaml', title: '生成本地目录 YOLO YAML', description: '为本地目录单类别训练集生成 Ultralytics 数据集配置。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_DATA_YAML'] },
-          { target: 'diaper-yaml', title: '生成纸尿裤 YAML', description: '生成单类别纸尿裤训练配置。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME'] },
-        ],
-      },
+    description: '本地校验数据、生成 YAML、训练模型和推理验证。',
+    commands: [
+      { target: 'label-list', title: '查看通用类别列表', description: '输出类别配置中的列表和当前 LABEL_SET 可选类别。', params: ['LABEL_SET', 'LABELS'] },
+      { target: 'label-yaml', title: '生成通用类别 YAML', description: '按 LABEL_SET/LABELS 生成 YOLO 数据集 YAML。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_DATASET_ROOT', 'LABEL_DATA_YAML'] },
+      { target: 'data-validate', title: '校验 YOLO 数据集', description: '检查图片、标签、类别和坐标是否合法；可覆盖 TRAIN_DATA_YAML。', params: ['TRAIN_DATA_YAML'] },
+      { target: 'train', title: '本地训练 YOLO 模型', description: '训练指定 YAML 数据集，并导出 best.pt。', params: ['TRAIN_DATA_YAML', 'TRAIN_BASE_MODEL', 'TRAIN_EPOCHS', 'TRAIN_IMGSZ', 'TRAIN_BATCH', 'TRAIN_DEVICE', 'TRAIN_RESUME', 'TRAIN_NAME', 'FINAL_MODEL'] },
+      { target: 'predict', title: '本地推理验证', description: '用指定模型对图片或 URL 推理，输出 JSON 和带框图片。', params: ['PREDICT_SOURCE', 'PREDICT_MODEL', 'PREDICT_CONF', 'PREDICT_IMGSZ', 'PREDICT_OUTPUT_DIR'] },
     ],
   },
   {
     id: 'ec2_training',
-    title: 'EC2 训练 / 推理 / 下载',
-    description: '按数据来源组织 EC2 上传、下载图片、训练、评估、模型与归档下载。所有 EC2 命令默认 dry-run。',
+    title: 'EC2 训练 / 评估 / 下载',
+    description: '通用类别本地数据集或 S3 数据集的 EC2 训练闭环；所有 EC2 命令默认 dry-run。',
     ec2: true,
     children: [
       {
-        id: 'ec2_local_dir',
-        title: '本地目录数据集 → EC2',
-        description: '上传本地目录 YOLO 数据集，并在 EC2 使用显式模型参数训练。',
+        id: 'ec2_generic_local',
+        title: '本地 YOLO 数据集 → EC2',
+        description: '上传本地 YOLO 数据集并在 EC2 训练。',
         ec2: true,
         commands: [
-          { target: 'local-dir-ec2-upload-data', title: '上传本地目录数据到 EC2', description: '上传本地目录 YOLO 数据集和 YAML 到 EC2，默认 dry-run。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: 'local-dir-ec2-train', title: 'EC2 训练本地目录数据', description: '使用 EC2_* 显式模型参数训练本地目录数据集，默认 dry-run。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: 'local-dir-ec2-evaluate', title: '评估归档本地目录训练', description: '归档 EC2 本地目录训练产物并生成评估摘要，默认 dry-run。', params: ['LOCAL_DATASET_NAME', 'LOCAL_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EVAL_NOTES', 'EC2_EXECUTE'] },
-          { target: 'local-dir-ec2-download-artifacts', title: '下载本地目录训练归档', description: '下载本地目录训练归档目录，默认 dry-run。', params: ['LOCAL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'LOCAL_EC2_LOCAL_ARTIFACT_ROOT', 'EC2_EXECUTE'] },
-          { target: 'local-dir-ec2-download-model', title: '下载本地目录 best.pt', description: '下载本地目录训练得到的 best.pt，默认 dry-run。', params: ['LOCAL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'LOCAL_FINAL_MODEL', 'EC2_EXECUTE'] },
+          { target: 'label-ec2-upload-data', title: '上传通用数据到 EC2', description: '上传本地 YOLO images/labels 和 YAML 到 EC2，默认 dry-run。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_DATASET_ROOT', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-ec2-train', title: 'EC2 训练通用数据', description: '使用已上传 YAML 训练，不再按固定类别重写 names。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-ec2-evaluate', title: '评估归档通用训练', description: '归档训练产物并生成评估摘要。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EVAL_NOTES', 'EC2_EXECUTE'] },
+          { target: 'label-ec2-download-artifacts', title: '下载通用训练归档', description: '下载完整训练归档目录。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-ec2-download-model', title: '下载通用 best.pt', description: '下载训练得到的 best.pt。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'LABEL_FINAL_MODEL', 'EC2_EXECUTE'] },
         ],
       },
       {
-        id: 'ec2_s3',
+        id: 'ec2_generic_s3',
         title: 'S3 图片数据集 → EC2',
-        description: '上传 manifest/labels，EC2 从 S3 下载图片，再使用显式模型参数训练。',
+        description: '上传 labels/manifest/YAML，EC2 从 S3 下载图片并训练。',
         ec2: true,
         commands: [
-          { target: '3-brand-s3-workflow-ec2-train', title: '一键上传并训练 S3 数据', description: '依次上传 labels/EC2 manifest/YAML、让 EC2 从 S3 下载图片并启动训练；默认 dry-run。', params: ['S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PORT', 'EC2_PROJECT_ROOT', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: 'brand-s3-ec2-upload-manifest', title: '上传 S3 manifest 到 EC2', description: '上传 labels、EC2 图片 manifest JSON/CSV 和 YAML，不上传图片大文件。', params: ['S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'S3_EC2_REMOTE_MANIFEST_JSON', 'S3_EC2_REMOTE_MANIFEST_CSV', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: 'brand-s3-ec2-download-images', title: 'EC2 下载 S3 训练图片', description: '在 EC2 上读取 ec2_image_manifest.json 从 S3 下载训练图片；可用 public 模式走公共 HTTPS。', params: ['S3_DATASET_NAME', 'S3_EC2_REMOTE_MANIFEST_JSON', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_EXECUTE'] },
-          { target: 'brand-s3-ec2-train', title: 'EC2 训练 S3 数据', description: 'EC2 先读取 ec2_image_manifest.json 下载 S3 图片再训练，训练规模由 EC2_* 显式参数控制。', params: ['S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_EC2_REMOTE_MANIFEST_JSON', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: 'brand-s3-ec2-evaluate', title: '评估归档 S3 EC2 训练', description: '归档 EC2 S3 数据集训练产物并生成评估摘要。', params: ['S3_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EVAL_NOTES', 'EC2_EXECUTE'] },
-          { target: 'brand-s3-ec2-download-artifacts', title: '下载 S3 EC2 训练归档', description: '下载 S3 数据集训练归档目录，默认 dry-run。', params: ['S3_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'S3_EC2_LOCAL_ARTIFACT_ROOT', 'EC2_EXECUTE'] },
-          { target: 'brand-s3-ec2-download-model', title: '下载 S3 EC2 best.pt', description: '下载 S3 数据集训练得到的 best.pt，默认 dry-run。', params: ['S3_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'S3_FINAL_MODEL', 'EC2_EXECUTE'] },
-        ],
-      },
-      {
-        id: 'ec2_diaper',
-        title: '纸尿裤数据集 → EC2',
-        description: '纸尿裤大类数据上传、训练、评估、推理和下载。',
-        ec2: true,
-        commands: [
-          { target: '01-diaper-ec2-upload-project', title: '上传项目代码到 EC2', description: '仅非 Git 部署环境使用；默认 dry-run。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_EXECUTE'] },
-          { target: '02-diaper-ec2-upload-data', title: '上传纸尿裤数据到 EC2', description: '上传本地纸尿裤 YOLO 数据集和 YAML，默认 dry-run。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME', 'DIAPER_DATASET_ROOT', 'DIAPER_DATA_YAML', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PORT', 'EC2_PROJECT_ROOT', 'EC2_REMOTE_DATA_YAML', 'EC2_EXECUTE'] },
-          { target: '03-diaper-ec2-train', title: 'EC2 训练纸尿裤数据', description: '使用 EC2_* 显式模型参数训练纸尿裤数据集，默认 dry-run。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: '04-diaper-ec2-evaluate', title: '评估归档纸尿裤训练', description: '归档训练产物并生成 evaluation-summary.md。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EVAL_NOTES', 'EC2_EXECUTE'] },
-          { target: '05-diaper-ec2-download-artifacts', title: '下载纸尿裤训练归档', description: '下载完整训练归档目录。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: '06-diaper-ec2-predict', title: 'EC2 推理验证', description: '使用 EC2 模型做推理验证。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PREDICT_SOURCE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
-          { target: '07-diaper-ec2-download-model', title: '下载 EC2 best.pt', description: '下载当前运行标识目录下的 best.pt 模型。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: '3-label-s3-workflow-ec2-train', title: '一键上传并训练 S3 数据', description: '上传通用 S3 labels/manifest/YAML，下载图片并训练；默认 dry-run。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_S3_DATASET_ROOT', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-s3-ec2-upload-manifest', title: '上传 S3 manifest 到 EC2', description: '上传 labels、EC2 图片 manifest 和 YAML，不上传图片大文件。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_S3_DATASET_ROOT', 'LABEL_S3_EC2_IMAGE_MANIFEST_JSON', 'LABEL_S3_EC2_IMAGE_MANIFEST_CSV', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-s3-ec2-download-images', title: 'EC2 下载 S3 训练图片', description: 'EC2 读取 ec2_image_manifest.json 下载训练图片。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_S3_EC2_REMOTE_MANIFEST_JSON', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_EXECUTE'] },
+          { target: 'label-s3-ec2-train', title: 'EC2 训练 S3 数据', description: '使用上传的多/单类别 YAML 训练 S3 数据集。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_BASE_MODEL', 'EC2_TRAIN_EPOCHS', 'EC2_TRAIN_IMGSZ', 'EC2_TRAIN_BATCH', 'EC2_TRAIN_DEVICE', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-s3-ec2-evaluate', title: '评估归档 S3 训练', description: '归档 EC2 S3 训练产物并生成评估摘要。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EVAL_NOTES', 'EC2_EXECUTE'] },
+          { target: 'label-s3-ec2-download-artifacts', title: '下载 S3 训练归档', description: '下载 S3 数据集训练归档目录。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'EC2_EXECUTE'] },
+          { target: 'label-s3-ec2-download-model', title: '下载 S3 best.pt', description: '下载 S3 数据集训练得到的 best.pt。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'LABEL_S3_FINAL_MODEL', 'EC2_EXECUTE'] },
         ],
       },
     ],
@@ -518,12 +273,44 @@ const COMMAND_GROUPS = [
     ],
   },
 ];
-
 /**
  * 常用参数默认值和输入类型。
  * 默认值用于页面展示；实际执行时只会传递用户填写的非空值，未填写则继续使用 Makefile 默认值。
  */
 const PARAM_DEFINITIONS = {
+  LABEL_CATALOG: { label: '类别配置文件', defaultValue: 'config/label_categories.json', type: 'text', help: '可提交 Git 的通用类别配置。' },
+  COUNTRY: { label: '国家/市场', defaultValue: 'default', type: 'text', help: '用于默认目录：datasets/<来源>/<COUNTRY>/<DATA_VERSION>/<数据集>。' },
+  DATA_VERSION: { label: '数据版本', defaultValue: '', type: 'text', help: '留空时 Make 默认使用当天日期，例如 v2026-09-18。' },
+  LABEL_SET: { label: '类别列表', defaultValue: 'brands', type: 'select', options: ['brands', 'general'], help: '来自 config/label_categories.json。' },
+  LABELS: { label: '选择类别', defaultValue: 'all', type: 'multiselect', options: ['all'], help: '可多选；all 表示当前类别列表全部启用类别。' },
+  LABEL_DATASET_NAME: { label: '数据集短名称', defaultValue: '', type: 'text', help: '留空时根据 LABEL_SET/LABELS 自动生成。' },
+  LABEL_DATA_DOMAIN: { label: '数据来源域', defaultValue: 'local', type: 'select', options: ['excel', 'local', 's3'], help: '用于默认目录分层。' },
+  LABEL_DATASET_ROOT: { label: '通用数据集目录', defaultValue: '', type: 'text', help: '留空时使用 datasets/<来源>/<国家>/<版本>/<数据集>。' },
+  LABEL_DATA_YAML: { label: '通用 YOLO YAML', defaultValue: '', type: 'text', help: '留空时写入 config/generated/<来源>_<国家>_<版本>_<数据集>.yaml。' },
+  LABEL_PSEUDO_YAML: { label: '通用伪标注 YAML', defaultValue: '', type: 'text' },
+  LABEL_IMPORT_LIMIT: { label: '导入任务上限', defaultValue: '', type: 'number', help: '留空表示全量。' },
+  LABEL_RECURSIVE: { label: '递归扫描图片', defaultValue: '1', type: 'select', options: ['1', '0'] },
+  LABEL_LOCAL_IMAGES_DIR: { label: '源图片目录', defaultValue: 'data/local_import/images', type: 'text' },
+  LABEL_LS_IMPORT_JSON: { label: '通用 LS 导入 JSON', defaultValue: '', type: 'text' },
+  LABEL_LS_LABEL_CONFIG_XML: { label: '通用 LS 标签配置', defaultValue: '', type: 'text' },
+  LABEL_LS_LOCAL_FILES_PATH: { label: 'LS 本地文件根目录', defaultValue: '', type: 'text', help: 'Excel 流程默认 raw/images，本地目录流程默认源图片目录。' },
+  LABEL_LS_EXPORT_PATH: { label: '通用 LS 导出 JSON', defaultValue: '', type: 'text' },
+  LABEL_LS_TO_YOLO_CLEAR: { label: '转换前清空旧输出', defaultValue: '0', type: 'select', options: ['0', '1'] },
+  LABEL_LS_TO_YOLO_SKIP_EMPTY: { label: '跳过空标注', defaultValue: '0', type: 'select', options: ['0', '1'] },
+  LABEL_LS_PROJECT_IDS: { label: 'LS 项目 ID 列表', defaultValue: '', type: 'text', help: '多个项目用英文逗号分隔，例如 21,20。' },
+  LABEL_S3_DATASET_ROOT: { label: '通用 S3 本地目录', defaultValue: '', type: 'text' },
+  LABEL_S3_PREFIX: { label: '通用 S3 业务前缀', defaultValue: '', type: 'text', help: '留空时使用 COUNTRY/DATA_VERSION/LABEL_DATASET_NAME。' },
+  LABEL_S3_MANIFEST_JSON: { label: '通用 S3 上传清单', defaultValue: '', type: 'text' },
+  LABEL_S3_LS_IMPORT_JSON: { label: '通用 S3 LS 导入 JSON', defaultValue: '', type: 'text' },
+  LABEL_S3_LS_LABEL_CONFIG_XML: { label: '通用 S3 LS 标签配置', defaultValue: '', type: 'text' },
+  LABEL_S3_LS_EXPORT_PATH: { label: '通用 S3 LS 导出 JSON', defaultValue: '', type: 'text' },
+  LABEL_S3_EC2_IMAGE_MANIFEST_JSON: { label: '通用 EC2 图片清单 JSON', defaultValue: '', type: 'text' },
+  LABEL_S3_EC2_IMAGE_MANIFEST_CSV: { label: '通用 EC2 图片清单 CSV', defaultValue: '', type: 'text' },
+  LABEL_S3_EC2_REMOTE_MANIFEST_JSON: { label: '远端 EC2 图片清单 JSON', defaultValue: '', type: 'text' },
+  LABEL_S3_FINAL_MODEL: { label: '通用 S3 本地模型路径', defaultValue: '', type: 'text' },
+  LABEL_FINAL_MODEL: { label: '通用本地模型路径', defaultValue: '', type: 'text' },
+  TRAIN_DATA_YAML: { label: '训练 YAML', defaultValue: '', type: 'text', help: '本地训练/校验要读取的 YOLO 数据集 YAML。' },
+  FINAL_MODEL: { label: '导出模型路径', defaultValue: '', type: 'text' },
   BRAND: { label: '品牌', defaultValue: 'all', type: 'select', help: 'all 表示多品牌；也可选择单品牌。' },
   EXCEL: { label: 'Excel 路径', defaultValue: '/Users/guobiao/DOC/森大2.0/18.陈列数据/CI_2026-08-26_最新1801个_02.xlsx', type: 'text' },
   EXCEL_COLUMN: { label: '图片 URL 列名', defaultValue: '生动化照片链接', type: 'text' },
@@ -668,6 +455,8 @@ const PARAM_DEFINITIONS = {
   EC2_EVAL_NOTES: { label: '评估备注', defaultValue: 'training start', type: 'text' },
   EC2_RUN_NAME: { label: 'EC2 运行标识', defaultValue: 'yolo26m_img960_e100', type: 'text', help: '只用于模型、归档和报告目录；训练规模由模型参数决定。' },
   EC2_PREDICT_SOURCE: { label: 'EC2 推理图片路径', defaultValue: 'data/samples/multibrand-shelf.webp', type: 'text' },
+  LABEL_S3_LS_TO_YOLO_REPORT: { label: '通用 S3 转换报告', defaultValue: '', type: 'text' },
+  LABEL_S3_DATA_YAML: { label: '通用 S3 YOLO YAML', defaultValue: '', type: 'text' },
 };
 
 function collectCommands(nodes) {
@@ -685,6 +474,7 @@ function collectCommands(nodes) {
 
 const TARGETS = new Set(collectCommands(COMMAND_GROUPS).map((command) => command.target));
 const ALLOWED_VARIABLES = new Set(Object.keys(PARAM_DEFINITIONS));
+const SENSITIVE_STATE_PARAMS = new Set(['EC2_KEY', 'POSTGRE_PASSWORD']);
 const jobs = new Map();
 
 const DEFAULT_CONSOLE_STATE = {
@@ -706,9 +496,17 @@ function sanitizeParamCache(rawCache) {
       continue;
     }
     const value = String(rawValue ?? '').trim();
-    if (value) {
+    if (value && !SENSITIVE_STATE_PARAMS.has(key)) {
       cleaned[key] = value.slice(0, 2000);
     }
+  }
+  return cleaned;
+}
+
+function sanitizeFavoriteParams(rawParams) {
+  const cleaned = sanitizeParamCache(rawParams);
+  for (const key of SENSITIVE_STATE_PARAMS) {
+    delete cleaned[key];
   }
   return cleaned;
 }
@@ -724,7 +522,7 @@ function sanitizeFavorites(rawFavorites) {
     const id = String(item.id || `fav_${Date.now()}_${index}`).slice(0, 80);
     const group = String(item.group || '默认').trim().slice(0, 80) || '默认';
     const title = String(item.title || item.target).trim().slice(0, 120) || String(item.target);
-    return [{ id, group, title, target: String(item.target), params: sanitizeParamCache(item.params) }];
+    return [{ id, group, title, target: String(item.target), params: sanitizeFavoriteParams(item.params) }];
   });
 }
 
@@ -828,6 +626,77 @@ async function writeConsoleState(rawState) {
   await fsp.writeFile(tempPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
   await fsp.rename(tempPath, CONSOLE_STATE_PATH);
   return state;
+}
+
+async function readLabelCatalog() {
+  try {
+    const raw = await fsp.readFile(LABEL_CATALOG_PATH, 'utf8');
+    return sanitizeLabelCatalog(JSON.parse(raw));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return { description: 'YOLO 通用标签类别配置。', sets: [] };
+    }
+    throw error;
+  }
+}
+
+function slugify(value, fallback = 'label') {
+  const ascii = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (ascii) return ascii;
+  const unicode = String(value || '')
+    .trim()
+    .replace(/[^0-9a-zA-Z一-鿿]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return unicode || fallback;
+}
+
+function sanitizeLabelCatalog(rawCatalog) {
+  const catalog = plainObject(rawCatalog) ? rawCatalog : {};
+  const rawSets = Array.isArray(catalog.sets) ? catalog.sets : [];
+  return {
+    description: String(catalog.description || 'YOLO 通用标签类别配置。').slice(0, 1000),
+    sets: rawSets.slice(0, 50).flatMap((rawSet) => {
+      if (!plainObject(rawSet)) return [];
+      const name = slugify(rawSet.name || rawSet.display_name || 'labels', 'labels').slice(0, 80);
+      const rawClasses = Array.isArray(rawSet.classes) ? rawSet.classes : [];
+      return [{
+        name,
+        display_name: String(rawSet.display_name || name).trim().slice(0, 120) || name,
+        description: String(rawSet.description || '').slice(0, 1000),
+        task_type: String(rawSet.task_type || 'detection').slice(0, 60),
+        classes: rawClasses.slice(0, 500).flatMap((rawClass, index) => {
+          if (!plainObject(rawClass) && typeof rawClass !== 'string') return [];
+          const item = typeof rawClass === 'string' ? { name: rawClass } : rawClass;
+          const className = String(item.name || item.display_name || '').trim();
+          if (!className) return [];
+          const classId = Number.isInteger(Number(item.class_id)) ? Number(item.class_id) : index;
+          const aliases = Array.isArray(item.aliases)
+            ? item.aliases.map((alias) => String(alias).trim()).filter(Boolean).slice(0, 100)
+            : [];
+          return [{
+            class_id: classId,
+            name: className.slice(0, 120),
+            class_name: slugify(item.class_name || className).slice(0, 120),
+            aliases,
+            enabled: item.enabled !== false,
+            description: String(item.description || '').slice(0, 500),
+          }];
+        }),
+      }];
+    }),
+  };
+}
+
+async function writeLabelCatalog(rawCatalog) {
+  const catalog = sanitizeLabelCatalog(rawCatalog);
+  const tempPath = `${LABEL_CATALOG_PATH}.tmp`;
+  await fsp.writeFile(tempPath, `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
+  await fsp.rename(tempPath, LABEL_CATALOG_PATH);
+  return catalog;
 }
 
 async function walkFiles(rootPath, options = {}) {
@@ -1014,43 +883,30 @@ async function datasetSplitSummary(datasetRelativePath) {
 }
 
 async function discoverDatasetSplits() {
-  const candidates = [
-    'datasets/multibrand',
-    'datasets/softcare',
-  ];
-  const localRoot = path.join(PROJECT_ROOT, 'datasets/local');
-  try {
-    const localDatasets = await fsp.readdir(localRoot, { withFileTypes: true });
-    for (const dataset of localDatasets) {
-      if (dataset.isDirectory() && !dataset.name.startsWith('.')) {
-        candidates.push(`datasets/local/${dataset.name}`);
+  const candidates = [];
+  const datasetsRoot = path.join(PROJECT_ROOT, 'datasets');
+
+  async function visit(currentPath, depth) {
+    if (depth > 5) return;
+    const imageRoot = path.join(currentPath, 'images');
+    const labelRoot = path.join(currentPath, 'labels');
+    if (await pathExists(imageRoot) || await pathExists(labelRoot)) {
+      candidates.push(projectRelativePath(currentPath));
+    }
+    let entries;
+    try {
+      entries = await fsp.readdir(currentPath, { withFileTypes: true });
+    } catch (_error) {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith('.') && !['images', 'labels', 'raw', 'pseudo', 'ocr'].includes(entry.name)) {
+        await visit(path.join(currentPath, entry.name), depth + 1);
       }
     }
-  } catch (_error) {
-    // 没有本地目录导入数据集时忽略。
   }
-  const diaperRoot = path.join(PROJECT_ROOT, 'datasets/diaper_category');
-  const discovered = [];
-  try {
-    const countries = await fsp.readdir(diaperRoot, { withFileTypes: true });
-    for (const country of countries) {
-      if (!country.isDirectory() || country.name.startsWith('.')) {
-        continue;
-      }
-      const countryPath = path.join(diaperRoot, country.name);
-      const versions = await fsp.readdir(countryPath, { withFileTypes: true });
-      for (const version of versions) {
-        if (version.isDirectory() && !version.name.startsWith('.')) {
-          discovered.push(`datasets/diaper_category/${country.name}/${version.name}`);
-        }
-      }
-    }
-  } catch (_error) {
-    // 没有纸尿裤数据目录时忽略。
-  }
-  for (const item of discovered) {
-    candidates.push(item);
-  }
+
+  await visit(datasetsRoot, 0);
 
   const results = [];
   for (const candidate of candidates) {
@@ -1063,49 +919,41 @@ async function discoverDatasetSplits() {
   return results;
 }
 
-async function summarizeDownloadReport(relativePath) {
-  const absPath = path.join(PROJECT_ROOT, relativePath);
-  if (!(await pathExists(absPath))) {
-    return null;
-  }
+async function summarizeReportFile(file) {
   try {
-    const raw = await fsp.readFile(absPath, 'utf8');
+    const raw = await fsp.readFile(file.absPath, 'utf8');
     const data = JSON.parse(raw);
-    const rows = Array.isArray(data) ? data : [];
-    const statusCounts = {};
-    for (const row of rows) {
-      const status = row.status || 'unknown';
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    if (Array.isArray(data)) {
+      return { path: file.relativePath, type: 'json_array', total: data.length };
     }
-    return {
-      path: relativePath,
-      type: 'download_report',
-      total: rows.length,
-      statusCounts,
-    };
+    if (!plainObject(data)) {
+      return { path: file.relativePath, type: 'json_value' };
+    }
+    const keys = ['converted_count', 'box_count', 'class_counts', 'merged_count', 'total_input_tasks', 'total_kept_tasks', 'warnings'];
+    const summary = { path: file.relativePath, type: 'json_summary' };
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        summary[key] = key === 'warnings' && Array.isArray(data[key]) ? data[key].length : data[key];
+      }
+    }
+    if (Array.isArray(data.items)) summary.items = data.items.length;
+    return summary;
   } catch (error) {
-    return { path: relativePath, type: 'download_report', error: error.message };
+    return { path: file.relativePath, type: 'json_summary', error: error.message };
   }
 }
 
-async function summarizeSimpleJson(relativePath, keys) {
-  const absPath = path.join(PROJECT_ROOT, relativePath);
-  if (!(await pathExists(absPath))) {
-    return null;
+async function discoverReportSummaries() {
+  const datasetFiles = await walkFiles(path.join(PROJECT_ROOT, 'datasets'), { recursive: true, includeReports: true, maxFiles: 8000 });
+  const reportFiles = datasetFiles
+    .filter((file) => file.ext === '.json' && /(report|manifest|s3_images)/.test(file.name))
+    .sort((left, right) => right.mtimeMs - left.mtimeMs)
+    .slice(0, 12);
+  const summaries = [];
+  for (const file of reportFiles) {
+    summaries.push(await summarizeReportFile(file));
   }
-  try {
-    const raw = await fsp.readFile(absPath, 'utf8');
-    const data = JSON.parse(raw);
-    const summary = { path: relativePath, type: 'json_summary' };
-    for (const key of keys) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        summary[key] = data[key];
-      }
-    }
-    return summary;
-  } catch (error) {
-    return { path: relativePath, type: 'json_summary', error: error.message };
-  }
+  return summaries;
 }
 
 async function dataSummary() {
@@ -1118,31 +966,45 @@ async function dataSummary() {
     });
   }
 
-  const reportCandidates = [
-    await summarizeDownloadReport('datasets/multibrand/raw/metadata/download_report.json'),
-    await summarizeSimpleJson('datasets/softcare/pseudo/metadata/pseudo_label_report.json', ['processed_count', 'image_count', 'box_count', 'class_counts', 'warnings']),
-    await summarizeSimpleJson('datasets/diaper_category/CI/v2026-08-28/label_studio/exports/label_studio_to_yolo_report.json', ['converted_count', 'box_count', 'class_counts', 'warnings']),
-  ].filter(Boolean);
-
   return {
     projectRoot: PROJECT_ROOT,
     roots,
     splits: await discoverDatasetSplits(),
-    reports: reportCandidates,
+    reports: await discoverReportSummaries(),
   };
 }
 
 async function readBrands() {
-  const brandPath = path.join(PROJECT_ROOT, 'config/brand_keywords.json');
   try {
-    const data = JSON.parse(await fsp.readFile(brandPath, 'utf8'));
-    const names = (data.brands || [])
+    const data = await readLabelCatalog();
+    const brandSet = (data.sets || []).find((item) => item.name === 'brands');
+    const names = (brandSet?.classes || [])
       .filter((brand) => brand.enabled !== false && brand.name)
       .map((brand) => brand.name);
     return ['all', ...names];
-  } catch (_error) {
-    return ['all'];
+  } catch (error) {
+    try {
+      const brandPath = path.join(PROJECT_ROOT, 'config', 'brand_keywords.json');
+      const data = JSON.parse(await fsp.readFile(brandPath, 'utf8'));
+      const names = (data.brands || [])
+        .filter((brand) => brand.enabled !== false && brand.name)
+        .map((brand) => brand.name);
+      return ['all', ...names];
+    } catch (_fallbackError) {
+      return ['all'];
+    }
   }
+}
+
+async function labelCatalogOptions() {
+  const catalog = await readLabelCatalog();
+  const sets = Array.isArray(catalog.sets) ? catalog.sets : [];
+  const setNames = sets.map((item) => item.name).filter(Boolean);
+  const labelsBySet = {};
+  for (const item of sets) {
+    labelsBySet[item.name] = ['all', ...(item.classes || []).filter((label) => label.enabled !== false).map((label) => label.name)];
+  }
+  return { catalog, setNames, labelsBySet };
 }
 
 function normalizeVariables(rawVariables) {
@@ -1268,13 +1130,18 @@ function stopJob(job) {
 
 async function handleConfig(_request, response) {
   const brands = await readBrands();
+  const { catalog, setNames, labelsBySet } = await labelCatalogOptions();
   const paramDefinitions = JSON.parse(JSON.stringify(PARAM_DEFINITIONS));
   paramDefinitions.BRAND.options = brands;
+  paramDefinitions.LABEL_SET.options = setNames.length > 0 ? setNames : ['brands'];
+  paramDefinitions.LABELS.options = ['all', ...Object.values(labelsBySet).flat().filter((value, index, array) => value !== 'all' && array.indexOf(value) === index)];
   jsonResponse(response, 200, {
     projectRoot: PROJECT_ROOT,
     commandGroups: COMMAND_GROUPS,
     params: paramDefinitions,
     dataRoots: DATA_ROOTS,
+    labelCatalog: catalog,
+    labelsBySet,
   });
 }
 
@@ -1359,6 +1226,16 @@ async function handlePutState(request, response) {
   jsonResponse(response, 200, await writeConsoleState(body));
 }
 
+async function handleGetLabelCatalog(_request, response) {
+  jsonResponse(response, 200, await readLabelCatalog());
+}
+
+async function handlePutLabelCatalog(request, response) {
+  const body = await readJsonBody(request);
+  const catalog = await writeLabelCatalog(body);
+  jsonResponse(response, 200, catalog);
+}
+
 function handleJob(url, response) {
   const id = decodeURIComponent(url.pathname.split('/').pop());
   const job = jobs.get(id);
@@ -1416,6 +1293,14 @@ async function router(request, response) {
     }
     if (request.method === 'GET' && url.pathname === '/api/state') {
       await handleGetState(request, response);
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/api/label-catalog') {
+      await handleGetLabelCatalog(request, response);
+      return;
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/label-catalog') {
+      await handlePutLabelCatalog(request, response);
       return;
     }
     if (request.method === 'PUT' && url.pathname === '/api/state') {

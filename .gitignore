@@ -1,138 +1,82 @@
-# OS
+# 操作系统与编辑器临时文件
 .DS_Store
 Thumbs.db
-
-# Virtual environments
-.venv/
-venv/
-ENV/
-
-# IDE
 .idea/
 *.iml
 
-# Python
+# Python / 构建 / 测试缓存
+.venv/
+venv/
+ENV/
 __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
 dist/
 build/
-
-# Model weights (large binary files)
-*.pt
-*.onnx
-*.pth
-models/*.pt
-
-# Dataset images (large binary files, keep directory structure via .gitkeep)
-!datasets/*/images/**/.gitkeep
-!datasets/*/raw/images/.gitkeep
-!datasets/*/pseudo/images/.gitkeep
-datasets/*/images/
-datasets/*/raw/images/
-datasets/*/pseudo/images/
-
-# Brand reference images for YOLOE visual prompt are local/private assets.
-/datasets/*/visual_prompts/**
-!/datasets/*/visual_prompts/
-!/datasets/*/visual_prompts/**/
-!/datasets/*/visual_prompts/**/.gitkeep
-
-# Outputs
-outputs/
-logs/
-.tmp/
-web-console/state.json
-
-# Optional local image import staging directory
-data/local_import/
-
-# Label Studio data directory
-.label-studio-data/
-
-# Environment variables
-.env
-config/brand_s3_ec2.local.yaml
-
-# uv
-# uv.lock should be committed
-
-# mypy / type checking
 .mypy_cache/
 .pyre/
 .pytype/
-
-# Coverage
 .coverage
 htmlcov/
 .pytest_cache/
-datasets/softcare/labels/*.cache
 
-/datasets/*/labels/*.cache
+# 本地运行状态、日志和临时目录
+.tmp/
+logs/
+.label-studio-data/
+/.claude/worktrees/
 
-/datasets/*/labels/test/*.txt
-/datasets/*/labels/train/*.txt
-/datasets/*/labels/val/*.txt
+# 环境变量、私密配置和密钥
+.env
+*.pem
+*.key
+config/*local*.yaml
 
-/datasets/*/pseudo/labels/test/*.txt
-/datasets/*/pseudo/labels/train/*.txt
-/datasets/*/pseudo/labels/val/*.txt
+# 模型权重和导出模型通常体积大，只提交下载说明或 .gitkeep
+*.pt
+*.onnx
+*.pth
+models/**/*.pt
+models/**/*.onnx
+models/**/*.pth
+!models/.gitkeep
 
-/datasets/*/pseudo/metadata/*.txt
-/datasets/*/pseudo/metadata/*.csv
-/datasets/*/pseudo/metadata/*.json
+# 通用规则：训练/标注过程产物不进 Git；类别配置、文档和 .gitkeep 可以提交
+/datasets/**/raw/images/
+/datasets/**/raw/metadata/*.txt
+/datasets/**/raw/metadata/*.csv
+/datasets/**/raw/metadata/*.json
+/datasets/**/ocr/metadata/*.txt
+/datasets/**/ocr/metadata/*.csv
+/datasets/**/ocr/metadata/*.json
+/datasets/**/pseudo/images/
+/datasets/**/pseudo/labels/
+/datasets/**/pseudo/metadata/*.txt
+/datasets/**/pseudo/metadata/*.csv
+/datasets/**/pseudo/metadata/*.json
+/datasets/**/images/
+/datasets/**/labels/
+/datasets/**/label_studio/*label_studio_import.json
+/datasets/**/label_studio/label_config.xml
+/datasets/**/label_studio/exports/
+/datasets/**/ab_tests/
+/datasets/**/metadata/*.json
+/datasets/**/metadata/*.csv
+/datasets/**/metadata/*.txt
+/datasets/**/visual_prompts/**
+!/datasets/**/.gitkeep
 
-/datasets/*/label_studio/*label_studio_import.json
-/datasets/*/label_studio/exports/
+# 可选本地图片导入暂存目录
+/data/local_import/
 
-/datasets/*/ocr/metadata/*.txt
-/datasets/*/ocr/metadata/*.csv
-/datasets/*/ocr/metadata/*.json
+# 训练、推理和云端归档输出
+/outputs/*
+!/outputs/.gitkeep
+/runs/
+/artifacts/**
+!/artifacts/**/.gitkeep
 
-/datasets/*/raw/metadata/*.txt
-/datasets/*/raw/metadata/*.csv
-/datasets/*/raw/metadata/*.json
-
-
-# Generated YOLO dataset configs
+# 自动生成的 YOLO 数据集配置；保留目录占位
 /config/generated/*.yaml
 !/config/generated/.gitkeep
-
-/runs/detect/models/val/multibrand-best/
-/datasets/backup/
-/datasets/*/ab_tests/
-/datasets/softcare/label_studio/label_config.xml
-
-# Diaper category country/version datasets
-/datasets/diaper_category/**/raw/images/
-/datasets/diaper_category/**/raw/metadata/*.txt
-/datasets/diaper_category/**/raw/metadata/*.csv
-/datasets/diaper_category/**/raw/metadata/*.json
-/datasets/diaper_category/**/label_studio/*label_studio_import.json
-/datasets/diaper_category/**/label_studio/label_config.xml
-/datasets/diaper_category/**/label_studio/exports/
-/datasets/diaper_category/**/images/
-/datasets/diaper_category/**/labels/
-!/datasets/diaper_category/**/.gitkeep
-
-# Local directory Label Studio imports and generated YOLO datasets
-/datasets/local/**/label_studio/local_dir_label_studio_import.json
-/datasets/local/**/label_studio/label_config.xml
-/datasets/local/**/label_studio/exports/
-/datasets/local/**/images/
-/datasets/local/**/labels/
-!/datasets/local/**/.gitkeep
-
-# S3 image workflow local manifests, Label Studio exports and generated labels
-/datasets/s3/**/metadata/*.json
-/datasets/s3/**/metadata/*.csv
-/datasets/s3/**/metadata/*.txt
-/datasets/s3/**/label_studio/*label_studio_import.json
-/datasets/s3/**/label_studio/label_config.xml
-/datasets/s3/**/label_studio/exports/
-/datasets/s3/**/images/
-/datasets/s3/**/labels/
-!/datasets/s3/**/.gitkeep
-/.claude/worktrees/
-/datasets/allround_purple/

@@ -1,5 +1,7 @@
 """Merge multiple Label Studio exports and keep only tasks with valid boxes."""
 
+# pylint: disable=line-too-long,duplicate-code
+
 from __future__ import annotations
 
 import argparse
@@ -55,7 +57,8 @@ def result_has_valid_box(result: dict[str, object], label_name: str | None) -> b
     labels = value.get("rectanglelabels")
     if not isinstance(labels, list) or not labels:
         return False
-    if label_name and label_name not in [str(item) for item in labels]:
+    accepted_labels = {item.strip() for item in label_name.split(",") if item.strip()} if label_name else set()
+    if accepted_labels and accepted_labels.isdisjoint({str(item) for item in labels}):
         return False
     try:
         width = float(value["width"])

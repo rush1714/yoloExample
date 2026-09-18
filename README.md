@@ -6,7 +6,7 @@
 
 ## 识别范围
 
-- 类别来源：`config/brand_keywords.json` 中启用的品牌，当前生成 20 个 YOLO 类别。
+- 类别来源：新流程统一读取 `config/label_categories.json`，通过 `LABEL_SET` 选择类别列表，通过 `LABELS` 多选类别；历史品牌库 `config/brand_keywords.json` 和 `BRAND=<品牌>` 命令保留兼容。
 - 标注对象：图片中每一包可辨认的目标品牌包装。
 - 结果：每个检测框代表一包，推理 JSON 会输出 `brand_counts` 和 `total_count`。
 
@@ -99,7 +99,8 @@ datasets/multibrand/
 - `ocr/...`：OCR 识别品牌库关键词后的候选清单和报告，只用于提高处理优先级；OCR 未命中不代表一定没有目标品牌。
 - `images/...` + `labels/...`：正式训练数据。每张图片必须有一个同名 `.txt` 标签文件，标签中的 class_id 来自 `config/brand_keywords.json`。
 - `pseudo/...`：YOLO-World 自动生成的多品牌候选标签，可能误检/漏检，只能作为人工复核起点。
-- `config/brand_keywords.json`：品牌标识库，是 OCR、预标注、Label Studio 多标签和 YOLO 类别 ID 的统一来源。
+- `config/label_categories.json`：通用标签类别配置，是新流程 Label Studio、YOLO YAML、本地/EC2 训练的统一类别来源，可在控制台“类别管理”中维护并提交 Git。
+- `config/brand_keywords.json`：历史品牌标识库，仍被品牌 OCR/YOLO-World 兼容流程使用；默认已可通过通用类别配置中的 `LABEL_SET=brands` 覆盖主要训练/标注场景。
 - `config/generated/multibrand.yaml`：全品牌正式训练数据配置；由 `make brand-yaml` 根据品牌库生成。
 - `config/generated/multibrand_pseudo.yaml`：全品牌伪标注数据配置；由 `make brand-yaml` 根据品牌库生成。
 - `config/generated/<品牌>.yaml`：单品牌正式训练配置；执行 `make brand-yaml BRAND=<品牌>` 自动生成。
@@ -285,14 +286,59 @@ make web-console
 http://localhost:3000
 ```
 
-页面使用左侧多级菜单展示功能大类，包括图片来源/标注准备、Label Studio、本地 Mac 训练/推理、EC2 训练/推理/下载、维护工具和图片浏览。命令类功能可展开到二级或三级菜单；再次点击同一分组可折叠/展开，点击某个命令子菜单后，右侧只展示该命令的单独页面，包括说明、常用参数、命令预览、复制和执行按钮。未填写的参数继续使用 Makefile 默认值；点击“执行”后会在页面下方显示实时日志，也可以复制生成的命令到终端手动执行。
+页面使用左侧多级菜单展示功能大类，包括类别管理、图片来源/标注准备、Label Studio、本地 Mac 训练/推理、EC2 训练/评估/下载、维护工具和图片浏览。命令类功能可展开到二级或三级菜单；再次点击同一分组可折叠/展开，点击某个命令子菜单后，右侧只展示该命令的单独页面，包括说明、常用参数、命令预览、复制和执行按钮。未填写的参数继续使用 Makefile 默认值；点击“执行”后会在页面下方显示实时日志，也可以复制生成的命令到终端手动执行。
 
-参数输入会自动缓存到浏览器 `localStorage`，缓存 key 为 `yoloConsole:paramValues:v1`。缓存按 Make 参数名共享，例如在一个命令中填写过 `EC2_HOST`、`EC2_KEY`、`S3_DATASET_NAME` 后，切换到其它包含同名参数的命令会自动带出；清空某个输入框会删除该参数缓存并恢复使用 Makefile 默认值，页面也提供“清空参数缓存”按钮。
+“类别管理”页会读取和保存 `config/label_categories.json`。这里可以维护多个类别列表，例如 `brands`、`general`，命令中通过：
+
+| 参数 | 作用 |
+| --- | --- |
+| `LABEL_SET` | 类别列表名称，例如 `brands` 或 `general`。 |
+| `LABELS` | 当前类别列表中的多选类别，逗号分隔；`all` 表示全部启用类别。 |
+| `COUNTRY` | 国家/市场参数，参与默认目录命名。 |
+| `DATA_VERSION` | 数据版本，参与默认目录命名。 |
+| `LABEL_DATASET_NAME` | 数据集短名称；留空时按类别选择自动生成。 |
+
+通用目录默认遵循：
+
+```text
+datasets/<来源>/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/
+```
+
+例如本地目录样本可以写到 `datasets/local/GH/v2026-09-18/allround_purple/`，S3 训练图工作流可以写到 `datasets/s3/GH/v2026-09-18/allround_purple/`。所有目录参数仍可手动覆盖。
+
+参数输入会自动缓存到浏览器 `localStorage`，缓存 key 为 `yoloConsole:paramValues:v1`。缓存按 Make 参数名共享，例如在一个命令中填写过 `EC2_HOST`、`S3_DATASET_NAME` 后，切换到其它包含同名参数的命令会自动带出；清空某个输入框会删除该参数缓存并恢复使用 Makefile 默认值，页面也提供“清空参数缓存”按钮。非敏感参数会同步保存到 `web-console/state.json`，该文件可提交 Git；私钥路径等敏感参数不会写入该文件。
 
 数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`datasets/local/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
 ### 本地目录图片导入 Label Studio
 
 如果图片已经在本机某个目录中，不需要通过 Excel 下载，可以直接把该目录导入 Label Studio 做单类别矩形框标注。
+
+新项目推荐使用通用类别命令，不再为“纸尿裤”或某个品牌单独复制命令。下面示例从 `general` 类别列表中选择 `allround_purple` 一个类别：
+
+```bash
+make 1-label-local-workflow-to-ls \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  LABEL_LOCAL_IMAGES_DIR=/Users/guobiao/Downloads/allround_images
+
+make 2-label-workflow-after-ls \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  LS_PROJECT_ID=<项目ID> \
+  LABEL_LS_TO_YOLO_CLEAR=1
+```
+
+如果需要一次标注多个自定义类别，只需在控制台“类别管理”中把类别加入同一 `LABEL_SET`，再执行：
+
+```bash
+make 1-label-local-workflow-to-ls LABEL_SET=general LABELS=diaper,allround_purple
+```
+
+历史 `1-local-dir-workflow-to-ls` / `2-local-dir-workflow-after-ls` 仍保留兼容，但推荐逐步切换到 `label-*` 通用命令。
 
 1. 启动 Label Studio：
 

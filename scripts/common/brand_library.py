@@ -5,9 +5,12 @@
 生成的共同类别来源，确保多品牌多类别流程中 class_id、class_name、显示名一致。
 """
 
+# pylint: disable=line-too-long,too-many-locals,too-many-branches
+
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,8 +18,8 @@ from typing import Any
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-# 默认品牌标识库
-DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "config" / "brand_keywords.json"
+# 默认使用新的通用类别配置；函数内部仍兼容旧 brand_keywords.json 结构。
+DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "config" / "label_categories.json"
 # Label Studio 标签颜色：循环使用，避免所有品牌同色。
 LABEL_COLORS = [
     "#FFA500",
@@ -83,6 +86,17 @@ def unique_preserve_order(values: list[str]) -> list[str]:
 def _raw_brand_items(payload: Any) -> list[dict[str, Any]]:
     """兼容 JSON 对象、JSON 列表和纯字符串列表。"""
     if isinstance(payload, dict):
+        if isinstance(payload.get("sets"), list):
+            requested_set = os.environ.get("LABEL_SET", "brands").strip() or "brands"
+            for label_set in payload["sets"]:
+                if not isinstance(label_set, dict):
+                    continue
+                if str(label_set.get("name", "")).strip() == requested_set:
+                    classes = label_set.get("classes", [])
+                    if not isinstance(classes, list):
+                        raise ValueError(f"通用类别配置中 {requested_set}.classes 必须是列表。")
+                    return classes
+            raise ValueError(f"通用类别配置中不存在类别列表：{requested_set}")
         brands = payload.get("brands", [])
         if not isinstance(brands, list):
             raise ValueError("品牌标识库 JSON 的 brands 必须是列表。")
@@ -174,7 +188,10 @@ def filter_brand_classes(classes: list[BrandClass], filters: list[str] | None) -
     """按品牌名/class_name/别名过滤类别；filters 为空时返回全部类别。"""
     if not filters:
         return classes
-    allowed = {normalize_key(item) for item in filters if normalize_key(item)}
+    filter_items: list[str] = []
+    for item in filters:
+        filter_items.extend(part.strip() for part in re.split(r"[,\n]", item) if part.strip())
+    allowed = {normalize_key(item) for item in filter_items if normalize_key(item)}
     return [
         brand
         for brand in classes

@@ -394,21 +394,25 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertIn("2-brand-s3-workflow-after-ls", message)
 
     def test_makefiles_and_console_contain_multi_project_targets(self) -> None:
-        """Makefile 和控制台应提供多 LS 项目合并与 S3 EC2 训练入口。"""
+        """Makefile 和控制台应提供通用多项目合并与 S3 EC2 训练入口。"""
         s3_makefile = (PROJECT_ROOT / "makefiles" / "brand-s3-ec2" / "Makefile.mk").read_text(encoding="utf-8")
+        label_makefile = (PROJECT_ROOT / "makefiles" / "label-workflow" / "Makefile.mk").read_text(encoding="utf-8")
         diaper_makefile = (PROJECT_ROOT / "makefiles" / "diaper-category-ec2" / "Makefile.mk").read_text(encoding="utf-8")
         console = (PROJECT_ROOT / "web-console" / "server.js").read_text(encoding="utf-8")
 
         self.assertIn("LS_PROJECT_IDS ?= $(LS_PROJECT_ID)", diaper_makefile)
+        self.assertIn("label-merge-ls-projects:", label_makefile)
+        self.assertIn("label-merge-ls-projects-to-yolo:", label_makefile)
+        self.assertIn("3-label-s3-workflow-ec2-train:", label_makefile)
         self.assertIn("local-ls-s3-to-yolo:", s3_makefile)
         self.assertIn("local-ls-s3-merge-projects:", s3_makefile)
         self.assertIn("2-local-ls-s3-workflow-after-ls:", s3_makefile)
         self.assertIn("2-local-ls-s3-merge-workflow-after-ls:", s3_makefile)
         self.assertIn("3-brand-s3-workflow-ec2-train:", s3_makefile)
         self.assertIn("brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train", s3_makefile)
-        self.assertIn("diaper-merge-ls-projects", console)
-        self.assertIn("diaper-merge-ls-projects-to-yolo", console)
-        self.assertIn("2-local-ls-s3-merge-workflow-after-ls", console)
+        self.assertIn("label-merge-ls-projects-to-yolo", console)
+        self.assertIn("label-local-s3-to-yolo", console)
+        self.assertIn("3-label-s3-workflow-ec2-train", console)
 
 
 if __name__ == "__main__":

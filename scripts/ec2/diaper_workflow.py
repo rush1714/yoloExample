@@ -144,7 +144,8 @@ def train(args: argparse.Namespace) -> None:
     )
     if args.resume:
         training_command += " --resume"
-    command = f"mkdir -p {shlex.quote(args.artifact_root)} && {prepare_remote_dataset_yaml(args)} && {training_command}"
+    yaml_command = "true" if args.skip_generate_yaml else prepare_remote_dataset_yaml(args)
+    command = f"mkdir -p {shlex.quote(args.artifact_root)} && {yaml_command} && {training_command}"
     run_or_print(remote_command(args, command), args.execute)
 
 
@@ -266,6 +267,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch", default="16", help="batch 大小")
     parser.add_argument("--device", default="0", help="EC2 GPU 设备")
     parser.add_argument("--resume", action="store_true", help="恢复训练")
+    parser.add_argument("--skip-generate-yaml", action="store_true", help="不在 EC2 重新生成单类别 YAML，直接使用已上传 YAML")
     parser.add_argument("--predict-source", default="data/samples/multibrand-shelf.webp", help="EC2 上推理输入")
     parser.add_argument("--predict-conf", type=float, default=0.35, help="推理置信度")
     parser.add_argument("--notes", default="", help="写入 evaluation-summary.md 的备注")

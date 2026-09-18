@@ -1,5 +1,7 @@
 # 纸尿裤大类正式标注 + EC2 A10 流程
 
+> 新项目建议优先使用 `makefiles/label-workflow/README.md` 中的通用 `label-*` 命令，并在 `config/label_categories.json` 的 `general` 类别列表中选择 `LABELS=diaper`。本目录命令保留为历史纸尿裤单类别兼容入口。
+
 这是独立于品牌识别的新流程：只标注一个大类 `纸尿裤`，不做 OCR、YOLO-World 或 YOLOE 预标注。
 
 ## 本地目录

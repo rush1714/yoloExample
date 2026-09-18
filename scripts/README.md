@@ -6,12 +6,12 @@
 
 | 目录 | 职责 | 典型入口 |
 |---|---|---|
-| `common/` | 跨流程复用工具，例如品牌库读取、Ultralytics 配置。 | 被其它脚本 import，不直接作为 CLI 使用。 |
-| `config/` | 生成训练配置、品牌配置、单类别 YAML。 | `write_brand_yolo_yaml.py`、`write_single_class_yolo_yaml.py` |
+| `common/` | 跨流程复用工具，例如通用类别配置、品牌库兼容读取、Ultralytics 配置。 | 被其它脚本 import，不直接作为 CLI 使用。 |
+| `config/` | 生成训练配置、通用类别 profile、YOLO YAML 和路径解析。 | `label_profile.py`、`write_label_yolo_yaml.py`、`write_brand_yolo_yaml.py`、`write_single_class_yolo_yaml.py` |
 | `data_import/` | 从 Excel、URL 或本地清单导入图片和参考图；不做训练。 | `import_images_from_excel.py`、`import_visual_prompts_from_excel.py` |
 | `ocr/` | 图片文字识别和品牌候选筛选。 | `filter_brand_candidates.py`、`filter_brand_candidates_llm.py` |
 | `pseudo_label/` | 自动/半自动预标注，包括 YOLO-World 与 YOLOE visual prompt。 | `generate_yolo_world.py`、`generate_yoloe_visual.py`、`ab_test_yolo_world.py` |
-| `label_studio/` | Label Studio 导入、导出和标注转 YOLO。 | `apply_import.py`、`generate_*_import.py`、`export*_to_yolo.py` |
+| `label_studio/` | Label Studio 导入、导出、合并和标注转 YOLO。 | `apply_import.py`、`generate_label_import.py`、`export_labels_to_yolo.py`、`export_and_merge_projects.py` |
 | `training/` | 本地训练和数据集校验。 | `train.py`、`validate_dataset.py` |
 | `inference/` | 本地推理。 | `predict.py` |
 | `s3/` | S3 配置、上传和本地图片代理。 | `upload_images_to_s3.py`、`render_nginx_image_proxy.py`、`s3_image_proxy.py` |
@@ -35,11 +35,14 @@ uv run python scripts/config/write_brand_yolo_yaml.py \
   --pseudo-yaml config/generated/multibrand_pseudo.yaml \
   --dataset-root ../../datasets/multibrand
 
-# 生成单类别 YOLO YAML
-uv run python scripts/config/write_single_class_yolo_yaml.py \
-  --output config/generated/local_demo.yaml \
-  --dataset-root datasets/local/demo \
-  --class-name diaper
+# 按通用类别配置生成单类别或多类别 YOLO YAML
+uv run python scripts/config/write_label_yolo_yaml.py \
+  --catalog config/label_categories.json \
+  --label-set general \
+  --labels diaper,allround_purple \
+  --output config/generated/local_GH_v1_general.yaml \
+  --dataset-root datasets/local/GH/v1/general_diaper_allround_purple \
+  --compact-class-ids
 
 # 从 Excel 下载图片
 uv run python scripts/data_import/import_images_from_excel.py \
@@ -83,6 +86,26 @@ uv run python scripts/pseudo_label/generate_yoloe_visual.py \
   --device mps
 
 # Label Studio 导入和导出转换
+uv run python scripts/label_studio/generate_label_import.py \
+  --source local-dir \
+  --catalog config/label_categories.json \
+  --label-set general \
+  --labels diaper,allround_purple \
+  --input-dir /path/to/images \
+  --dataset-name general_diaper_allround_purple \
+  --output datasets/local/GH/v1/general_diaper_allround_purple/label_studio/label_studio_import.json \
+  --label-config-output datasets/local/GH/v1/general_diaper_allround_purple/label_studio/label_config.xml
+uv run python scripts/label_studio/export_labels_to_yolo.py \
+  --mode local \
+  --input datasets/local/GH/v1/general_diaper_allround_purple/label_studio/exports/label_studio_export.json \
+  --output-root datasets/local/GH/v1/general_diaper_allround_purple \
+  --catalog config/label_categories.json \
+  --label-set general \
+  --labels diaper,allround_purple \
+  --report datasets/local/GH/v1/general_diaper_allround_purple/label_studio/exports/label_studio_to_yolo_report.json \
+  --data-yaml config/generated/local_GH_v1_general_diaper_allround_purple.yaml
+
+# 历史品牌预标注导入仍保留兼容
 uv run python scripts/label_studio/generate_import.py \
   --raw-report datasets/multibrand/raw/metadata/download_report.csv \
   --pseudo-root datasets/multibrand/pseudo \

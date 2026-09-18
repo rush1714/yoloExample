@@ -1,5 +1,7 @@
 # brand-s3-ec2：S3 训练图片 + Label Studio + EC2 流程
 
+> 新项目建议优先使用 `makefiles/label-workflow/README.md` 中的通用 `label-s3-*` / `label-s3-ec2-*` 命令，通过 `LABEL_SET` / `LABELS` 选择一个或多个类别。本目录命令保留为历史 S3 单类别兼容入口。
+
 该流程用于把本地图片目录上传到 S3，Label Studio 标注时直接使用 S3 图片地址，并在 EC2 训练前再由 EC2 从 S3 下载训练图片。它解决两类问题：
 
 1. 本地不再反复复制/同步大量训练图片到 EC2。

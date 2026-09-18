@@ -247,7 +247,7 @@
       color: var(--muted);
     }
 
-    input, select {
+    input, select, textarea {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -255,6 +255,36 @@
       color: var(--text);
       background: #fff;
       font-size: 13px;
+    }
+
+    textarea {
+      min-height: 280px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.45;
+    }
+
+    select[multiple] {
+      min-height: 170px;
+    }
+
+    .category-list {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .category-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 2px 4px 2px 0;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
     }
 
     .actions {
@@ -605,7 +635,7 @@
       imageTotal: 0,
       currentJobId: null,
       jobTimer: null,
-      expandedMenuIds: new Set(['favorites', 'prepare_labeling', 'excel_ocr_yoloworld']),
+      expandedMenuIds: new Set(['favorites', 'prepare_labeling', 'generic_local_dir']),
       paramCache: {},
       persistTimer: null,
     };
@@ -703,10 +733,17 @@
     return payload;
   }
 
+  function inputValue(input) {
+    if (input.tagName === 'SELECT' && input.multiple) {
+      return Array.from(input.selectedOptions).map((option) => option.value).join(',');
+    }
+    return input.value.trim();
+  }
+
   function buildCommandPreview(target, form) {
     const parts = ['make', target];
     form.querySelectorAll('[data-param]').forEach((input) => {
-      const value = input.value.trim();
+      const value = inputValue(input);
       if (!value) return;
       const safeValue = /[\s'"\\]/.test(value) ? JSON.stringify(value) : value;
       parts.push(`${input.dataset.param}=${safeValue}`);
@@ -795,16 +832,23 @@
     label.innerHTML = `<span>${escapeHtml(definition.label || paramName)} <span class="muted">${escapeHtml(paramName)}</span></span>`;
     const cachedValue = cachedParamValue(paramName, definition);
     let input;
-    if (definition.type === 'select') {
+    if (definition.type === 'select' || definition.type === 'multiselect') {
       input = document.createElement('select');
-      const options = definition.options || [definition.defaultValue || ''];
+      input.multiple = definition.type === 'multiselect';
+      const activeSet = paramName === 'LABELS' ? cachedParamValue('LABEL_SET', state.config.params.LABEL_SET || {}) : null;
+      const options = paramName === 'LABELS'
+        ? (state.config.labelsBySet?.[activeSet] || definition.options || ['all'])
+        : (definition.options || [definition.defaultValue || '']);
+      const selectedValues = new Set(String(cachedValue || definition.defaultValue || '').split(',').map((item) => item.trim()).filter(Boolean));
       options.forEach((optionValue) => {
         const option = document.createElement('option');
         option.value = optionValue;
         option.textContent = optionValue;
+        if (input.multiple && selectedValues.has(optionValue)) option.selected = true;
         input.appendChild(option);
       });
-      input.value = options.includes(cachedValue) ? cachedValue : (definition.defaultValue || options[0] || '');
+      if (input.multiple && selectedValues.size === 0 && input.options.length > 0) input.options[0].selected = true;
+      if (!input.multiple) input.value = options.includes(cachedValue) ? cachedValue : (definition.defaultValue || options[0] || '');
     } else {
       input = document.createElement('input');
       input.type = definition.type === 'number' ? 'number' : 'text';
@@ -813,8 +857,11 @@
     }
     input.dataset.param = paramName;
     input.placeholder = definition.help || '';
-    input.addEventListener('input', () => updateParamCache(paramName, input.value));
-    input.addEventListener('change', () => updateParamCache(paramName, input.value));
+    input.addEventListener('input', () => updateParamCache(paramName, inputValue(input)));
+    input.addEventListener('change', () => {
+      updateParamCache(paramName, inputValue(input));
+      if (paramName === 'LABEL_SET') renderCommandDetail(currentCommand(findNodeById(state.config.commandGroups, state.activeGroup)));
+    });
       label.appendChild(input);
       return label;
     }
@@ -822,7 +869,7 @@
     function formValues(form) {
       const values = {};
       form.querySelectorAll('[data-param]').forEach((input) => {
-        const value = input.value.trim();
+        const value = inputValue(input);
         if (value) values[input.dataset.param] = value;
       });
       return values;
@@ -1043,8 +1090,87 @@
     detail.appendChild(panel);
   }
 
+  async function saveLabelCatalogFromEditor(textarea, button) {
+    let payload;
+    try {
+      payload = JSON.parse(textarea.value);
+    } catch (error) {
+      window.alert(`类别配置不是合法 JSON：${error.message}`);
+      return;
+    }
+    button.disabled = true;
+    button.textContent = '保存中...';
+    try {
+      const saved = await fetchJson('/api/label-catalog', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      state.config = await fetchJson('/api/config');
+      textarea.value = JSON.stringify(saved, null, 2);
+      renderSideMenu();
+      window.alert('类别配置已保存到 config/label_categories.json。');
+    } catch (error) {
+      window.alert(`保存失败：${error.message}`);
+    } finally {
+      button.disabled = false;
+      button.textContent = '保存类别配置';
+    }
+  }
+
+  function renderCategoryManager(group) {
+    $('#overviewPanel').classList.add('hidden');
+    $('#commandsPanel').classList.remove('hidden');
+    $('#dataPanel').classList.add('hidden');
+    $('#groupTitle').textContent = group.title;
+    $('#groupDescription').textContent = group.description;
+    $('#ec2Warning').classList.add('hidden');
+    const detail = $('#commandDetail');
+    detail.innerHTML = '';
+    const panel = document.createElement('div');
+    panel.className = 'command-detail';
+    const catalog = state.config.labelCatalog || { description: '', sets: [] };
+    const setCards = (catalog.sets || []).map((set) => `
+      <div class="card">
+        <h3>${escapeHtml(set.display_name || set.name)}</h3>
+        <div class="muted">LABEL_SET=${escapeHtml(set.name)}；${(set.classes || []).length} 个类别</div>
+        <div>${(set.classes || []).filter((item) => item.enabled !== false).map((item) => `<span class="category-chip">${escapeHtml(item.name)}</span>`).join('')}</div>
+      </div>
+    `).join('');
+    panel.innerHTML = `
+      <div class="command-detail-head">
+        <div>
+          <h3>通用类别列表</h3>
+          <div class="muted">这里维护 config/label_categories.json。新增列表或类别后，命令里的 LABEL_SET/LABELS 会自动读取。</div>
+        </div>
+      </div>
+      <div class="category-list">${setCards || '<div class="muted">暂无类别列表。</div>'}</div>
+      <label>
+        <span>类别配置 JSON <span class="muted">config/label_categories.json</span></span>
+        <textarea id="labelCatalogEditor"></textarea>
+      </label>
+      <div class="actions" style="margin-top: 12px;">
+        <button class="primary" id="saveLabelCatalogBtn">保存类别配置</button>
+        <button class="secondary" id="reloadLabelCatalogBtn">重新加载</button>
+      </div>
+      <div class="muted" style="margin-top: 10px;">说明：类别配置会持久化到项目文件并可提交 Git；训练图片、模型权重和临时日志仍由 .gitignore 忽略。</div>
+    `;
+    detail.appendChild(panel);
+    const textarea = $('#labelCatalogEditor');
+    textarea.value = JSON.stringify(catalog, null, 2);
+    $('#saveLabelCatalogBtn').onclick = () => saveLabelCatalogFromEditor(textarea, $('#saveLabelCatalogBtn'));
+    $('#reloadLabelCatalogBtn').onclick = async () => {
+      state.config = await fetchJson('/api/config');
+      renderCategoryManager(group);
+    };
+  }
+
   function renderCommands() {
     const group = findNodeById(state.config.commandGroups, state.activeGroup);
+    if (group?.categoryManager) {
+      renderCategoryManager(group);
+      return;
+    }
     $('#overviewPanel').classList.toggle('hidden', state.activeGroup !== 'overview');
     $('#commandsPanel').classList.toggle('hidden', !group);
     $('#dataPanel').classList.toggle('hidden', state.activeGroup !== 'data');
@@ -1107,7 +1233,7 @@
   async function startJob(target, form) {
     const variables = {};
     form.querySelectorAll('[data-param]').forEach((input) => {
-      const value = input.value.trim();
+      const value = inputValue(input);
       if (value) variables[input.dataset.param] = value;
     });
     const job = await fetchJson('/api/jobs', {

@@ -7,10 +7,10 @@ LOCAL_DATASET_NAME ?= local_dataset
 LOCAL_IMAGES_DIR ?= $(PROJECT_ROOT)/data/local_import/images
 # 单类别标签名；Label Studio 和 YOLO 转换均使用该名称。
 LOCAL_LABEL_NAME ?= diaper
-LOCAL_IMAGES_ABS := $(shell LOCAL_IMAGES_DIR='$(LOCAL_IMAGES_DIR)' $(VENV_BIN)/python -c 'import os; from pathlib import Path; print(Path(os.environ["LOCAL_IMAGES_DIR"]).expanduser().resolve())')
+LOCAL_IMAGES_ABS := $(shell $(VENV_BIN)/python $(LABEL_RESOLVE_PATH_SCRIPT) '$(LOCAL_IMAGES_DIR)')
 # 本地目录导入/导出数据集根目录；如需自定义输出位置，请改这个变量，不要把路径写到 LOCAL_DATASET_NAME。
 LOCAL_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/local/$(LOCAL_DATASET_NAME)
-LOCAL_DATASET_ROOT_ABS := $(shell LOCAL_DATASET_ROOT='$(LOCAL_DATASET_ROOT)' $(VENV_BIN)/python -c 'import os; from pathlib import Path; print(Path(os.environ["LOCAL_DATASET_ROOT"]).expanduser().resolve())')
+LOCAL_DATASET_ROOT_ABS := $(shell $(VENV_BIN)/python $(LABEL_RESOLVE_PATH_SCRIPT) '$(LOCAL_DATASET_ROOT)')
 LOCAL_LS_IMPORT_JSON ?= $(LOCAL_DATASET_ROOT_ABS)/label_studio/local_dir_label_studio_import.json
 LOCAL_LS_LABEL_CONFIG_XML ?= $(LOCAL_DATASET_ROOT_ABS)/label_studio/label_config.xml
 LOCAL_LS_EXPORT_DIR ?= $(LOCAL_DATASET_ROOT_ABS)/label_studio/exports

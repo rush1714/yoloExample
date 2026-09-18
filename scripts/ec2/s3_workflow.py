@@ -251,6 +251,12 @@ def prepare_remote_dataset_yaml(args: argparse.Namespace) -> str:
     )
 
 
+def upload_existing_yaml_command(args: argparse.Namespace) -> str:
+    """保留已上传 YAML 时只做存在性检查，避免覆盖多类别 names。"""
+    remote_data_yaml_abs = remote_project_path(args, args.remote_data_yaml)
+    return f"test -f {shlex.quote(remote_data_yaml_abs)}"
+
+
 def train(args: argparse.Namespace) -> None:
     """在 EC2 上确保图片已下载、生成 YAML 后启动训练。"""
     training_command = shell_join(
@@ -283,7 +289,9 @@ def train(args: argparse.Namespace) -> None:
         training_command += " --resume"
     command = (
         f"mkdir -p {shlex.quote(args.artifact_root)} && "
-        f"{download_images_command(args)} && {prepare_remote_dataset_yaml(args)} && {training_command}"
+        f"{download_images_command(args)} && "
+        f"{upload_existing_yaml_command(args) if args.skip_generate_yaml else prepare_remote_dataset_yaml(args)} && "
+        f"{training_command}"
     )
     run_or_print(remote_command(args, command), args.execute)
 
@@ -389,6 +397,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch", default="16", help="batch 大小")
     parser.add_argument("--device", default="0", help="EC2 GPU 设备")
     parser.add_argument("--resume", action="store_true", help="恢复训练")
+    parser.add_argument("--skip-generate-yaml", action="store_true", help="不在 EC2 重新生成单类别 YAML，直接使用已上传 YAML")
     parser.add_argument("--notes", default="", help="写入 evaluation-summary.md 的备注")
     return parser
 
