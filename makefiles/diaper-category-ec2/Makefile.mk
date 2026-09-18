@@ -21,7 +21,8 @@ DIAPER_LS_LABEL_CONFIG_XML ?= $(DIAPER_DATASET_ROOT)/label_studio/label_config.x
 DIAPER_LS_EXPORT_DIR ?= $(DIAPER_DATASET_ROOT)/label_studio/exports
 DIAPER_LS_EXPORT_PATH ?= $(DIAPER_LS_EXPORT_DIR)/label_studio_export.json
 DIAPER_LS_TO_YOLO_REPORT ?= $(DIAPER_LS_EXPORT_DIR)/label_studio_to_yolo_report.json
-LS_PROJECT_IDS ?=
+# 多项目合并可传 LS_PROJECT_IDS=21,20，也兼容控制台常用的 LS_PROJECT_ID=21,20。
+LS_PROJECT_IDS ?= $(LS_PROJECT_ID)
 DIAPER_LS_PROJECT_EXPORT_DIR ?= $(DIAPER_LS_EXPORT_DIR)/projects
 DIAPER_MERGED_LS_EXPORT_PATH ?= $(DIAPER_LS_EXPORT_DIR)/merged_label_studio_export.json
 DIAPER_MERGE_REPORT ?= $(DIAPER_LS_EXPORT_DIR)/merged_label_studio_export_report.json

@@ -57,6 +57,10 @@ LS_PROJECT_TITLE ?= $(BRAND_DISPLAY_NAME) Package Review
 LS_BRAND_FILTER ?= $(BRAND_FILTER)
 LS_COMPACT_CLASS_IDS ?= $(if $(BRAND_FILTER),1,0)
 LS_PROJECT_ID    ?=
+LS_SOURCE_PROJECT_ID ?=
+LS_CLONE_PROJECT_TITLE ?=
+LS_CLONE_LABEL_NAME ?=
+LS_CLONE_ANNOTATION_INDEX ?= latest
 LS_EXPORT_FORMAT ?= JSON
 LS_EXPORT_DIR    ?= $(DATASET_ROOT)/label_studio/exports
 LS_EXPORT_PATH   ?= $(LS_EXPORT_DIR)/label_studio_export.json
@@ -105,7 +109,7 @@ export LS_LABEL_CONFIG_XML
 export MODELS_BAK_DIR
 
 .PHONY: help help-params web-console prepare-dirs brand-check brand-list \
-	ls-setup ls-start ls-migrate ls-shell ls-stop ls-apply ls-export \
+	ls-setup ls-start ls-migrate ls-shell ls-stop ls-apply ls-export ls-clone-annotated-project \
 	data-validate train predict datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check bak-data
 help: ## 显示命令帮助和常用参数说明
 	@printf "\033[1m可用命令\033[0m\n"
@@ -220,6 +224,17 @@ ls-export: ls-db-check prepare-dirs ## 从 Label Studio 导出 JSON；需传 LS_
 		--data-dir $(LS_DATA_DIR) \
 		--export-path $(LS_EXPORT_PATH) \
 		$(LS_PROJECT_ID) $(LS_EXPORT_FORMAT)
+
+ls-clone-annotated-project: ls-db-check prepare-dirs ## 复制已有 Label Studio 项目，只保留已标注有效框任务；需传 LS_SOURCE_PROJECT_ID=<项目ID>
+	@[ -n "$(LS_SOURCE_PROJECT_ID)" ] || (echo "错误：请传入 LS_SOURCE_PROJECT_ID，例如：make ls-clone-annotated-project LS_SOURCE_PROJECT_ID=2" && exit 1)
+	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/clone_annotated_project.py", encoding="utf-8").read())\nexit()\n' | \
+		LS_SOURCE_PROJECT_ID='$(LS_SOURCE_PROJECT_ID)' \
+		LS_CLONE_PROJECT_TITLE='$(LS_CLONE_PROJECT_TITLE)' \
+		LS_PROJECT_TITLE='$(LS_PROJECT_TITLE)' \
+		LS_CLONE_LABEL_NAME='$(LS_CLONE_LABEL_NAME)' \
+		LS_CLONE_ANNOTATION_INDEX='$(LS_CLONE_ANNOTATION_INDEX)' \
+		LS_LOCAL_FILES_PATH='$(LS_LOCAL_FILES_PATH)' \
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
 
 train: data-validate ## 训练 YOLO 模型
 	$(VENV_BIN)/python scripts/training/train.py \

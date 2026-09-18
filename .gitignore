@@ -43,6 +43,7 @@ datasets/*/pseudo/images/
 outputs/
 logs/
 .tmp/
+web-console/state.json
 
 # Optional local image import staging directory
 data/local_import/

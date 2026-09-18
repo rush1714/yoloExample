@@ -216,6 +216,24 @@ make 2-local-ls-s3-workflow-after-ls \
   S3_LS_TO_YOLO_CLEAR=1
 ```
 
+如果同一批数据拆成多个 Label Studio 项目，可以直接让 `LS_PROJECT_ID` 使用英文逗号分隔多个项目 ID；命令会按顺序导出、只保留有有效框的任务、去重合并后再匹配 S3 上传清单：
+
+```bash
+make 2-local-ls-s3-merge-workflow-after-ls \
+  LS_PROJECT_ID=21,20 \
+  S3_DATASET_NAME=ci_20260916_01 \
+  S3_LABEL_NAME=diaper \
+  S3_LOCAL_IMAGES_DIR=/path/to/original/images \
+  S3_MANIFEST_JSON=datasets/s3/ci_20260916_01/metadata/s3_images.json \
+  S3_LS_TO_YOLO_CLEAR=1
+```
+
+如只想先导出合并、不生成 YOLO/S3 EC2 清单，可执行：
+
+```bash
+make local-ls-s3-merge-projects LS_PROJECT_ID=21,20 S3_LABEL_NAME=diaper
+```
+
 匹配顺序为：本地绝对路径 `local_path` → `relative_path` → 文件名 `image_name`。如果仅文件名匹配但有重复文件名，脚本会跳过该任务并写入 warning，避免把标注错误绑定到其他 S3 图片。
 
 ### 6. 上传 manifest/labels/YAML 到 EC2

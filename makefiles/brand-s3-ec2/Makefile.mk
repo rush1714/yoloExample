@@ -45,6 +45,9 @@ S3_LS_IMPORT_JSON ?= $(S3_DATASET_ROOT)/label_studio/s3_label_studio_import.json
 S3_LS_LABEL_CONFIG_XML ?= $(S3_DATASET_ROOT)/label_studio/label_config.xml
 S3_LS_EXPORT_DIR ?= $(S3_DATASET_ROOT)/label_studio/exports
 S3_LS_EXPORT_PATH ?= $(S3_LS_EXPORT_DIR)/label_studio_export.json
+S3_LOCAL_LS_PROJECT_EXPORT_DIR ?= $(S3_LS_EXPORT_DIR)/local_projects
+S3_LOCAL_MERGED_LS_EXPORT_PATH ?= $(S3_LS_EXPORT_DIR)/local_merged_label_studio_export.json
+S3_LOCAL_MERGE_REPORT ?= $(S3_DATASET_ROOT)/metadata/local_ls_merge_report.json
 S3_LS_TO_YOLO_REPORT ?= $(S3_DATASET_ROOT)/metadata/label_studio_to_yolo_report.json
 S3_EC2_IMAGE_MANIFEST_JSON ?= $(S3_DATASET_ROOT)/metadata/ec2_image_manifest.json
 S3_EC2_IMAGE_MANIFEST_CSV ?= $(S3_DATASET_ROOT)/metadata/ec2_image_manifest.csv
@@ -67,11 +70,13 @@ S3_EC2_LATEST_RUN_FILE ?= $(S3_EC2_ARTIFACT_ROOT)/latest-run.txt
 S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 # EC2 下载 S3 图片的模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK/IAM。
 S3_EC2_DOWNLOAD_MODE ?= auto
+# 多项目合并可传 LS_PROJECT_IDS=21,20，也兼容控制台常用的 LS_PROJECT_ID=21,20。
+LS_PROJECT_IDS ?= $(LS_PROJECT_ID)
 
 .PHONY: brand-s3-check-config brand-s3-upload-images brand-s3-sync-manifest-from-s3 brand-s3-ls-import-json brand-s3-proxy-start brand-s3-python-proxy-start \
 	brand-s3-nginx-render-config brand-s3-nginx-start brand-s3-nginx-reload brand-s3-nginx-stop brand-s3-ls-apply \
 	1-brand-s3-workflow-to-ls brand-s3-ls-export brand-s3-ls-to-yolo 2-brand-s3-workflow-after-ls \
-	local-ls-s3-to-yolo 2-local-ls-s3-workflow-after-ls \
+	local-ls-s3-to-yolo local-ls-s3-merge-projects 2-local-ls-s3-workflow-after-ls 2-local-ls-s3-merge-workflow-after-ls \
 	brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train brand-s3-ec2-evaluate brand-s3-ec2-download-artifacts \
 	brand-s3-ec2-download-model 3-brand-s3-workflow-ec2-train
 
@@ -253,6 +258,40 @@ local-ls-s3-to-yolo: ## 将本地地址 LS 导出结合 S3 上传清单生成 YO
 		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)'
 
 2-local-ls-s3-workflow-after-ls: local-dir-ls-export local-ls-s3-to-yolo ## 导出本地地址 LS 标注，并结合 S3 上传清单生成 EC2 图片清单
+
+local-ls-s3-merge-projects: ls-db-check prepare-dirs ## 导出并合并多个本地地址 LS 项目；需传 LS_PROJECT_ID=21,20 或 LS_PROJECT_IDS=21,20
+	@[ -n "$(LS_PROJECT_IDS)" ] || (echo "错误：请传入 LS_PROJECT_ID=21,20 或 LS_PROJECT_IDS=21,20" && exit 1)
+	@mkdir -p '$(S3_LOCAL_LS_PROJECT_EXPORT_DIR)'
+	@exports=""; \
+	ids="$$(printf '%s' "$(LS_PROJECT_IDS)" | tr ',' ' ')"; \
+	for project_id in $$ids; do \
+		export_path="$(S3_LOCAL_LS_PROJECT_EXPORT_DIR)/project_$${project_id}.json"; \
+		echo "导出 Label Studio 项目 $$project_id -> $$export_path"; \
+		cd $(LS_WORK_DIR) && PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio export \
+			--data-dir $(LS_DATA_DIR) \
+			--export-path "$$export_path" \
+			$$project_id $(LS_EXPORT_FORMAT) || exit $$?; \
+		exports="$$exports $$export_path"; \
+	done; \
+	$(VENV_BIN)/python $(PROJECT_ROOT)/scripts/label_studio/merge_label_studio_exports.py \
+		--input $$exports \
+		--output '$(S3_LOCAL_MERGED_LS_EXPORT_PATH)' \
+		--label-name '$(S3_LABEL_NAME)' \
+		--report '$(S3_LOCAL_MERGE_REPORT)'
+
+2-local-ls-s3-merge-workflow-after-ls: local-ls-s3-merge-projects ## 合并多个本地地址 LS 项目，并结合 S3 上传清单生成 EC2 图片清单
+	$(MAKE) --no-print-directory local-ls-s3-to-yolo \
+		LOCAL_LS_EXPORT_PATH='$(S3_LOCAL_MERGED_LS_EXPORT_PATH)' \
+		S3_MANIFEST_JSON='$(S3_MANIFEST_JSON)' \
+		S3_LOCAL_IMAGES_DIR='$(S3_LOCAL_IMAGES_DIR)' \
+		S3_DATASET_NAME='$(S3_DATASET_NAME)' \
+		S3_LABEL_NAME='$(S3_LABEL_NAME)' \
+		S3_DATASET_ROOT='$(S3_DATASET_ROOT)' \
+		S3_DATA_YAML='$(S3_DATA_YAML)' \
+		S3_EC2_IMAGE_MANIFEST_JSON='$(S3_EC2_IMAGE_MANIFEST_JSON)' \
+		S3_EC2_IMAGE_MANIFEST_CSV='$(S3_EC2_IMAGE_MANIFEST_CSV)' \
+		S3_LS_TO_YOLO_CLEAR='$(S3_LS_TO_YOLO_CLEAR)' \
+		S3_LS_TO_YOLO_SKIP_EMPTY='$(S3_LS_TO_YOLO_SKIP_EMPTY)'
 
 brand-s3-ec2-upload-manifest: ## 上传 S3 标签、EC2 图片清单和 YAML 到 EC2，默认 dry-run
 	$(VENV_BIN)/python scripts/ec2/s3_workflow.py upload-manifest \

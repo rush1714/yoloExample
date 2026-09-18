@@ -19,6 +19,7 @@ const { URL } = require('url');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const PUBLIC_ROOT = path.join(__dirname, 'public');
+const CONSOLE_STATE_PATH = path.join(__dirname, 'state.json');
 const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const MAX_BODY_BYTES = 128 * 1024;
 const MAX_LOG_BYTES = 300 * 1024;
@@ -373,6 +374,18 @@ const COMMAND_GROUPS = [
             description: '先按本地目录流程从 LS 导出，再结合 S3 上传清单生成 YOLO labels 与 EC2 下载清单。',
             params: ['LOCAL_DATASET_NAME', 'LOCAL_LS_EXPORT_PATH', 'S3_MANIFEST_JSON', 'S3_LOCAL_IMAGES_DIR', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'LS_PROJECT_ID', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
           },
+          {
+            target: 'local-ls-s3-merge-projects',
+            title: '合并多个本地 LS 项目',
+            description: '按 LS_PROJECT_ID 顺序导出多个本地地址 LS 项目，仅保留有有效框的任务并去重合并。',
+            params: ['LS_PROJECT_ID', 'S3_LABEL_NAME', 'S3_LOCAL_MERGED_LS_EXPORT_PATH', 'S3_LOCAL_MERGE_REPORT'],
+          },
+          {
+            target: '2-local-ls-s3-merge-workflow-after-ls',
+            title: '合并多个本地 LS 项目生成 S3 EC2 清单',
+            description: '导出并合并多个本地地址 LS 项目，再匹配 s3_images.json 生成 YOLO labels 与 EC2 下载清单。',
+            params: ['LS_PROJECT_ID', 'S3_MANIFEST_JSON', 'S3_LOCAL_IMAGES_DIR', 'S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_DATA_YAML', 'S3_EC2_IMAGE_MANIFEST_JSON', 'S3_EC2_IMAGE_MANIFEST_CSV', 'S3_LOCAL_MERGED_LS_EXPORT_PATH', 'S3_LOCAL_MERGE_REPORT', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'],
+          },
         ],
       },
     ],
@@ -400,10 +413,13 @@ const COMMAND_GROUPS = [
           { target: 'step-4-import-ls', title: '品牌流程导入 LS', description: '生成导入 JSON，并通过 label-studio shell 创建项目和任务。', params: ['BRAND', 'LS_PROJECT_TITLE'] },
           { target: 'ls-export', title: '导出 Label Studio JSON', description: '从指定项目 ID 导出标注结果。', params: ['BRAND', 'LS_PROJECT_ID', 'LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
           { target: 'ls-to-yolo', title: '品牌 LS 导出转 YOLO', description: '把 Label Studio JSON 转换为正式 images/labels 训练集。', params: ['BRAND', 'LS_EXPORT_PATH', 'LS_TO_YOLO_CLEAR', 'LS_TO_YOLO_SKIP_EMPTY'] },
+          { target: 'ls-clone-annotated-project', title: '复制已标注项目', description: '复制已有 Label Studio 项目，只保留带有效矩形框的已标注任务。', params: ['LS_SOURCE_PROJECT_ID', 'LS_CLONE_PROJECT_TITLE', 'LS_CLONE_LABEL_NAME', 'LS_CLONE_ANNOTATION_INDEX', 'LS_LOCAL_FILES_PATH'] },
           { target: 'local-dir-ls-export', title: '本地目录 LS 导出', description: '从指定本地目录 Label Studio 项目导出标注结果 JSON。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LS_PROJECT_ID', 'LOCAL_LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
           { target: 'local-dir-ls-to-yolo', title: '本地目录 LS 转 YOLO', description: '把本地目录 Label Studio 导出 JSON 转换为 images/labels 训练集。', params: ['LOCAL_DATASET_NAME', 'LOCAL_DATASET_ROOT', 'LOCAL_LABEL_NAME', 'LOCAL_LS_EXPORT_PATH', 'LOCAL_LS_TO_YOLO_CLEAR', 'LOCAL_LS_TO_YOLO_SKIP_EMPTY'] },
           { target: 'brand-s3-ls-export', title: 'S3 图片 LS 导出', description: '从指定 S3 图片 Label Studio 项目导出标注结果 JSON。', params: ['S3_DATASET_NAME', 'S3_DATASET_ROOT', 'LS_PROJECT_ID', 'S3_LS_EXPORT_PATH', 'LS_EXPORT_FORMAT'] },
           { target: 'brand-s3-ls-to-yolo', title: 'S3 图片 LS 转 YOLO/manifest', description: '生成 YOLO labels 和 EC2 图片下载 manifest。', params: ['S3_DATASET_NAME', 'S3_LABEL_NAME', 'S3_DATASET_ROOT', 'S3_LS_EXPORT_PATH', 'S3_LS_TO_YOLO_CLEAR', 'S3_LS_TO_YOLO_SKIP_EMPTY'] },
+          { target: 'diaper-merge-ls-projects', title: '合并多个 LS 项目有效标注', description: '按 LS_PROJECT_ID 顺序导出多个项目，仅保留有有效框的任务并去重合并；多个 ID 用英文逗号分隔。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME', 'LS_PROJECT_ID', 'DIAPER_MERGED_LS_EXPORT_PATH', 'DIAPER_MERGE_REPORT'] },
+          { target: 'diaper-merge-ls-projects-to-yolo', title: '合并多个 LS 项目并生成 YOLO', description: '导出多个 LS 项目，合并有有效框的任务，然后转换为 YOLO 训练集；LS_PROJECT_ID 支持逗号分隔多个 ID。', params: ['DIAPER_COUNTRY', 'DIAPER_VERSION', 'DIAPER_LABEL_NAME', 'LS_PROJECT_ID', 'LS_TO_YOLO_CLEAR', 'LS_TO_YOLO_SKIP_EMPTY', 'DIAPER_MERGED_LS_EXPORT_PATH', 'DIAPER_MERGE_REPORT'] },
         ],
       },
     ],
@@ -539,7 +555,12 @@ const PARAM_DEFINITIONS = {
   AB_MODELS: { label: 'A/B 模型列表', defaultValue: 'models/yolov8s-world.pt,models/yolov8m-world.pt,models/yolov8m-worldv2.pt,models/yolov8x-worldv2.pt', type: 'text' },
   AB_LIMIT: { label: 'A/B 图片上限', defaultValue: '50', type: 'number' },
   AB_PREVIEW_LIMIT: { label: 'A/B 预览图上限', defaultValue: '30', type: 'number' },
-  LS_PROJECT_ID: { label: 'LS 项目 ID', defaultValue: '', type: 'text' },
+  LS_PROJECT_ID: { label: 'LS 项目 ID', defaultValue: '', type: 'text', help: '单项目填 21；多项目合并命令可填 21,20。' },
+  LS_SOURCE_PROJECT_ID: { label: '源 LS 项目 ID', defaultValue: '', type: 'text', help: '复制已标注项目时填写源项目 ID。' },
+  LS_CLONE_PROJECT_TITLE: { label: '复制项目标题', defaultValue: '', type: 'text', help: '留空时使用源项目标题 + Annotated Copy。' },
+  LS_CLONE_LABEL_NAME: { label: '复制标签过滤', defaultValue: '', type: 'text', help: '可选；只复制包含该标签有效框的任务。' },
+  LS_CLONE_ANNOTATION_INDEX: { label: '复制标注选择', defaultValue: 'latest', type: 'select', options: ['latest', 'first'] },
+  LS_LOCAL_FILES_PATH: { label: 'LS 本地文件目录', defaultValue: '', type: 'text', help: '复制项目时可指定新项目 Local Files storage 根目录；留空自动推断。' },
   LS_PORT: { label: 'LS 端口', defaultValue: '9001', type: 'number' },
   LS_PROJECT_TITLE: { label: 'LS 项目标题', defaultValue: '', type: 'text' },
   LS_EXPORT_PATH: { label: 'LS 导出 JSON 路径', defaultValue: '', type: 'text' },
@@ -630,6 +651,8 @@ const PARAM_DEFINITIONS = {
   DIAPER_DATA_YAML: { label: '纸尿裤本地 YAML', defaultValue: '', type: 'text' },
   DIAPER_MERGED_LS_EXPORT_PATH: { label: '合并后 LS JSON', defaultValue: '', type: 'text' },
   DIAPER_MERGE_REPORT: { label: '合并报告 JSON', defaultValue: '', type: 'text' },
+  S3_LOCAL_MERGED_LS_EXPORT_PATH: { label: 'S3 本地 LS 合并导出', defaultValue: '', type: 'text', help: '本地地址多项目 LS 合并后的 JSON；默认写到 S3 数据集 label_studio/exports。' },
+  S3_LOCAL_MERGE_REPORT: { label: 'S3 本地 LS 合并报告', defaultValue: '', type: 'text', help: '本地地址多项目 LS 合并报告 JSON。' },
   EC2_HOST: { label: 'EC2 Host', defaultValue: '3.232.95.101', type: 'text' },
   EC2_USER: { label: 'EC2 用户', defaultValue: 'ec2-user', type: 'text' },
   EC2_KEY: { label: 'SSH 私钥路径', defaultValue: '~/.ssh/smdp-yolo-gpu-key.pem', type: 'text' },
@@ -663,6 +686,65 @@ function collectCommands(nodes) {
 const TARGETS = new Set(collectCommands(COMMAND_GROUPS).map((command) => command.target));
 const ALLOWED_VARIABLES = new Set(Object.keys(PARAM_DEFINITIONS));
 const jobs = new Map();
+
+const DEFAULT_CONSOLE_STATE = {
+  paramCache: {},
+  favorites: [],
+};
+
+function plainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeParamCache(rawCache) {
+  const cleaned = {};
+  if (!plainObject(rawCache)) {
+    return cleaned;
+  }
+  for (const [key, rawValue] of Object.entries(rawCache)) {
+    if (!ALLOWED_VARIABLES.has(key)) {
+      continue;
+    }
+    const value = String(rawValue ?? '').trim();
+    if (value) {
+      cleaned[key] = value.slice(0, 2000);
+    }
+  }
+  return cleaned;
+}
+
+function sanitizeFavorites(rawFavorites) {
+  if (!Array.isArray(rawFavorites)) {
+    return [];
+  }
+  return rawFavorites.slice(0, 200).flatMap((item, index) => {
+    if (!plainObject(item) || !TARGETS.has(String(item.target || ''))) {
+      return [];
+    }
+    const id = String(item.id || `fav_${Date.now()}_${index}`).slice(0, 80);
+    const group = String(item.group || '默认').trim().slice(0, 80) || '默认';
+    const title = String(item.title || item.target).trim().slice(0, 120) || String(item.target);
+    return [{ id, group, title, target: String(item.target), params: sanitizeParamCache(item.params) }];
+  });
+}
+
+function sanitizeConsoleState(rawState) {
+  if (!plainObject(rawState)) {
+    return { ...DEFAULT_CONSOLE_STATE };
+  }
+  return {
+    paramCache: sanitizeParamCache(rawState.paramCache),
+    favorites: sanitizeFavorites(rawState.favorites),
+  };
+}
+
+function mergeConsoleState(rawState) {
+  const state = sanitizeConsoleState(rawState);
+  return {
+    ...DEFAULT_CONSOLE_STATE,
+    ...state,
+  };
+}
 
 function jsonResponse(response, statusCode, payload) {
   response.writeHead(statusCode, {
@@ -726,6 +808,26 @@ async function pathExists(absPath) {
   } catch (_error) {
     return false;
   }
+}
+
+async function readConsoleState() {
+  try {
+    const raw = await fsp.readFile(CONSOLE_STATE_PATH, 'utf8');
+    return sanitizeConsoleState(JSON.parse(raw));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return mergeConsoleState({});
+    }
+    throw error;
+  }
+}
+
+async function writeConsoleState(rawState) {
+  const state = sanitizeConsoleState(rawState);
+  const tempPath = `${CONSOLE_STATE_PATH}.tmp`;
+  await fsp.writeFile(tempPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  await fsp.rename(tempPath, CONSOLE_STATE_PATH);
+  return state;
 }
 
 async function walkFiles(rootPath, options = {}) {
@@ -1248,6 +1350,15 @@ async function handleStartJob(request, response) {
   jsonResponse(response, 201, publicJob(job));
 }
 
+async function handleGetState(_request, response) {
+  jsonResponse(response, 200, await readConsoleState());
+}
+
+async function handlePutState(request, response) {
+  const body = await readJsonBody(request);
+  jsonResponse(response, 200, await writeConsoleState(body));
+}
+
 function handleJob(url, response) {
   const id = decodeURIComponent(url.pathname.split('/').pop());
   const job = jobs.get(id);
@@ -1301,6 +1412,14 @@ async function router(request, response) {
     }
     if (request.method === 'GET' && url.pathname === '/api/data/summary') {
       jsonResponse(response, 200, await dataSummary());
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/api/state') {
+      await handleGetState(request, response);
+      return;
+    }
+    if (request.method === 'PUT' && url.pathname === '/api/state') {
+      await handlePutState(request, response);
       return;
     }
     if (request.method === 'GET' && url.pathname === '/api/images') {

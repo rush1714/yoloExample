@@ -594,18 +594,21 @@
 </dialog>
 
 <script>
-  const state = {
-    config: null,
-    activeGroup: 'overview',
-    activeCommandByGroup: {},
-    imagePage: 1,
-    imagePageSize: 48,
-    imageTotal: 0,
-    currentJobId: null,
-    jobTimer: null,
-    expandedMenuIds: new Set(['prepare_labeling', 'excel_ocr_yoloworld']),
-    paramCache: {},
-  };
+    const state = {
+      config: null,
+      favorites: [],
+      activeFavoriteId: null,
+      activeGroup: 'overview',
+      activeCommandByGroup: {},
+      imagePage: 1,
+      imagePageSize: 48,
+      imageTotal: 0,
+      currentJobId: null,
+      jobTimer: null,
+      expandedMenuIds: new Set(['favorites', 'prepare_labeling', 'excel_ocr_yoloworld']),
+      paramCache: {},
+      persistTimer: null,
+    };
 
   const $ = (selector) => document.querySelector(selector);
   const PARAM_CACHE_KEY = 'yoloConsole:paramValues:v1';
@@ -631,13 +634,37 @@
     }
   }
 
-  function saveParamCache() {
-    try {
-      window.localStorage.setItem(PARAM_CACHE_KEY, JSON.stringify(state.paramCache));
-    } catch (_error) {
-      // 浏览器禁用 localStorage 时忽略，表单仍按当前会话正常工作。
+    function saveParamCache() {
+      try {
+        window.localStorage.setItem(PARAM_CACHE_KEY, JSON.stringify(state.paramCache));
+      } catch (_error) {
+        // 浏览器禁用 localStorage 时忽略，表单仍按当前会话正常工作。
+      }
     }
-  }
+
+    async function loadConsoleState() {
+      try {
+        return await fetchJson('/api/state');
+      } catch (_error) {
+        return { paramCache: {}, favorites: [] };
+      }
+    }
+
+    function persistConsoleStateNow() {
+      return fetchJson('/api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paramCache: state.paramCache, favorites: state.favorites }),
+      }).catch(() => null);
+    }
+
+    function schedulePersistConsoleState() {
+      if (state.persistTimer) clearTimeout(state.persistTimer);
+      state.persistTimer = setTimeout(() => {
+        state.persistTimer = null;
+        persistConsoleStateNow();
+      }, 350);
+    }
 
   function cachedParamValue(paramName, definition) {
     if (Object.prototype.hasOwnProperty.call(state.paramCache, paramName)) {
@@ -646,24 +673,26 @@
     return String(definition.defaultValue ?? '');
   }
 
-  function updateParamCache(paramName, rawValue) {
-    const value = String(rawValue ?? '').trim();
-    if (value) {
-      state.paramCache[paramName] = value;
-    } else {
-      delete state.paramCache[paramName];
+    function updateParamCache(paramName, rawValue) {
+      const value = String(rawValue ?? '').trim();
+      if (value) {
+        state.paramCache[paramName] = value;
+      } else {
+        delete state.paramCache[paramName];
+      }
+      saveParamCache();
+      schedulePersistConsoleState();
     }
-    saveParamCache();
-  }
 
-  function clearParamCache() {
-    state.paramCache = {};
-    try {
-      window.localStorage.removeItem(PARAM_CACHE_KEY);
-    } catch (_error) {
-      // 浏览器禁用 localStorage 时忽略。
+    function clearParamCache() {
+      state.paramCache = {};
+      try {
+        window.localStorage.removeItem(PARAM_CACHE_KEY);
+      } catch (_error) {
+        // 浏览器禁用 localStorage 时忽略。
+      }
+      schedulePersistConsoleState();
     }
-  }
 
   async function fetchJson(url, options) {
     const response = await fetch(url, options);
@@ -691,16 +720,56 @@
     return ownCommands + childCommands;
   }
 
-  function findNodeById(nodes, id) {
-    for (const node of nodes) {
-      if (node.id === id) return node;
-      if (Array.isArray(node.children)) {
-        const found = findNodeById(node.children, id);
+    function findNodeById(nodes, id) {
+      for (const node of nodes) {
+        if (node.id === id) return node;
+        if (Array.isArray(node.children)) {
+          const found = findNodeById(node.children, id);
         if (found) return found;
       }
+      }
+      return null;
     }
-    return null;
-  }
+
+    function findCommandByTarget(nodes, target) {
+      for (const node of nodes) {
+        const foundCommand = (node.commands || []).find((command) => command.target === target);
+        if (foundCommand) return { group: node, command: foundCommand };
+        if (Array.isArray(node.children)) {
+          const found = findCommandByTarget(node.children, target);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    function favoriteGroups() {
+      return state.favorites.reduce((groups, favorite) => {
+        const groupName = favorite.group || '默认';
+        if (!groups[groupName]) groups[groupName] = [];
+        groups[groupName].push(favorite);
+        return groups;
+      }, {});
+    }
+
+    function favoriteTreeNode() {
+      const groups = favoriteGroups();
+      const children = Object.entries(groups).map(([groupName, favorites]) => ({
+        id: `favorite:${groupName}`,
+        title: groupName,
+        commands: favorites.map((favorite) => ({
+          ...favorite,
+          description: `收藏命令：${favorite.target}`,
+          isFavorite: true,
+          params: findCommandByTarget(state.config.commandGroups, favorite.target)?.command.params || Object.keys(favorite.params || {}),
+        })),
+      }));
+      return { id: 'favorites', title: '收藏菜单', children };
+    }
+
+    function currentFavorite() {
+      return state.favorites.find((favorite) => favorite.id === state.activeFavoriteId) || null;
+    }
 
   function nodeContainsActive(node) {
     if (node.id === state.activeGroup) return true;
@@ -720,7 +789,7 @@
     return commands.find((command) => command.target === activeTarget) || commands[0];
   }
 
-  function paramInput(paramName) {
+    function paramInput(paramName) {
     const definition = state.config.params[paramName] || { label: paramName, type: 'text', defaultValue: '' };
     const label = document.createElement('label');
     label.innerHTML = `<span>${escapeHtml(definition.label || paramName)} <span class="muted">${escapeHtml(paramName)}</span></span>`;
@@ -746,17 +815,71 @@
     input.placeholder = definition.help || '';
     input.addEventListener('input', () => updateParamCache(paramName, input.value));
     input.addEventListener('change', () => updateParamCache(paramName, input.value));
-    label.appendChild(input);
-    return label;
-  }
+      label.appendChild(input);
+      return label;
+    }
 
-  function renderSideMenu() {
-    const menu = $('#sideMenu');
-    menu.innerHTML = '';
-    menu.appendChild(menuButton({ id: 'overview', title: '数据总览' }, 0, false));
-    renderMenuNodes(state.config.commandGroups, menu, 0);
-    menu.appendChild(menuButton({ id: 'data', title: '图片浏览' }, 0, false));
-  }
+    function formValues(form) {
+      const values = {};
+      form.querySelectorAll('[data-param]').forEach((input) => {
+        const value = input.value.trim();
+        if (value) values[input.dataset.param] = value;
+      });
+      return values;
+    }
+
+    function saveFavorites() {
+      schedulePersistConsoleState();
+      renderSideMenu();
+    }
+
+    function addFavorite(command, form) {
+      const group = window.prompt('收藏分组', currentFavorite()?.group || '默认');
+      if (group === null) return;
+      const title = window.prompt('收藏名称', currentFavorite()?.title || command.title);
+      if (title === null) return;
+      const favorite = {
+        id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        group: group.trim() || '默认',
+        title: title.trim() || command.title,
+        target: command.target,
+        params: formValues(form),
+      };
+      state.favorites.push(favorite);
+      state.activeFavoriteId = favorite.id;
+      saveFavorites();
+      renderCommands();
+    }
+
+    function renameFavorite(favorite) {
+      const group = window.prompt('收藏分组', favorite.group || '默认');
+      if (group === null) return;
+      const title = window.prompt('收藏名称', favorite.title || favorite.target);
+      if (title === null) return;
+      favorite.group = group.trim() || '默认';
+      favorite.title = title.trim() || favorite.target;
+      saveFavorites();
+      renderCommands();
+    }
+
+    function deleteFavorite(favorite) {
+      if (!window.confirm(`删除收藏「${favorite.title}」？`)) return;
+      state.favorites = state.favorites.filter((item) => item.id !== favorite.id);
+      state.activeFavoriteId = null;
+      saveFavorites();
+      renderCommands();
+    }
+
+    function renderSideMenu() {
+      const menu = $('#sideMenu');
+      menu.innerHTML = '';
+      menu.appendChild(menuButton({ id: 'overview', title: '数据总览' }, 0, false));
+      if (state.favorites.length > 0) {
+        renderMenuNodes([favoriteTreeNode()], menu, 0);
+      }
+      renderMenuNodes(state.config.commandGroups, menu, 0);
+      menu.appendChild(menuButton({ id: 'data', title: '图片浏览' }, 0, false));
+    }
 
   function renderMenuNodes(nodes, parent, depth) {
     nodes.forEach((node) => {
@@ -776,25 +899,43 @@
     });
   }
 
-  function commandButton(group, command, depth) {
-    const button = document.createElement('button');
-    button.className = `submenu-button ${state.activeGroup === group.id && currentCommand(group)?.target === command.target ? 'active' : ''}`;
-    button.type = 'button';
-    button.textContent = command.title;
-    button.style.paddingLeft = `${26 + depth * 18}px`;
-    button.onclick = () => {
-      state.activeGroup = group.id;
-      state.expandedMenuIds.add(group.id);
-      state.activeCommandByGroup[group.id] = command.target;
-      renderSideMenu();
-      renderCommands();
+    function commandButton(group, command, depth) {
+      const button = document.createElement('button');
+      const isActive = command.isFavorite
+        ? state.activeFavoriteId === command.id
+        : state.activeGroup === group.id && currentCommand(group)?.target === command.target;
+      button.className = `submenu-button ${isActive ? 'active' : ''}`;
+      button.type = 'button';
+      button.textContent = command.title;
+      button.style.paddingLeft = `${26 + depth * 18}px`;
+      button.onclick = () => {
+        if (command.isFavorite) {
+          const found = findCommandByTarget(state.config.commandGroups, command.target);
+          if (!found) return;
+          Object.entries(command.params || {}).forEach(([paramName, value]) => updateParamCache(paramName, value));
+          state.activeGroup = found.group.id;
+          state.expandedMenuIds.add('favorites');
+          state.expandedMenuIds.add(group.id);
+          state.expandedMenuIds.add(found.group.id);
+          state.activeCommandByGroup[found.group.id] = found.command.target;
+          state.activeFavoriteId = command.id;
+          renderSideMenu();
+          renderCommands();
+          return;
+        }
+        state.activeFavoriteId = null;
+        state.activeGroup = group.id;
+        state.expandedMenuIds.add(group.id);
+        state.activeCommandByGroup[group.id] = command.target;
+        renderSideMenu();
+        renderCommands();
     };
     return button;
   }
 
-  function menuButton(item, depth = 0, canToggle = false) {
-    const button = document.createElement('button');
-    const active = state.activeGroup === item.id || nodeContainsActive(item);
+    function menuButton(item, depth = 0, canToggle = false) {
+      const button = document.createElement('button');
+      const active = item.id === 'favorites' ? Boolean(state.activeFavoriteId) : state.activeGroup === item.id || nodeContainsActive(item);
     const expanded = state.expandedMenuIds?.has(item.id);
     button.className = `${depth === 0 ? 'menu-button' : 'submenu-button'} ${active ? 'active' : ''}`;
     button.type = 'button';
@@ -857,11 +998,30 @@
       renderCommandDetail(command);
     };
 
+    const favoriteButton = document.createElement('button');
+    favoriteButton.className = 'secondary';
+    favoriteButton.textContent = '收藏命令';
+    favoriteButton.onclick = () => addFavorite(command, form);
+
     const actions = document.createElement('div');
     actions.className = 'actions';
     actions.appendChild(runButton);
     actions.appendChild(copyButton);
+    actions.appendChild(favoriteButton);
     actions.appendChild(clearCacheButton);
+    const favorite = currentFavorite();
+    if (favorite) {
+      const renameButton = document.createElement('button');
+      renameButton.className = 'secondary';
+      renameButton.textContent = '重命名收藏';
+      renameButton.onclick = () => renameFavorite(favorite);
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'danger';
+      deleteButton.textContent = '删除收藏';
+      deleteButton.onclick = () => deleteFavorite(favorite);
+      actions.appendChild(renameButton);
+      actions.appendChild(deleteButton);
+    }
     header.appendChild(actions);
 
     panel.appendChild(header);
@@ -905,6 +1065,7 @@
 
   function setActiveGroup(groupId, canToggle = false) {
     if (groupId === 'overview' || groupId === 'data') {
+      state.activeFavoriteId = null;
       state.activeGroup = groupId;
       renderSideMenu();
       renderCommands();
@@ -913,9 +1074,22 @@
       return;
     }
 
+    if (groupId === 'favorites' || groupId.startsWith('favorite:')) {
+      if (canToggle) {
+        if (state.expandedMenuIds.has(groupId)) {
+          state.expandedMenuIds.delete(groupId);
+        } else {
+          state.expandedMenuIds.add(groupId);
+        }
+      }
+      renderSideMenu();
+      return;
+    }
+
     const group = findNodeById(state.config.commandGroups, groupId);
     if (!group) return;
     state.activeGroup = groupId;
+    state.activeFavoriteId = null;
     if (canToggle) {
       if (state.expandedMenuIds.has(groupId)) {
         state.expandedMenuIds.delete(groupId);
@@ -1089,10 +1263,14 @@
     $('#imageDialog').showModal();
   }
 
-  async function init() {
-    state.config = await fetchJson('/api/config');
-    state.paramCache = loadParamCache();
-    $('#projectRoot').textContent = `项目根目录：${state.config.projectRoot}`;
+    async function init() {
+      state.config = await fetchJson('/api/config');
+      const serverState = await loadConsoleState();
+      state.favorites = Array.isArray(serverState.favorites) ? serverState.favorites : [];
+      state.paramCache = { ...(serverState.paramCache || {}), ...loadParamCache() };
+      saveParamCache();
+      schedulePersistConsoleState();
+      $('#projectRoot').textContent = `项目根目录：${state.config.projectRoot}`;
     renderSideMenu();
     renderCommands();
     renderDataRoots();
