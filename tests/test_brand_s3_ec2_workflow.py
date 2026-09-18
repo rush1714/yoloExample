@@ -3,6 +3,7 @@
 # pylint: disable=import-error,wrong-import-position,line-too-long
 
 from __future__ import annotations
+
 import sys
 import tempfile
 import unittest
@@ -13,7 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.ec2.s3_workflow import download_images_command
+from scripts.ec2.s3_workflow import download_images_command, validate_upload_inputs
+from scripts.label_studio.export_local_s3_to_yolo import convert_local_tasks_with_s3_manifest
 from scripts.label_studio.export_s3_single_class_to_yolo import convert_tasks as convert_s3_tasks
 from scripts.label_studio.generate_s3_import import build_tasks as build_s3_import_tasks
 from scripts.s3.brand_s3_config import (
@@ -118,7 +120,6 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertEqual(statuses["a.jpg"], "skipped_existing")
             self.assertEqual(statuses["nested/b.jpg"], "planned")
             self.assertTrue(records[0]["s3_key"].startswith("yolo-training/prefix/demo/"))
-
 
     def test_record_from_s3_object_marks_existing_uploaded(self) -> None:
         """从 S3 反建清单时，大小匹配的对象应被标记为已上传。"""
@@ -255,8 +256,69 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertEqual(converted[0].s3_uri, "s3://bucket-a/prefix/nested/a.jpg")
             self.assertEqual((output_root / "labels" / "train" / "nested__a.txt").read_text(encoding="utf-8"), "0 0.250000 0.400000 0.300000 0.400000\n")
 
+    def test_local_ls_export_matches_s3_manifest_for_ec2_training(self) -> None:
+        """本地地址 LS 导出应能通过 s3_images.json 匹配并生成 EC2 manifest 记录。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            image = root / "images" / "nested" / "a.jpg"
+            image.parent.mkdir(parents=True)
+            image.write_bytes(b"image")
+            task = {
+                "id": 9,
+                "data": {
+                    "image": f"/data/local-files/?d={image}",
+                    "local_path": str(image),
+                    "image_name": "a.jpg",
+                    "relative_path": "nested/a.jpg",
+                },
+                "annotations": [
+                    {
+                        "result": [
+                            {
+                                "type": "rectanglelabels",
+                                "value": {"x": 10, "y": 20, "width": 30, "height": 40, "rectanglelabels": ["diaper"]},
+                            }
+                        ]
+                    }
+                ],
+            }
+            manifest_records = [
+                {
+                    "dataset_name": "demo",
+                    "image_name": "a.jpg",
+                    "relative_path": "nested/a.jpg",
+                    "local_path": str(image),
+                    "s3_bucket": "bucket-a",
+                    "s3_key": "yolo-training/demo/nested/a.jpg",
+                    "s3_uri": "s3://bucket-a/yolo-training/demo/nested/a.jpg",
+                    "uploaded": True,
+                }
+            ]
+
+            converted, warnings = convert_local_tasks_with_s3_manifest(
+                [task], manifest_records, root / "dataset", "diaper", "latest", True, root / "images"
+            )
+
+            self.assertFalse(warnings)
+            self.assertEqual(converted[0].s3_key, "yolo-training/demo/nested/a.jpg")
+            self.assertEqual(converted[0].training_image_name, "nested__a.jpg")
+            self.assertEqual((root / "dataset" / "labels" / "train" / "nested__a.txt").read_text(encoding="utf-8"), "0 0.250000 0.400000 0.300000 0.400000\n")
+
+    def test_duplicate_image_name_does_not_match_ambiguously(self) -> None:
+        """仅文件名重复时不能兜底匹配，避免把标注指向错误 S3 图片。"""
+        task = {"id": 10, "data": {"image_name": "same.jpg"}, "annotations": [{"result": []}]}
+        manifest_records = [
+            {"image_name": "same.jpg", "relative_path": "a/same.jpg", "s3_bucket": "bucket-a", "s3_key": "a/same.jpg", "uploaded": True},
+            {"image_name": "same.jpg", "relative_path": "b/same.jpg", "s3_bucket": "bucket-a", "s3_key": "b/same.jpg", "uploaded": True},
+        ]
+
+        converted, warnings = convert_local_tasks_with_s3_manifest([task], manifest_records, Path("/tmp/out"), "diaper", "latest", True)
+
+        self.assertFalse(converted)
+        self.assertIn("无法唯一匹配", warnings[0])
+
     def test_ec2_download_images_command_references_manifest(self) -> None:
-        """EC2 dry-run 命令应包含 manifest 路径和 boto3 下载逻辑。"""
+        """EC2 dry-run 命令应包含 manifest 路径、字段校验和 boto3 下载逻辑。"""
         args = type(
             "Args",
             (),
@@ -271,9 +333,47 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         command = download_images_command(args)
 
         self.assertIn("ec2_image_manifest.json", command)
+        self.assertIn("s3_images.json", command)
+        self.assertIn("required_fields", command)
         self.assertIn("boto3", command)
         self.assertIn("download_file", command)
         self.assertIn("datasets/s3/demo", command)
+
+    def test_upload_manifest_hint_distinguishes_s3_and_ec2_manifests(self) -> None:
+        """缺少 EC2 manifest 但存在上传清单时，应提示先生成标注后的 EC2 清单。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            dataset_root = root / "dataset"
+            metadata_dir = dataset_root / "metadata"
+            metadata_dir.mkdir(parents=True)
+            (metadata_dir / "s3_images.json").write_text('{"items": []}', encoding="utf-8")
+            args = type(
+                "Args",
+                (),
+                {
+                    "dataset_root": str(dataset_root),
+                    "ec2_manifest_json": str(metadata_dir / "ec2_image_manifest.json"),
+                    "ec2_manifest_csv": str(metadata_dir / "ec2_image_manifest.csv"),
+                    "data_yaml": str(root / "config" / "generated" / "s3_demo.yaml"),
+                },
+            )()
+
+            with self.assertRaises(SystemExit) as context:
+                validate_upload_inputs(args)
+
+            message = str(context.exception)
+            self.assertIn("s3_images.json", message)
+            self.assertIn("ec2_image_manifest.json", message)
+            self.assertIn("2-brand-s3-workflow-after-ls", message)
+
+    def test_makefile_contains_one_click_s3_ec2_training_target(self) -> None:
+        """Makefile 应提供本地 LS 匹配 S3 清单和 S3 到 EC2 下载训练的一键入口。"""
+        makefile = (PROJECT_ROOT / "makefiles" / "brand-s3-ec2" / "Makefile.mk").read_text(encoding="utf-8")
+
+        self.assertIn("local-ls-s3-to-yolo:", makefile)
+        self.assertIn("2-local-ls-s3-workflow-after-ls:", makefile)
+        self.assertIn("3-brand-s3-workflow-ec2-train:", makefile)
+        self.assertIn("brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train", makefile)
 
 
 if __name__ == "__main__":

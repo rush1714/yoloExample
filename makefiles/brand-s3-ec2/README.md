@@ -100,6 +100,8 @@ make brand-s3-upload-images \
 - `datasets/s3/<name>/metadata/s3_images.csv`
 - `datasets/s3/<name>/metadata/s3_download_urls.txt`
 
+这里的 `s3_images.json/csv` 是“上传与 Label Studio 导入清单”，记录全量上传图片及其 S3/HTTPS/Nginx/proxy 地址；它不是 EC2 训练下载清单。
+
 如果旧上传进程已经上传了一部分但本地没有新清单，可先从 S3 目标目录反查对象并生成可续传清单：
 
 ```bash
@@ -178,7 +180,45 @@ make 2-brand-s3-workflow-after-ls \
 - `metadata/ec2_image_manifest.csv`
 - `config/generated/s3_<S3_DATASET_NAME>.yaml`
 
-### 5. 上传 manifest/labels/YAML 到 EC2
+这里的 `ec2_image_manifest.json/csv` 是“EC2 训练下载清单”，只包含标注转换后进入训练集的图片，并带有 `split`、`training_image_name`、`label_path`、`box_count` 等训练字段。后续 `brand-s3-ec2-upload-manifest` 会把 `ec2_image_manifest.json` 和 `ec2_image_manifest.csv` 都上传到 EC2；EC2 下载/训练实际读取的是 JSON 文件。
+
+### 5. 兼容路径：本地 LS 标注后生成 S3 EC2 训练清单
+
+如果你的流程是“本地图片导入 Label Studio 标注”，LS 导出里的图片仍是 `/data/local-files/?d=...` 本地地址；之后再把同一批图片上传到 S3，那么不要使用 `2-brand-s3-workflow-after-ls`。该命令只适合 LS 导出里已经带有 `s3_bucket` / `s3_key` 的 S3 导入项目。
+
+这种情况下先确保已经有 S3 上传清单：
+
+```text
+datasets/s3/<S3_DATASET_NAME>/metadata/s3_images.json
+```
+
+然后用本地 LS 导出 JSON 与 `s3_images.json` 做匹配，生成 EC2 训练需要的 labels 和 manifest：
+
+```bash
+make local-ls-s3-to-yolo \
+  LOCAL_LS_EXPORT_PATH=/path/to/local_label_studio_export.json \
+  S3_DATASET_NAME=ci_20260916_01 \
+  S3_LABEL_NAME=diaper \
+  S3_LOCAL_IMAGES_DIR=/path/to/original/images \
+  S3_MANIFEST_JSON=datasets/s3/ci_20260916_01/metadata/s3_images.json \
+  S3_LS_TO_YOLO_CLEAR=1
+```
+
+如果还没有从本地目录 Label Studio 项目导出，也可以一键导出并转换：
+
+```bash
+make 2-local-ls-s3-workflow-after-ls \
+  LOCAL_DATASET_NAME=<本地LS数据集名> \
+  LS_PROJECT_ID=<项目ID> \
+  S3_DATASET_NAME=ci_20260916_01 \
+  S3_LABEL_NAME=diaper \
+  S3_LOCAL_IMAGES_DIR=/path/to/original/images \
+  S3_LS_TO_YOLO_CLEAR=1
+```
+
+匹配顺序为：本地绝对路径 `local_path` → `relative_path` → 文件名 `image_name`。如果仅文件名匹配但有重复文件名，脚本会跳过该任务并写入 warning，避免把标注错误绑定到其他 S3 图片。
+
+### 6. 上传 manifest/labels/YAML 到 EC2
 
 默认只打印命令，不执行：
 
@@ -199,7 +239,7 @@ make brand-s3-ec2-upload-manifest \
   EC2_EXECUTE=1
 ```
 
-### 6. EC2 从 S3 下载图片
+### 7. EC2 从 S3 下载图片
 
 ```bash
 make brand-s3-ec2-download-images \
@@ -215,9 +255,25 @@ make brand-s3-ec2-download-images \
 datasets/s3/<S3_DATASET_NAME>/images/{train,val,test}/
 ```
 
-### 7. EC2 训练、评估和下载
+### 8. EC2 训练、评估和下载
 
 EC2 训练不再使用固定档位命令，训练规模统一写成模型参数。`EC2_RUN_NAME` 只决定远端/本地模型和归档目录名，模型大小、轮数、图片尺寸由 `EC2_BASE_MODEL`、`EC2_TRAIN_EPOCHS`、`EC2_TRAIN_IMGSZ` 等参数决定。
+
+如果已经完成步骤 4 或步骤 5，可以直接使用一键命令按顺序执行“上传 EC2 manifest/labels/YAML → EC2 下载 S3 图片 → EC2 训练”：
+
+```bash
+make 3-brand-s3-workflow-ec2-train \
+  S3_DATASET_NAME=ci_20260916_01 \
+  EC2_BASE_MODEL=yolo26m.pt \
+  EC2_TRAIN_EPOCHS=100 \
+  EC2_TRAIN_IMGSZ=960 \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  EC2_EXECUTE=1
+```
+
+也可以分步执行，便于单独查看每一步日志：
 
 ```bash
 make brand-s3-ec2-train \
@@ -283,6 +339,9 @@ make web-console
 | `brand-s3-ls-export` | 从 Label Studio 导出 S3 图片标注 JSON；需传 LS_PROJECT_ID=<项目ID> | `make brand-s3-ls-export S3_DATASET_NAME=ci_20260916_01 LS_PROJECT_ID=<项目ID>` |
 | `brand-s3-ls-to-yolo` | 将 S3 图片 Label Studio 导出转换为 YOLO 标签和 EC2 下载清单 | `make brand-s3-ls-to-yolo S3_DATASET_NAME=ci_20260916_01 S3_LABEL_NAME=diaper S3_LS_TO_YOLO_CLEAR=1` |
 | `2-brand-s3-workflow-after-ls` | 导出 S3 图片标注并生成 YOLO 标签/EC2 图片清单 | `make 2-brand-s3-workflow-after-ls S3_DATASET_NAME=ci_20260916_01 LS_PROJECT_ID=<项目ID> S3_LS_TO_YOLO_CLEAR=1` |
+| `local-ls-s3-to-yolo` | 本地地址 LS 导出结合 s3_images.json 生成 YOLO 标签/EC2 图片清单 | `make local-ls-s3-to-yolo LOCAL_LS_EXPORT_PATH=/path/to/export.json S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_LS_TO_YOLO_CLEAR=1` |
+| `2-local-ls-s3-workflow-after-ls` | 导出本地目录 LS 项目并结合 S3 上传清单生成 YOLO 标签/EC2 图片清单 | `make 2-local-ls-s3-workflow-after-ls LOCAL_DATASET_NAME=<本地LS数据集名> LS_PROJECT_ID=<项目ID> S3_DATASET_NAME=ci_20260916_01 S3_LOCAL_IMAGES_DIR=/path/to/images S3_LS_TO_YOLO_CLEAR=1` |
+| `3-brand-s3-workflow-ec2-train` | 上传 S3 训练清单到 EC2、下载 S3 图片并启动训练，默认 dry-run | `make 3-brand-s3-workflow-ec2-train S3_DATASET_NAME=ci_20260916_01 EC2_BASE_MODEL=yolo26m.pt EC2_TRAIN_EPOCHS=100 EC2_RUN_NAME=yolo26m_img960_e100 EC2_HOST=<host> EC2_KEY=/path/key.pem` |
 | `brand-s3-ec2-upload-manifest` | 上传 S3 标签、EC2 图片清单和 YAML 到 EC2，默认 dry-run | `make brand-s3-ec2-upload-manifest S3_DATASET_NAME=ci_20260916_01 EC2_HOST=<host> EC2_KEY=/path/key.pem` |
 | `brand-s3-ec2-download-images` | 在 EC2 上按 manifest 从 S3 下载训练图片，默认 dry-run | `make brand-s3-ec2-download-images S3_DATASET_NAME=ci_20260916_01 EC2_HOST=<host> EC2_KEY=/path/key.pem` |
 | `brand-s3-ec2-train` | 在 EC2 下载 S3 图片并训练，默认 dry-run | `make brand-s3-ec2-train S3_DATASET_NAME=ci_20260916_01 EC2_BASE_MODEL=yolo26m.pt EC2_TRAIN_EPOCHS=100 EC2_RUN_NAME=yolo26m_img960_e100 EC2_HOST=<host> EC2_KEY=/path/key.pem` |

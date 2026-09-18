@@ -58,6 +58,7 @@ S3_LS_TO_YOLO_SKIP_EMPTY_ARG := $(if $(filter 1 true yes,$(S3_LS_TO_YOLO_SKIP_EM
 S3_EC2_REMOTE_DATASET_ROOT ?= datasets/s3/$(S3_DATASET_NAME)
 S3_EC2_REMOTE_DATA_YAML ?= config/generated/s3_$(S3_DATASET_NAME).yaml
 S3_EC2_REMOTE_MANIFEST_JSON ?= datasets/s3/$(S3_DATASET_NAME)/metadata/ec2_image_manifest.json
+S3_EC2_REMOTE_MANIFEST_CSV ?= datasets/s3/$(S3_DATASET_NAME)/metadata/ec2_image_manifest.csv
 S3_EC2_TRAIN_NAME ?= s3_$(S3_DATASET_NAME)
 S3_EC2_REMOTE_FINAL_MODEL ?= models/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
 S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
@@ -68,8 +69,9 @@ S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 .PHONY: brand-s3-check-config brand-s3-upload-images brand-s3-sync-manifest-from-s3 brand-s3-ls-import-json brand-s3-proxy-start brand-s3-python-proxy-start \
 	brand-s3-nginx-render-config brand-s3-nginx-start brand-s3-nginx-reload brand-s3-nginx-stop brand-s3-ls-apply \
 	1-brand-s3-workflow-to-ls brand-s3-ls-export brand-s3-ls-to-yolo 2-brand-s3-workflow-after-ls \
+	local-ls-s3-to-yolo 2-local-ls-s3-workflow-after-ls \
 	brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train brand-s3-ec2-evaluate brand-s3-ec2-download-artifacts \
-	brand-s3-ec2-download-model
+	brand-s3-ec2-download-model 3-brand-s3-workflow-ec2-train
 
 brand-s3-check-config: ## 检查 S3 工作流关键参数
 	@printf "BRAND_S3_CONFIG=%s\n" "$(BRAND_S3_CONFIG)"
@@ -233,6 +235,23 @@ brand-s3-ls-to-yolo: ## 将 S3 图片 Label Studio 导出转换为 YOLO 标签�
 
 2-brand-s3-workflow-after-ls: brand-s3-ls-export brand-s3-ls-to-yolo ## 导出 S3 图片标注并生成 YOLO 标签/EC2 图片清单
 
+local-ls-s3-to-yolo: ## 将本地地址 LS 导出结合 S3 上传清单生成 YOLO 标签/EC2 图片清单
+	$(VENV_BIN)/python scripts/label_studio/export_local_s3_to_yolo.py \
+		--config '$(BRAND_S3_CONFIG)' \
+		--input '$(LOCAL_LS_EXPORT_PATH)' \
+		--s3-manifest '$(S3_MANIFEST_JSON)' \
+		--output-root '$(S3_DATASET_ROOT)' \
+		--dataset-name '$(S3_DATASET_NAME)' \
+		--label-name '$(S3_LABEL_NAME)' \
+		--local-images-dir '$(S3_LOCAL_IMAGES_DIR)' \
+		--data-yaml '$(S3_DATA_YAML)' \
+		$(S3_LS_TO_YOLO_CLEAR_ARG) $(S3_LS_TO_YOLO_SKIP_EMPTY_ARG) \
+		--report '$(S3_LS_TO_YOLO_REPORT)' \
+		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
+		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)'
+
+2-local-ls-s3-workflow-after-ls: local-dir-ls-export local-ls-s3-to-yolo ## 导出本地地址 LS 标注，并结合 S3 上传清单生成 EC2 图片清单
+
 brand-s3-ec2-upload-manifest: ## 上传 S3 标签、EC2 图片清单和 YAML 到 EC2，默认 dry-run
 	$(VENV_BIN)/python scripts/ec2/s3_workflow.py upload-manifest \
 		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
@@ -240,9 +259,11 @@ brand-s3-ec2-upload-manifest: ## 上传 S3 标签、EC2 图片清单和 YAML 到
 		--dataset-name '$(S3_DATASET_NAME)' --label-name '$(S3_LABEL_NAME)' \
 		--dataset-root '$(S3_DATASET_ROOT)' --data-yaml '$(S3_DATA_YAML)' \
 		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
+		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)' \
 		--remote-dataset-root '$(S3_EC2_REMOTE_DATASET_ROOT)' \
 		--remote-data-yaml '$(S3_EC2_REMOTE_DATA_YAML)' \
 		--remote-manifest-json '$(S3_EC2_REMOTE_MANIFEST_JSON)' \
+		--remote-manifest-csv '$(S3_EC2_REMOTE_MANIFEST_CSV)' \
 		--train-name '$(S3_EC2_TRAIN_NAME)' \
 		--remote-final-model '$(S3_EC2_REMOTE_FINAL_MODEL)' --local-model '$(S3_FINAL_MODEL)' \
 		$(EC2_EXECUTE_ARG)
@@ -254,9 +275,11 @@ brand-s3-ec2-download-images: ## 在 EC2 上按 manifest 从 S3 下载训练图�
 		--dataset-name '$(S3_DATASET_NAME)' --label-name '$(S3_LABEL_NAME)' \
 		--dataset-root '$(S3_DATASET_ROOT)' --data-yaml '$(S3_DATA_YAML)' \
 		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
+		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)' \
 		--remote-dataset-root '$(S3_EC2_REMOTE_DATASET_ROOT)' \
 		--remote-data-yaml '$(S3_EC2_REMOTE_DATA_YAML)' \
 		--remote-manifest-json '$(S3_EC2_REMOTE_MANIFEST_JSON)' \
+		--remote-manifest-csv '$(S3_EC2_REMOTE_MANIFEST_CSV)' \
 		$(EC2_EXECUTE_ARG)
 
 brand-s3-ec2-train: ## 在 EC2 下载 S3 图片并训练，默认 dry-run
@@ -266,14 +289,18 @@ brand-s3-ec2-train: ## 在 EC2 下载 S3 图片并训练，默认 dry-run
 		--dataset-name '$(S3_DATASET_NAME)' --label-name '$(S3_LABEL_NAME)' \
 		--dataset-root '$(S3_DATASET_ROOT)' --data-yaml '$(S3_DATA_YAML)' \
 		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
+		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)' \
 		--remote-dataset-root '$(S3_EC2_REMOTE_DATASET_ROOT)' \
 		--remote-data-yaml '$(S3_EC2_REMOTE_DATA_YAML)' \
 		--remote-manifest-json '$(S3_EC2_REMOTE_MANIFEST_JSON)' \
+		--remote-manifest-csv '$(S3_EC2_REMOTE_MANIFEST_CSV)' \
 		--train-name '$(S3_EC2_TRAIN_NAME)' --base-model '$(EC2_BASE_MODEL)' \
 		--remote-final-model '$(S3_EC2_REMOTE_FINAL_MODEL)' --local-model '$(S3_FINAL_MODEL)' \
 		--epochs $(EC2_TRAIN_EPOCHS) --imgsz $(EC2_TRAIN_IMGSZ) --batch $(EC2_TRAIN_BATCH) --device $(EC2_TRAIN_DEVICE) \
 		--run-name '$(EC2_RUN_NAME)' --artifact-root '$(S3_EC2_ARTIFACT_ROOT)' --latest-run-file '$(S3_EC2_LATEST_RUN_FILE)' \
 		$(EC2_RESUME_ARG) $(EC2_EXECUTE_ARG)
+
+3-brand-s3-workflow-ec2-train: brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train ## 上传 S3 训练清单到 EC2、下载 S3 图片并启动训练，默认 dry-run
 
 brand-s3-ec2-evaluate: ## 归档 EC2 S3 数据集训练产物并生成评估摘要，默认 dry-run
 	$(VENV_BIN)/python scripts/ec2/s3_workflow.py evaluate \

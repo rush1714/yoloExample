@@ -134,3 +134,4 @@ datasets/softcare/labels/*.cache
 /datasets/s3/**/labels/
 !/datasets/s3/**/.gitkeep
 /.claude/worktrees/
+/datasets/allround_purple/

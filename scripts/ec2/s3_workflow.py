@@ -33,18 +33,57 @@ def remote_dataset_root(args: argparse.Namespace) -> str:
     return f"datasets/s3/{args.dataset_name}"
 
 
+def validate_upload_inputs(args: argparse.Namespace) -> None:
+    """在上传到 EC2 前检查本地训练标签、EC2 下载清单和 YAML 是否已生成。"""
+    local_dataset_root = Path(args.dataset_root).resolve()
+    labels_root = local_dataset_root / "labels"
+    local_manifest = Path(args.ec2_manifest_json).resolve()
+    local_manifest_csv = Path(args.ec2_manifest_csv).resolve()
+    local_data_yaml = Path(args.data_yaml).resolve()
+    s3_upload_manifest = local_manifest.with_name("s3_images.json")
+    missing_messages: list[str] = []
+    if not labels_root.is_dir():
+        missing_messages.append(
+            f"YOLO labels 目录不存在：{labels_root}。请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID> 生成训练标签。"
+        )
+    if not local_manifest.is_file():
+        manifest_message = f"EC2 图片下载清单不存在：{local_manifest}。"
+        if s3_upload_manifest.is_file():
+            manifest_message += (
+                f"已找到上传/Label Studio 导入清单：{s3_upload_manifest}；"
+                "但 EC2 训练需要标注转换后生成的 ec2_image_manifest.json，"
+                "其中包含 split、training_image_name 和 label_path 等训练字段。"
+            )
+        manifest_message += "请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID>。"
+        missing_messages.append(manifest_message)
+    if not local_manifest_csv.is_file():
+        missing_messages.append(
+            f"EC2 图片下载 CSV 清单不存在：{local_manifest_csv}。请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID>。"
+        )
+    if not local_data_yaml.is_file():
+        missing_messages.append(
+            f"YOLO 数据集 YAML 不存在：{local_data_yaml}。请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID> 生成 YAML。"
+        )
+    if missing_messages:
+        raise SystemExit("无法上传 S3 EC2 训练输入：\n- " + "\n- ".join(missing_messages))
+
+
 def upload_manifest(args: argparse.Namespace) -> None:
     """上传 labels、图片下载 manifest 和本地 YAML 到 EC2，不上传图片大文件。"""
+    validate_upload_inputs(args)
     target = ssh_target(args.user, args.host)
     local_dataset_root = Path(args.dataset_root).resolve()
     local_data_yaml = Path(args.data_yaml).resolve()
     local_manifest = Path(args.ec2_manifest_json).resolve()
+    local_manifest_csv = Path(args.ec2_manifest_csv).resolve()
     remote_dataset_abs = remote_project_path(args, remote_dataset_root(args))
     remote_manifest_abs = remote_project_path(args, args.remote_manifest_json)
+    remote_manifest_csv_abs = remote_project_path(args, args.remote_manifest_csv)
     remote_data_yaml_abs = remote_project_path(args, args.remote_data_yaml)
     mkdir_command = (
         f"mkdir -p {shlex.quote(remote_dataset_abs)} "
         f"{shlex.quote(posixpath.dirname(remote_manifest_abs))} "
+        f"{shlex.quote(posixpath.dirname(remote_manifest_csv_abs))} "
         f"{shlex.quote(posixpath.dirname(remote_data_yaml_abs))}"
     )
     run_or_print(["ssh", *ssh_base_args(args.port, args.key), target, mkdir_command], args.execute)
@@ -63,6 +102,11 @@ def upload_manifest(args: argparse.Namespace) -> None:
         ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_manifest), f"{target}:{remote_manifest_abs}"],
         args.execute,
     )
+    if local_manifest_csv.is_file():
+        run_or_print(
+            ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_manifest_csv), f"{target}:{remote_manifest_csv_abs}"],
+            args.execute,
+        )
     run_or_print(
         ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_data_yaml), f"{target}:{remote_data_yaml_abs}"],
         args.execute,
@@ -84,10 +128,22 @@ manifest_path = Path(MANIFEST)
 dataset_root = Path(DATASET_ROOT)
 payload = json.loads(manifest_path.read_text(encoding="utf-8"))
 items = payload.get("items", payload if isinstance(payload, list) else [])
+if not isinstance(items, list) or not items:
+    raise SystemExit("EC2 图片下载清单为空或格式不正确；请确认使用的是 ec2_image_manifest.json，而不是上传阶段的 s3_images.json。")
+required_fields = ("split", "s3_bucket", "s3_key")
+for index, item in enumerate(items):
+    if not isinstance(item, dict):
+        raise SystemExit(f"EC2 图片下载清单第 {index} 项不是对象；请重新生成 ec2_image_manifest.json。")
+    missing = [field for field in required_fields if not item.get(field)]
+    if missing:
+        raise SystemExit(
+            f"EC2 图片下载清单第 {index} 项缺少字段：{', '.join(missing)}。"
+            "请确认上传的是标注转换生成的 ec2_image_manifest.json，不是上传阶段的 s3_images.json。"
+        )
 s3 = boto3.client("s3")
 for item in items:
     split = item["split"]
-    image_name = item.get("training_image_name") or Path(item["relative_path"]).name or item["image_name"]
+    image_name = item.get("training_image_name") or Path(str(item.get("relative_path") or item.get("image_name") or item["s3_key"])).name
     target = dataset_root / "images" / split / image_name
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and target.stat().st_size > 0:
@@ -249,9 +305,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dataset-root", default="datasets/s3/local_dataset", help="本地 S3 工作流数据集根目录")
     parser.add_argument("--data-yaml", default="config/generated/s3_local_dataset.yaml", help="本地 YAML 路径")
     parser.add_argument("--ec2-manifest-json", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.json", help="本地 EC2 图片 JSON 清单")
+    parser.add_argument("--ec2-manifest-csv", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.csv", help="本地 EC2 图片 CSV 清单")
     parser.add_argument("--remote-dataset-root", default="", help="EC2 上数据集根目录；相对路径按项目根目录解析")
     parser.add_argument("--remote-data-yaml", default="config/generated/s3_local_dataset.yaml", help="EC2 上 YAML 相对项目路径")
     parser.add_argument("--remote-manifest-json", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.json", help="EC2 上图片下载 JSON 清单")
+    parser.add_argument("--remote-manifest-csv", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.csv", help="EC2 上图片下载 CSV 清单")
     parser.add_argument("--train-name", default="s3_local_dataset", help="EC2 训练 run 名称")
     parser.add_argument("--base-model", default="yolo26m.pt", help="EC2 上基座模型路径或 Ultralytics 模型名")
     parser.add_argument("--remote-final-model", default="models/ec2/s3/local_dataset/default/best.pt", help="EC2 上导出的 best.pt 相对项目路径")
