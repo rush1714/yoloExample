@@ -255,6 +255,26 @@ make brand-s3-ec2-download-images \
 datasets/s3/<S3_DATASET_NAME>/images/{train,val,test}/
 ```
 
+EC2 图片下载支持三种模式：
+
+| 模式 | 说明 |
+|---|---|
+| `auto` | 默认值，优先使用 manifest 中的 `source_url` / `https_url` / `public_url` 或 `S3_PUBLIC_BASE_URL` 拼出的公共 URL；没有公共 URL 时回退 boto3。 |
+| `public` | 强制使用公共 HTTP(S) URL 下载，不需要 EC2 配置 AWS credentials；没有公共 URL 或 URL 返回 403 时会直接失败。 |
+| `boto3` | 使用 AWS SDK `download_file` 下载，需要 EC2 IAM Role 或 AWS credentials。 |
+
+如果桶对象可以通过公共地址访问，推荐显式传：
+
+```bash
+make brand-s3-ec2-download-images \
+  S3_DATASET_NAME=ci_20260916_01 \
+  S3_PUBLIC_BASE_URL=https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com \
+  S3_EC2_DOWNLOAD_MODE=public \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  EC2_EXECUTE=1
+```
+
 ### 8. EC2 训练、评估和下载
 
 EC2 训练不再使用固定档位命令，训练规模统一写成模型参数。`EC2_RUN_NAME` 只决定远端/本地模型和归档目录名，模型大小、轮数、图片尺寸由 `EC2_BASE_MODEL`、`EC2_TRAIN_EPOCHS`、`EC2_TRAIN_IMGSZ` 等参数决定。

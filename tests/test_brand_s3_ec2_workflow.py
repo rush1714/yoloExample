@@ -327,6 +327,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
                 "remote_dataset_root": "datasets/s3/demo",
                 "ec2_project_root": "/home/ec2-user/yoloExample",
                 "python_cmd": "python3",
+                "download_mode": "auto",
+                "public_base_url": "https://cdn.example.test/base",
             },
         )()
 
@@ -334,10 +336,35 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
 
         self.assertIn("ec2_image_manifest.json", command)
         self.assertIn("s3_images.json", command)
-        self.assertIn("required_fields", command)
+        self.assertIn("needs_boto3_identity", command)
+        self.assertIn("urlretrieve", command)
+        self.assertIn("https://cdn.example.test/base", command)
         self.assertIn("boto3", command)
         self.assertIn("download_file", command)
         self.assertIn("datasets/s3/demo", command)
+
+    def test_ec2_public_download_mode_prefers_http_url(self) -> None:
+        """public 模式应生成公共 URL 下载逻辑，不要求先具备 AWS credentials。"""
+        args = type(
+            "Args",
+            (),
+            {
+                "remote_manifest_json": "datasets/s3/demo/metadata/ec2_image_manifest.json",
+                "remote_dataset_root": "datasets/s3/demo",
+                "ec2_project_root": "/home/ec2-user/yoloExample",
+                "python_cmd": "python3",
+                "download_mode": "public",
+                "public_base_url": "https://cdn.example.test/base",
+            },
+        )()
+
+        command = download_images_command(args)
+
+        self.assertIn('download_mode = "public"', command)
+        self.assertIn("urlretrieve", command)
+        self.assertIn("source_url", command)
+        self.assertIn("https_url", command)
+        self.assertIn("public_base_url", command)
 
     def test_upload_manifest_hint_distinguishes_s3_and_ec2_manifests(self) -> None:
         """缺少 EC2 manifest 但存在上传清单时，应提示先生成标注后的 EC2 清单。"""

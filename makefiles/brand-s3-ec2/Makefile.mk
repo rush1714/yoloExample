@@ -65,6 +65,8 @@ S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/b
 S3_EC2_ARTIFACT_ROOT ?= artifacts/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 S3_EC2_LATEST_RUN_FILE ?= $(S3_EC2_ARTIFACT_ROOT)/latest-run.txt
 S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
+# EC2 下载 S3 图片的模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK/IAM。
+S3_EC2_DOWNLOAD_MODE ?= auto
 
 .PHONY: brand-s3-check-config brand-s3-upload-images brand-s3-sync-manifest-from-s3 brand-s3-ls-import-json brand-s3-proxy-start brand-s3-python-proxy-start \
 	brand-s3-nginx-render-config brand-s3-nginx-start brand-s3-nginx-reload brand-s3-nginx-stop brand-s3-ls-apply \
@@ -260,6 +262,7 @@ brand-s3-ec2-upload-manifest: ## 上传 S3 标签、EC2 图片清单和 YAML 到
 		--dataset-root '$(S3_DATASET_ROOT)' --data-yaml '$(S3_DATA_YAML)' \
 		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
 		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' --download-mode '$(S3_EC2_DOWNLOAD_MODE)' \
 		--remote-dataset-root '$(S3_EC2_REMOTE_DATASET_ROOT)' \
 		--remote-data-yaml '$(S3_EC2_REMOTE_DATA_YAML)' \
 		--remote-manifest-json '$(S3_EC2_REMOTE_MANIFEST_JSON)' \
@@ -276,6 +279,7 @@ brand-s3-ec2-download-images: ## 在 EC2 上按 manifest 从 S3 下载训练图�
 		--dataset-root '$(S3_DATASET_ROOT)' --data-yaml '$(S3_DATA_YAML)' \
 		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
 		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' --download-mode '$(S3_EC2_DOWNLOAD_MODE)' \
 		--remote-dataset-root '$(S3_EC2_REMOTE_DATASET_ROOT)' \
 		--remote-data-yaml '$(S3_EC2_REMOTE_DATA_YAML)' \
 		--remote-manifest-json '$(S3_EC2_REMOTE_MANIFEST_JSON)' \
@@ -290,6 +294,7 @@ brand-s3-ec2-train: ## 在 EC2 下载 S3 图片并训练，默认 dry-run
 		--dataset-root '$(S3_DATASET_ROOT)' --data-yaml '$(S3_DATA_YAML)' \
 		--ec2-manifest-json '$(S3_EC2_IMAGE_MANIFEST_JSON)' \
 		--ec2-manifest-csv '$(S3_EC2_IMAGE_MANIFEST_CSV)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' --download-mode '$(S3_EC2_DOWNLOAD_MODE)' \
 		--remote-dataset-root '$(S3_EC2_REMOTE_DATASET_ROOT)' \
 		--remote-data-yaml '$(S3_EC2_REMOTE_DATA_YAML)' \
 		--remote-manifest-json '$(S3_EC2_REMOTE_MANIFEST_JSON)' \
