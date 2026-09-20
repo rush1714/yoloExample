@@ -19,7 +19,7 @@
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
     "EC2_HOST": "18.209.241.0",
-    "EC2_EXECUTE": "0",
+    "EC2_EXECUTE": "1",
     "LABELS": "kleesoft_purple,allround_purple",
     "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
     "EXCEL_COLUMN": "整改后图片URL",

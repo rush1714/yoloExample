@@ -11,7 +11,10 @@ import shlex
 import sys
 from pathlib import Path
 
+import yaml
+
 SCRIPTS_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = SCRIPTS_ROOT.parent
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
@@ -54,18 +57,37 @@ def validate_upload_inputs(args: argparse.Namespace) -> None:
                 "但 EC2 训练需要标注转换后生成的 ec2_image_manifest.json，"
                 "其中包含 split、training_image_name 和 label_path 等训练字段。"
             )
-        manifest_message += "请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID>。"
+        manifest_message += "请先执行 make label-yolo-s3-to-ec2-manifest 或 make 2-label-s3-workflow-after-ls LS_PROJECT_ID=<项目ID>。"
         missing_messages.append(manifest_message)
     if not local_manifest_csv.is_file():
         missing_messages.append(
-            f"EC2 图片下载 CSV 清单不存在：{local_manifest_csv}。请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID>。"
+            f"EC2 图片下载 CSV 清单不存在：{local_manifest_csv}。请先执行 make label-yolo-s3-to-ec2-manifest 或 make 2-label-s3-workflow-after-ls LS_PROJECT_ID=<项目ID>。"
         )
     if not local_data_yaml.is_file():
         missing_messages.append(
-            f"YOLO 数据集 YAML 不存在：{local_data_yaml}。请先执行 make 2-brand-s3-workflow-after-ls LS_PROJECT_ID=<项目ID> 生成 YAML。"
+            f"YOLO 数据集 YAML 不存在：{local_data_yaml}。请先执行 make label-yolo-s3-to-ec2-manifest 或 make 2-label-s3-workflow-after-ls LS_PROJECT_ID=<项目ID> 生成 YAML。"
         )
     if missing_messages:
         raise SystemExit("无法上传 S3 EC2 训练输入：\n- " + "\n- ".join(missing_messages))
+
+
+def remote_dataset_yaml_path(args: argparse.Namespace) -> Path:
+    """生成本地临时 YAML 路径，用于上传到 EC2 后读取远端数据集目录。"""
+    safe_name = args.remote_data_yaml.strip("/").replace("/", "__") or "remote_data.yaml"
+    return PROJECT_ROOT / ".tmp" / "ec2-yaml" / safe_name
+
+
+def write_remote_dataset_yaml(args: argparse.Namespace) -> Path:
+    """复制本地 YAML 并把 path 改写为 EC2 上的数据集绝对路径。"""
+    source_yaml = Path(args.data_yaml).resolve()
+    payload = yaml.safe_load(source_yaml.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise SystemExit(f"YOLO 数据集 YAML 必须是对象：{source_yaml}")
+    payload["path"] = remote_project_path(args, remote_dataset_root(args))
+    target_yaml = remote_dataset_yaml_path(args)
+    target_yaml.parent.mkdir(parents=True, exist_ok=True)
+    target_yaml.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return target_yaml
 
 
 def upload_manifest(args: argparse.Namespace) -> None:
@@ -73,7 +95,7 @@ def upload_manifest(args: argparse.Namespace) -> None:
     validate_upload_inputs(args)
     target = ssh_target(args.user, args.host)
     local_dataset_root = Path(args.dataset_root).resolve()
-    local_data_yaml = Path(args.data_yaml).resolve()
+    local_data_yaml = write_remote_dataset_yaml(args)
     local_manifest = Path(args.ec2_manifest_json).resolve()
     local_manifest_csv = Path(args.ec2_manifest_csv).resolve()
     remote_dataset_abs = remote_project_path(args, remote_dataset_root(args))

@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.ec2.s3_workflow import download_images_command, validate_upload_inputs
+from scripts.ec2.s3_workflow import download_images_command, validate_upload_inputs, write_remote_dataset_yaml
 from scripts.label_studio.export_local_s3_to_yolo import convert_local_tasks_with_s3_manifest
 from scripts.label_studio.export_s3_single_class_to_yolo import convert_tasks as convert_s3_tasks
 from scripts.label_studio.generate_s3_import import build_tasks as build_s3_import_tasks
@@ -398,6 +398,41 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertIn("s3_images.json", message)
             self.assertIn("ec2_image_manifest.json", message)
             self.assertIn("2-brand-s3-workflow-after-ls", message)
+
+    def test_uploaded_yaml_rewrites_dataset_path_for_ec2(self) -> None:
+        """上传到 EC2 的 YAML 应改写 path，同时保留本地多类别 names。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            data_yaml = root / "config" / "generated" / "demo.yaml"
+            data_yaml.parent.mkdir(parents=True)
+            data_yaml.write_text(
+                "path: /Users/guobiao/PRO/me/yoloExample/datasets/GH/v1/demo\n"
+                "train: images/train\n"
+                "val: images/val\n"
+                "test: images/test\n"
+                "names:\n"
+                "  0: diaper\n"
+                "  1: allround_purple\n",
+                encoding="utf-8",
+            )
+            args = type(
+                "Args",
+                (),
+                {
+                    "data_yaml": str(data_yaml),
+                    "remote_data_yaml": "config/generated/GH_v1_demo.yaml",
+                    "remote_dataset_root": "datasets/GH/v1/demo",
+                    "dataset_name": "demo",
+                    "ec2_project_root": "/home/ec2-user/yoloExample",
+                },
+            )()
+
+            remote_yaml = write_remote_dataset_yaml(args)
+            text = remote_yaml.read_text(encoding="utf-8")
+
+            self.assertIn("path: /home/ec2-user/yoloExample/datasets/GH/v1/demo", text)
+            self.assertIn("  0: diaper", text)
+            self.assertIn("  1: allround_purple", text)
 
     def test_yolo_dataset_to_ec2_manifest_uses_training_images_only(self) -> None:
         """已生成 YOLO 训练集时，应只把 images 训练图片映射到 S3 EC2 清单。"""
