@@ -1,7 +1,7 @@
 {
   "paramCache": {
     "COUNTRY": "GH",
-    "DATA_VERSION": "v2026-09-18",
+    "DATA_VERSION": "v2026-09-20",
     "LABEL_SET": "general",
     "LS_PROJECT_ID": "25",
     "S3_DATASET_ROOT": "datasets/allround_purple/v2026-09-17/",
@@ -20,23 +20,95 @@
     "S3_LS_TO_YOLO_CLEAR": "1",
     "EC2_HOST": "3.238.13.254",
     "EC2_EXECUTE": "1",
-    "LABELS": "allround_purple"
+    "LABELS": "kleesoft_purple,allround_purple",
+    "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
+    "EXCEL_COLUMN": "整改后图片URL",
+    "LABEL_LOCAL_IMAGES_DIR": "datasets/excel/GH/v2026-09-20/general_kleesoft_purple_allround_purple/raw/images"
   },
   "favorites": [
     {
-      "id": "fav_1789734519135_wdpmpp",
-      "group": "Excel数据下载导入LS",
-      "title": "a.一键 Excel 导入到 LS",
-      "target": "1-label-excel-workflow-to-ls",
+      "id": "fav_1789871603491_wecen7",
+      "group": "准备",
+      "title": "1. Excel 下载图片",
+      "target": "label-excel-import",
       "params": {
         "COUNTRY": "GH",
-        "DATA_VERSION": "v2026-09-18",
+        "DATA_VERSION": "v2026-09-20",
         "LABEL_SET": "general",
         "LABELS": "kleesoft_purple,allround_purple",
-        "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/CI_2026-08-26_最新1801个_02.xlsx",
-        "EXCEL_COLUMN": "生动化照片链接",
+        "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/dd0154c323b78914b0ba13d2518df416.xlsx",
+        "EXCEL_COLUMN": "整改后图片URL",
         "EXCEL_WORKERS": "10",
         "EXCEL_TIMEOUT": "30"
+      }
+    },
+    {
+      "id": "fav_1789871619434_gj74yv",
+      "group": "准备",
+      "title": "2.一键本地目录导入到 LS",
+      "target": "1-label-local-workflow-to-ls",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LABEL_LOCAL_IMAGES_DIR": "data/local_import/images",
+        "LABEL_RECURSIVE": "1"
+      }
+    },
+    {
+      "id": "fav_1789871745497_vhll9e",
+      "group": "准备",
+      "title": "3.上传本地图片到 S3",
+      "target": "label-s3-upload-images",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LABEL_LOCAL_IMAGES_DIR": "data/local_import/images",
+        "S3_BUCKET": "uat-smdp4cust-bak",
+        "S3_REGION": "af-south-1",
+        "S3_PROFILE": "smdp-yolo",
+        "S3_UPLOAD_WORKERS": "10",
+        "S3_DRY_RUN": "0"
+      }
+    },
+    {
+      "id": "fav_1789872988923_nucczd",
+      "group": "准备",
+      "title": "4.本地 LS + S3 清单转 EC2 清单",
+      "target": "label-local-s3-to-yolo",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LABEL_LOCAL_IMAGES_DIR": "data/local_import/images",
+        "LABEL_LS_TO_YOLO_CLEAR": "0",
+        "LABEL_LS_TO_YOLO_SKIP_EMPTY": "0"
+      }
+    },
+    {
+      "id": "fav_1789873004196_0ybdd3",
+      "group": "训练",
+      "title": "1.一键上传并训练 S3 数据",
+      "target": "3-label-s3-workflow-ec2-train",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "S3_EC2_DOWNLOAD_MODE": "auto",
+        "EC2_HOST": "3.238.13.254",
+        "EC2_USER": "ec2-user",
+        "EC2_BASE_MODEL": "yolo26m.pt",
+        "EC2_TRAIN_EPOCHS": "100",
+        "EC2_TRAIN_IMGSZ": "960",
+        "EC2_TRAIN_BATCH": "-1",
+        "EC2_TRAIN_DEVICE": "0",
+        "EC2_RUN_NAME": "yolo26m_img960_e100",
+        "EC2_EXECUTE": "1"
       }
     }
   ]
