@@ -80,3 +80,5 @@ models/**/*.pth
 # 自动生成的 YOLO 数据集配置；保留目录占位
 /config/generated/*.yaml
 !/config/generated/.gitkeep
+
+/datasets_bak/
