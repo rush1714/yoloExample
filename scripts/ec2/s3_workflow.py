@@ -30,7 +30,7 @@ def remote_dataset_root(args: argparse.Namespace) -> str:
     """返回 EC2 上 S3 数据集根目录。"""
     if args.remote_dataset_root:
         return args.remote_dataset_root
-    return f"datasets/s3/{args.dataset_name}"
+    return f"datasets/{args.dataset_name}"
 
 
 def validate_upload_inputs(args: argparse.Namespace) -> None:
@@ -99,16 +99,19 @@ def upload_manifest(args: argparse.Namespace) -> None:
         args.execute,
     )
     run_or_print(
-        ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_manifest), f"{target}:{remote_manifest_abs}"],
+        ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_manifest),
+         f"{target}:{remote_manifest_abs}"],
         args.execute,
     )
     if local_manifest_csv.is_file():
         run_or_print(
-            ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_manifest_csv), f"{target}:{remote_manifest_csv_abs}"],
+            ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_manifest_csv),
+             f"{target}:{remote_manifest_csv_abs}"],
             args.execute,
         )
     run_or_print(
-        ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_data_yaml), f"{target}:{remote_data_yaml_abs}"],
+        ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_data_yaml),
+         f"{target}:{remote_data_yaml_abs}"],
         args.execute,
     )
 
@@ -370,34 +373,44 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", type=int, default=22, help="SSH 端口")
     parser.add_argument("--execute", action="store_true", help="实际执行；默认只打印命令")
     parser.add_argument("--ec2-project-root", default="/home/ubuntu/yoloExample", help="EC2 上项目根目录")
-    parser.add_argument("--activate-cmd", default="source /opt/pytorch/bin/activate", help="EC2 上执行训练前的环境激活命令")
+    parser.add_argument("--activate-cmd", default="source /opt/pytorch/bin/activate",
+                        help="EC2 上执行训练前的环境激活命令")
     parser.add_argument("--python-cmd", default="python3", help="EC2 上 Python 执行命令")
     parser.add_argument("--run-name", default="default", help="训练运行标识，仅用于归档和报告")
-    parser.add_argument("--dataset-name", default="local_dataset", help="S3 数据集短名称")
+    parser.add_argument("--dataset-name", default="dataset", help="S3 数据集短名称")
     parser.add_argument("--label-name", default="diaper", help="单类别显示名")
-    parser.add_argument("--dataset-root", default="datasets/s3/local_dataset", help="本地 S3 工作流数据集根目录")
-    parser.add_argument("--data-yaml", default="config/generated/s3_local_dataset.yaml", help="本地 YAML 路径")
-    parser.add_argument("--ec2-manifest-json", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.json", help="本地 EC2 图片 JSON 清单")
-    parser.add_argument("--ec2-manifest-csv", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.csv", help="本地 EC2 图片 CSV 清单")
-    parser.add_argument("--public-base-url", default="", help="公开 S3/CDN Base URL；public/auto 下载模式下可用来拼接图片下载地址")
-    parser.add_argument("--download-mode", choices=["auto", "public", "boto3"], default="auto", help="EC2 下载 S3 图片模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK")
+    parser.add_argument("--dataset-root", default="datasets/dataset", help="本地 S3 工作流数据集根目录")
+    parser.add_argument("--data-yaml", default="config/generated/dataset.yaml", help="本地 YAML 路径")
+    parser.add_argument("--ec2-manifest-json", default="datasets/dataset/s3/metadata/ec2_image_manifest.json",
+                        help="本地 EC2 图片 JSON 清单")
+    parser.add_argument("--ec2-manifest-csv", default="datasets/dataset/s3/metadata/ec2_image_manifest.csv",
+                        help="本地 EC2 图片 CSV 清单")
+    parser.add_argument("--public-base-url", default="",
+                        help="公开 S3/CDN Base URL；public/auto 下载模式下可用来拼接图片下载地址")
+    parser.add_argument("--download-mode", choices=["auto", "public", "boto3"], default="auto",
+                        help="EC2 下载 S3 图片模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK")
     parser.add_argument("--remote-dataset-root", default="", help="EC2 上数据集根目录；相对路径按项目根目录解析")
-    parser.add_argument("--remote-data-yaml", default="config/generated/s3_local_dataset.yaml", help="EC2 上 YAML 相对项目路径")
-    parser.add_argument("--remote-manifest-json", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.json", help="EC2 上图片下载 JSON 清单")
-    parser.add_argument("--remote-manifest-csv", default="datasets/s3/local_dataset/metadata/ec2_image_manifest.csv", help="EC2 上图片下载 CSV 清单")
-    parser.add_argument("--train-name", default="s3_local_dataset", help="EC2 训练 run 名称")
+    parser.add_argument("--remote-data-yaml", default="config/generated/dataset.yaml", help="EC2 上 YAML 相对项目路径")
+    parser.add_argument("--remote-manifest-json", default="datasets/dataset/s3/metadata/ec2_image_manifest.json",
+                        help="EC2 上图片下载 JSON 清单")
+    parser.add_argument("--remote-manifest-csv", default="datasets/dataset/s3/metadata/ec2_image_manifest.csv",
+                        help="EC2 上图片下载 CSV 清单")
+    parser.add_argument("--train-name", default="dataset", help="EC2 训练 run 名称")
     parser.add_argument("--base-model", default="yolo26m.pt", help="EC2 上基座模型路径或 Ultralytics 模型名")
-    parser.add_argument("--remote-final-model", default="models/ec2/s3/local_dataset/default/best.pt", help="EC2 上导出的 best.pt 相对项目路径")
-    parser.add_argument("--local-model", default="models/s3/local_dataset/default/best.pt", help="下载到本地的模型路径")
-    parser.add_argument("--artifact-root", default="artifacts/s3/local_dataset/default", help="EC2 上训练产物归档目录")
-    parser.add_argument("--latest-run-file", default="artifacts/s3/local_dataset/default/latest-run.txt", help="EC2 上记录实际 run 目录的清单文件")
-    parser.add_argument("--local-artifact-root", default="outputs/ec2/s3/local_dataset/default", help="本地归档下载目录")
+    parser.add_argument("--remote-final-model", default="models/ec2/dataset/default/best.pt",
+                        help="EC2 上导出的 best.pt 相对项目路径")
+    parser.add_argument("--local-model", default="models/dataset/default/best.pt", help="下载到本地的模型路径")
+    parser.add_argument("--artifact-root", default="artifacts/dataset/default", help="EC2 上训练产物归档目录")
+    parser.add_argument("--latest-run-file", default="artifacts/dataset/default/latest-run.txt",
+                        help="EC2 上记录实际 run 目录的清单文件")
+    parser.add_argument("--local-artifact-root", default="outputs/ec2/dataset/default", help="本地归档下载目录")
     parser.add_argument("--epochs", type=int, default=100, help="训练轮数")
     parser.add_argument("--imgsz", type=int, default=960, help="训练尺寸")
     parser.add_argument("--batch", default="16", help="batch 大小")
     parser.add_argument("--device", default="0", help="EC2 GPU 设备")
     parser.add_argument("--resume", action="store_true", help="恢复训练")
-    parser.add_argument("--skip-generate-yaml", action="store_true", help="不在 EC2 重新生成单类别 YAML，直接使用已上传 YAML")
+    parser.add_argument("--skip-generate-yaml", action="store_true",
+                        help="不在 EC2 重新生成单类别 YAML，直接使用已上传 YAML")
     parser.add_argument("--notes", default="", help="写入 evaluation-summary.md 的备注")
     return parser
 

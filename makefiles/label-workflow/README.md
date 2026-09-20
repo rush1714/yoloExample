@@ -18,10 +18,22 @@
 默认目录规则：
 
 ```text
-datasets/<来源>/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/
+datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/
 ```
 
-其中 `<来源>` 由 `LABEL_DATA_DOMAIN` 控制，常用值为 `excel`、`local`、`s3`。
+Excel、本地目录、S3 只表示导入或图片访问方式，不再作为一级目录拆分同一数据集。S3 上传清单和 EC2 下载清单统一放在数据集内的 `s3/metadata/`。
+
+标准目录示例：
+
+```text
+datasets/GH/v2026-09-18/general_diaper_allround_purple/
+├── raw/images/
+├── raw/metadata/
+├── label_studio/
+├── s3/metadata/
+├── images/{train,val,test}/
+└── labels/{train,val,test}/
+```
 
 ## 本地目录导入 LS
 
@@ -33,6 +45,8 @@ make 1-label-local-workflow-to-ls \
   LABELS=diaper,allround_purple \
   LABEL_LOCAL_IMAGES_DIR=/path/to/images
 ```
+
+本地目录流程会先把源图片复制/沉淀到标准 `raw/images/`，后续 Label Studio 导入、S3 上传和 YOLO 转换都围绕同一个 `LABEL_DATASET_ROOT` 工作。
 
 人工标注后：
 
@@ -86,6 +100,8 @@ make 3-label-s3-workflow-ec2-train \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem
 ```
+
+该一键流程同样会先把 `LABEL_LOCAL_IMAGES_DIR` 沉淀到标准 `raw/images/`，再上传标准目录中的图片；S3 上传清单写入 `s3/metadata/s3_images.json`。
 
 EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
 

@@ -8,6 +8,8 @@ Label Studio 多品牌导入执行脚本（通过 Django ORM 直接导入）。
 - 导入任务和多品牌 predictions。
 """
 
+# pylint: disable=line-too-long,wrong-import-position,import-error,no-name-in-module,invalid-name,too-many-locals,too-many-statements,protected-access,ungrouped-imports
+
 from __future__ import annotations
 
 import json
@@ -23,26 +25,41 @@ if not (PROJECT_ROOT / "scripts").is_dir():
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from common.brand_library import DEFAULT_BRAND_LIBRARY, label_config_xml, load_brand_classes, select_brand_classes  # type: ignore[import-not-found]
+from common.brand_library import DEFAULT_BRAND_LIBRARY, label_config_xml, load_brand_classes, \
+    select_brand_classes  # type: ignore[import-not-found]
 from django.db import transaction  # noqa: ICN001
-from io_storages.localfiles.models import LocalFilesImportStorage, LocalFilesImportStorageLink  # type: ignore[import-not-found]  # noqa: ICN001
+from io_storages.localfiles.models import LocalFilesImportStorage, \
+    LocalFilesImportStorageLink  # type: ignore[import-not-found]  # noqa: ICN001
 from organizations.models import Organization  # type: ignore[import-not-found]  # noqa: ICN001
 from projects.models import Project  # type: ignore[import-not-found]  # noqa: ICN001
 from tasks.models import Prediction, Task  # type: ignore[import-not-found]  # noqa: ICN001
 from users.models import User  # type: ignore[import-not-found]  # noqa: ICN001
 
-DEFAULT_IMPORT_JSON = str(PROJECT_ROOT / "datasets" / "multibrand" / "label_studio" / "multibrand_label_studio_import.json")
+from common.ls_project_title import DEFAULT_TITLE_MAX_LENGTH, normalize_project_title, \
+    title_with_index_suffix  # type: ignore[import-not-found]
+
+DEFAULT_IMPORT_JSON = str(
+    PROJECT_ROOT / "datasets" / "multibrand" / "label_studio" / "multibrand_label_studio_import.json")
 DEFAULT_PROJECT_TITLE = "Multi Brand Package Review"
 DEFAULT_LOCAL_FILES_PATH = str(PROJECT_ROOT / "datasets" / "multibrand" / "raw" / "images")
 
 
+def project_title_max_length() -> int:
+    """读取 Label Studio 项目标题字段长度，读取失败时按 50 字符兜底。"""
+    field = Project._meta.get_field("title")
+    max_length = getattr(field, "max_length", None)
+    return int(max_length or DEFAULT_TITLE_MAX_LENGTH)
+
+
 def next_project_title(base_title: str) -> str:
     """生成不重复的项目标题。"""
-    if not Project.objects.filter(title=base_title, deleted_at__isnull=True).exists():
-        return base_title
+    max_length = project_title_max_length()
+    safe_base_title = normalize_project_title(base_title, DEFAULT_PROJECT_TITLE, max_length)
+    if not Project.objects.filter(title=safe_base_title, deleted_at__isnull=True).exists():
+        return safe_base_title
     index = 2
     while True:
-        title = f"{base_title} ({index})"
+        title = title_with_index_suffix(base_title, index, DEFAULT_PROJECT_TITLE, max_length)
         if not Project.objects.filter(title=title, deleted_at__isnull=True).exists():
             return title
         index += 1
@@ -65,11 +82,11 @@ def get_default_organization(user: User) -> Organization | None:
 
 
 def create_project(
-    title: str,
-    user: User,
-    organization: Organization | None,
-    label_config: str,
-    description: str,
+        title: str,
+        user: User,
+        organization: Organization | None,
+        label_config: str,
+        description: str,
 ) -> Project:
     """创建 Label Studio 项目。"""
     project = Project.objects.create(
@@ -86,10 +103,10 @@ def create_project(
 
 
 def create_local_files_storage(
-    project: Project,
-    local_files_path: Path,
-    title: str,
-    description: str,
+        project: Project,
+        local_files_path: Path,
+        title: str,
+        description: str,
 ) -> LocalFilesImportStorage:
     """注册本地图片目录，使 /data/local-files/ 路径具有项目权限。"""
     storage = LocalFilesImportStorage.objects.create(
@@ -103,7 +120,8 @@ def create_local_files_storage(
     return storage
 
 
-def import_tasks(project: Project, tasks: list[dict[str, object]], storage: LocalFilesImportStorage) -> tuple[int, int, int]:
+def import_tasks(project: Project, tasks: list[dict[str, object]], storage: LocalFilesImportStorage) -> tuple[
+    int, int, int]:
     """导入任务和 prediction。"""
     task_count = 0
     prediction_task_count = 0

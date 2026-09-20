@@ -202,7 +202,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
-            config = load_config(None, dataset_name="demo", dataset_root=root, bucket="bucket-a", proxy_base_url="http://127.0.0.1:3010")
+            config = load_config(None, dataset_name="demo", dataset_root=root, bucket="bucket-a",
+                                 proxy_base_url="http://127.0.0.1:3010")
             routes = write_nginx_files(
                 records,
                 config,
@@ -222,7 +223,9 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertIn("Access-Control-Allow-Origin", (root / "nginx.conf").read_text(encoding="utf-8"))
             self.assertIn("/image/demo/", (root / "s3_image_map.conf").read_text(encoding="utf-8"))
             self.assertIn("https://cdn.example.test/prefix/a.jpg", render_map(routes))
-            self.assertIn("proxy_pass $s3_image_upstream", render_config("127.0.0.1", 3010, "*", root / "map.conf", root / "cache", root / "nginx.pid", root / "logs"))
+            self.assertIn("proxy_pass $s3_image_upstream",
+                          render_config("127.0.0.1", 3010, "*", root / "map.conf", root / "cache", root / "nginx.pid",
+                                        root / "logs"))
 
     def test_s3_export_writes_labels_without_local_images(self) -> None:
         """S3 导出转换不需要本地图片文件，只写 labels 和 EC2 manifest 元数据。"""
@@ -254,7 +257,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertFalse(warnings)
             self.assertEqual(converted[0].split, "train")
             self.assertEqual(converted[0].s3_uri, "s3://bucket-a/prefix/nested/a.jpg")
-            self.assertEqual((output_root / "labels" / "train" / "nested__a.txt").read_text(encoding="utf-8"), "0 0.250000 0.400000 0.300000 0.400000\n")
+            self.assertEqual((output_root / "labels" / "train" / "nested__a.txt").read_text(encoding="utf-8"),
+                             "0 0.250000 0.400000 0.300000 0.400000\n")
 
     def test_local_ls_export_matches_s3_manifest_for_ec2_training(self) -> None:
         """本地地址 LS 导出应能通过 s3_images.json 匹配并生成 EC2 manifest 记录。"""
@@ -302,17 +306,21 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertFalse(warnings)
             self.assertEqual(converted[0].s3_key, "yolo-training/demo/nested/a.jpg")
             self.assertEqual(converted[0].training_image_name, "nested__a.jpg")
-            self.assertEqual((root / "dataset" / "labels" / "train" / "nested__a.txt").read_text(encoding="utf-8"), "0 0.250000 0.400000 0.300000 0.400000\n")
+            self.assertEqual((root / "dataset" / "labels" / "train" / "nested__a.txt").read_text(encoding="utf-8"),
+                             "0 0.250000 0.400000 0.300000 0.400000\n")
 
     def test_duplicate_image_name_does_not_match_ambiguously(self) -> None:
         """仅文件名重复时不能兜底匹配，避免把标注指向错误 S3 图片。"""
         task = {"id": 10, "data": {"image_name": "same.jpg"}, "annotations": [{"result": []}]}
         manifest_records = [
-            {"image_name": "same.jpg", "relative_path": "a/same.jpg", "s3_bucket": "bucket-a", "s3_key": "a/same.jpg", "uploaded": True},
-            {"image_name": "same.jpg", "relative_path": "b/same.jpg", "s3_bucket": "bucket-a", "s3_key": "b/same.jpg", "uploaded": True},
+            {"image_name": "same.jpg", "relative_path": "a/same.jpg", "s3_bucket": "bucket-a", "s3_key": "a/same.jpg",
+             "uploaded": True},
+            {"image_name": "same.jpg", "relative_path": "b/same.jpg", "s3_bucket": "bucket-a", "s3_key": "b/same.jpg",
+             "uploaded": True},
         ]
 
-        converted, warnings = convert_local_tasks_with_s3_manifest([task], manifest_records, Path("/tmp/out"), "diaper", "latest", True)
+        converted, warnings = convert_local_tasks_with_s3_manifest([task], manifest_records, Path("/tmp/out"), "diaper",
+                                                                   "latest", True)
 
         self.assertFalse(converted)
         self.assertIn("无法唯一匹配", warnings[0])
@@ -323,8 +331,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             "Args",
             (),
             {
-                "remote_manifest_json": "datasets/s3/demo/metadata/ec2_image_manifest.json",
-                "remote_dataset_root": "datasets/s3/demo",
+                "remote_manifest_json": "datasets/GH/v1/demo/s3/metadata/ec2_image_manifest.json",
+                "remote_dataset_root": "datasets/GH/v1/demo",
                 "ec2_project_root": "/home/ec2-user/yoloExample",
                 "python_cmd": "python3",
                 "download_mode": "auto",
@@ -341,7 +349,7 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         self.assertIn("https://cdn.example.test/base", command)
         self.assertIn("boto3", command)
         self.assertIn("download_file", command)
-        self.assertIn("datasets/s3/demo", command)
+        self.assertIn("datasets/GH/v1/demo", command)
 
     def test_ec2_public_download_mode_prefers_http_url(self) -> None:
         """public 模式应生成公共 URL 下载逻辑，不要求先具备 AWS credentials。"""
@@ -349,8 +357,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             "Args",
             (),
             {
-                "remote_manifest_json": "datasets/s3/demo/metadata/ec2_image_manifest.json",
-                "remote_dataset_root": "datasets/s3/demo",
+                "remote_manifest_json": "datasets/GH/v1/demo/s3/metadata/ec2_image_manifest.json",
+                "remote_dataset_root": "datasets/GH/v1/demo",
                 "ec2_project_root": "/home/ec2-user/yoloExample",
                 "python_cmd": "python3",
                 "download_mode": "public",
@@ -371,7 +379,7 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             dataset_root = root / "dataset"
-            metadata_dir = dataset_root / "metadata"
+            metadata_dir = dataset_root / "s3" / "metadata"
             metadata_dir.mkdir(parents=True)
             (metadata_dir / "s3_images.json").write_text('{"items": []}', encoding="utf-8")
             args = type(
@@ -381,7 +389,7 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
                     "dataset_root": str(dataset_root),
                     "ec2_manifest_json": str(metadata_dir / "ec2_image_manifest.json"),
                     "ec2_manifest_csv": str(metadata_dir / "ec2_image_manifest.csv"),
-                    "data_yaml": str(root / "config" / "generated" / "s3_demo.yaml"),
+                    "data_yaml": str(root / "config" / "generated" / "demo.yaml"),
                 },
             )()
 
@@ -397,7 +405,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         """Makefile 和控制台应提供通用多项目合并与 S3 EC2 训练入口。"""
         s3_makefile = (PROJECT_ROOT / "makefiles" / "brand-s3-ec2" / "Makefile.mk").read_text(encoding="utf-8")
         label_makefile = (PROJECT_ROOT / "makefiles" / "label-workflow" / "Makefile.mk").read_text(encoding="utf-8")
-        diaper_makefile = (PROJECT_ROOT / "makefiles" / "diaper-category-ec2" / "Makefile.mk").read_text(encoding="utf-8")
+        diaper_makefile = (PROJECT_ROOT / "makefiles" / "diaper-category-ec2" / "Makefile.mk").read_text(
+            encoding="utf-8")
         console = (PROJECT_ROOT / "web-console" / "server.js").read_text(encoding="utf-8")
 
         self.assertIn("LS_PROJECT_IDS ?= $(LS_PROJECT_ID)", diaper_makefile)

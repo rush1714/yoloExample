@@ -40,8 +40,8 @@ uv run python scripts/config/write_label_yolo_yaml.py \
   --catalog config/label_categories.json \
   --label-set general \
   --labels diaper,allround_purple \
-  --output config/generated/local_GH_v1_general.yaml \
-  --dataset-root datasets/local/GH/v1/general_diaper_allround_purple \
+  --output config/generated/GH_v1_general_diaper_allround_purple.yaml \
+  --dataset-root datasets/GH/v1/general_diaper_allround_purple \
   --compact-class-ids
 
 # 从 Excel 下载图片
@@ -93,17 +93,17 @@ uv run python scripts/label_studio/generate_label_import.py \
   --labels diaper,allround_purple \
   --input-dir /path/to/images \
   --dataset-name general_diaper_allround_purple \
-  --output datasets/local/GH/v1/general_diaper_allround_purple/label_studio/label_studio_import.json \
-  --label-config-output datasets/local/GH/v1/general_diaper_allround_purple/label_studio/label_config.xml
+  --output datasets/GH/v1/general_diaper_allround_purple/label_studio/label_studio_import.json \
+  --label-config-output datasets/GH/v1/general_diaper_allround_purple/label_studio/label_config.xml
 uv run python scripts/label_studio/export_labels_to_yolo.py \
   --mode local \
-  --input datasets/local/GH/v1/general_diaper_allround_purple/label_studio/exports/label_studio_export.json \
-  --output-root datasets/local/GH/v1/general_diaper_allround_purple \
+  --input datasets/GH/v1/general_diaper_allround_purple/label_studio/exports/label_studio_export.json \
+  --output-root datasets/GH/v1/general_diaper_allround_purple \
   --catalog config/label_categories.json \
   --label-set general \
   --labels diaper,allround_purple \
-  --report datasets/local/GH/v1/general_diaper_allround_purple/label_studio/exports/label_studio_to_yolo_report.json \
-  --data-yaml config/generated/local_GH_v1_general_diaper_allround_purple.yaml
+  --report datasets/GH/v1/general_diaper_allround_purple/label_studio/exports/label_studio_to_yolo_report.json \
+  --data-yaml config/generated/GH_v1_general_diaper_allround_purple.yaml
 
 # 历史品牌预标注导入仍保留兼容
 uv run python scripts/label_studio/generate_import.py \
@@ -142,7 +142,7 @@ uv run python scripts/s3/upload_images_to_s3.py \
 uv run python scripts/s3/render_nginx_image_proxy.py \
   --config config/brand_s3_ec2.local.yaml \
   --dataset-name demo \
-  --manifest datasets/s3/demo/metadata/s3_images.json \
+  --manifest datasets/demo/s3/metadata/s3_images.json \
   --bucket <bucket> \
   --region ap-southeast-1 \
   --output-conf .tmp/s3-nginx/demo/nginx.conf \

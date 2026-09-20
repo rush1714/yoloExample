@@ -3,14 +3,14 @@
 # ── S3 数据集与配置参数 ───────────────────────────────────────
 # 本地私有配置文件；可复制 config/brand_s3_ec2.example.yaml 后按实际桶和目录填写。
 BRAND_S3_CONFIG ?= $(PROJECT_ROOT)/config/brand_s3_ec2.local.yaml
-# S3 数据集短名称；用于 datasets/s3/<name>、config/generated/s3_<name>.yaml 等路径。
-S3_DATASET_NAME ?= local_dataset
+# S3 数据集短名称；旧兼容入口默认用于 datasets/<name>/、config/generated/<name>.yaml 等路径。
+S3_DATASET_NAME ?= dataset
 # 单类别标签名；Label Studio 与 YOLO YAML 均使用该名称。
 S3_LABEL_NAME ?= diaper
 # 本地待上传图片目录。
 S3_LOCAL_IMAGES_DIR ?= $(LOCAL_IMAGES_DIR)
 # S3 工作流本地输出根目录，只保存清单、LS 导出、YOLO 标签，不保存训练图片大文件。
-S3_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/s3/$(S3_DATASET_NAME)
+S3_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/$(S3_DATASET_NAME)
 # S3 桶名、业务对象前缀、区域和可选 profile/endpoint；实际上传会自动归入 yolo-training/<S3_PREFIX>。
 S3_BUCKET ?=
 S3_PREFIX ?= $(S3_DATASET_NAME)
@@ -40,34 +40,34 @@ S3_UPLOAD_WORKERS ?= 8
 S3_LIMIT_ARG := $(if $(S3_LIMIT),--limit $(S3_LIMIT),)
 S3_RECURSIVE_ARG := $(if $(filter 0 false no,$(S3_RECURSIVE)),--no-recursive,--recursive)
 S3_DRY_RUN_ARG := $(if $(filter 1 true yes,$(S3_DRY_RUN)),--dry-run,)
-S3_MANIFEST_JSON ?= $(S3_DATASET_ROOT)/metadata/s3_images.json
+S3_MANIFEST_JSON ?= $(S3_DATASET_ROOT)/s3/metadata/s3_images.json
 S3_LS_IMPORT_JSON ?= $(S3_DATASET_ROOT)/label_studio/s3_label_studio_import.json
 S3_LS_LABEL_CONFIG_XML ?= $(S3_DATASET_ROOT)/label_studio/label_config.xml
 S3_LS_EXPORT_DIR ?= $(S3_DATASET_ROOT)/label_studio/exports
 S3_LS_EXPORT_PATH ?= $(S3_LS_EXPORT_DIR)/label_studio_export.json
 S3_LOCAL_LS_PROJECT_EXPORT_DIR ?= $(S3_LS_EXPORT_DIR)/local_projects
 S3_LOCAL_MERGED_LS_EXPORT_PATH ?= $(S3_LS_EXPORT_DIR)/local_merged_label_studio_export.json
-S3_LOCAL_MERGE_REPORT ?= $(S3_DATASET_ROOT)/metadata/local_ls_merge_report.json
-S3_LS_TO_YOLO_REPORT ?= $(S3_DATASET_ROOT)/metadata/label_studio_to_yolo_report.json
-S3_EC2_IMAGE_MANIFEST_JSON ?= $(S3_DATASET_ROOT)/metadata/ec2_image_manifest.json
-S3_EC2_IMAGE_MANIFEST_CSV ?= $(S3_DATASET_ROOT)/metadata/ec2_image_manifest.csv
-S3_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/s3_$(S3_DATASET_NAME).yaml
+S3_LOCAL_MERGE_REPORT ?= $(S3_DATASET_ROOT)/s3/metadata/local_ls_merge_report.json
+S3_LS_TO_YOLO_REPORT ?= $(S3_DATASET_ROOT)/s3/metadata/label_studio_to_yolo_report.json
+S3_EC2_IMAGE_MANIFEST_JSON ?= $(S3_DATASET_ROOT)/s3/metadata/ec2_image_manifest.json
+S3_EC2_IMAGE_MANIFEST_CSV ?= $(S3_DATASET_ROOT)/s3/metadata/ec2_image_manifest.csv
+S3_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/$(S3_DATASET_NAME).yaml
 S3_LS_TO_YOLO_CLEAR ?= 0
 S3_LS_TO_YOLO_SKIP_EMPTY ?= 0
 S3_LS_TO_YOLO_CLEAR_ARG := $(if $(filter 1 true yes,$(S3_LS_TO_YOLO_CLEAR)),--clear-output,)
 S3_LS_TO_YOLO_SKIP_EMPTY_ARG := $(if $(filter 1 true yes,$(S3_LS_TO_YOLO_SKIP_EMPTY)),--skip-empty-annotations,)
 
 # ── S3 数据集 EC2 参数 ────────────────────────────────────────
-S3_EC2_REMOTE_DATASET_ROOT ?= datasets/s3/$(S3_DATASET_NAME)
-S3_EC2_REMOTE_DATA_YAML ?= config/generated/s3_$(S3_DATASET_NAME).yaml
-S3_EC2_REMOTE_MANIFEST_JSON ?= datasets/s3/$(S3_DATASET_NAME)/metadata/ec2_image_manifest.json
-S3_EC2_REMOTE_MANIFEST_CSV ?= datasets/s3/$(S3_DATASET_NAME)/metadata/ec2_image_manifest.csv
-S3_EC2_TRAIN_NAME ?= s3_$(S3_DATASET_NAME)
-S3_EC2_REMOTE_FINAL_MODEL ?= models/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
-S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
-S3_EC2_ARTIFACT_ROOT ?= artifacts/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
+S3_EC2_REMOTE_DATASET_ROOT ?= datasets/$(S3_DATASET_NAME)
+S3_EC2_REMOTE_DATA_YAML ?= config/generated/$(S3_DATASET_NAME).yaml
+S3_EC2_REMOTE_MANIFEST_JSON ?= datasets/$(S3_DATASET_NAME)/s3/metadata/ec2_image_manifest.json
+S3_EC2_REMOTE_MANIFEST_CSV ?= datasets/$(S3_DATASET_NAME)/s3/metadata/ec2_image_manifest.csv
+S3_EC2_TRAIN_NAME ?= $(S3_DATASET_NAME)
+S3_EC2_REMOTE_FINAL_MODEL ?= models/ec2/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
+S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
+S3_EC2_ARTIFACT_ROOT ?= artifacts/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 S3_EC2_LATEST_RUN_FILE ?= $(S3_EC2_ARTIFACT_ROOT)/latest-run.txt
-S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/s3/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
+S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 # EC2 下载 S3 图片的模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK/IAM。
 S3_EC2_DOWNLOAD_MODE ?= auto
 # 多项目合并可传 LS_PROJECT_IDS=21,20，也兼容控制台常用的 LS_PROJECT_ID=21,20。

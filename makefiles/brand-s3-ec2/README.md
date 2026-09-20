@@ -10,8 +10,8 @@
 ## 目录约定
 
 ```text
-datasets/s3/<S3_DATASET_NAME>/
-├── metadata/
+datasets/<S3_DATASET_NAME>/
+├── s3/metadata/
 │   ├── s3_images.json
 │   ├── s3_images.csv
 │   ├── s3_download_urls.txt
@@ -25,7 +25,7 @@ datasets/s3/<S3_DATASET_NAME>/
 └── labels/{train,val,test}/
 ```
 
-注意：本地 `datasets/s3/<name>/images/` 默认不生成，也不要求存在；EC2 会在训练前按 manifest 下载图片到远端 `images/{train,val,test}`。
+注意：旧兼容 S3 入口也改为标准数据集根目录；本地 `datasets/<name>/images/` 默认不生成，也不要求存在，EC2 会在训练前按 manifest 下载图片到远端 `images/{train,val,test}`。
 
 ## 配置
 
@@ -98,9 +98,9 @@ make brand-s3-upload-images \
 
 输出：
 
-- `datasets/s3/<name>/metadata/s3_images.json`
-- `datasets/s3/<name>/metadata/s3_images.csv`
-- `datasets/s3/<name>/metadata/s3_download_urls.txt`
+- `datasets/<name>/s3/metadata/s3_images.json`
+- `datasets/<name>/s3/metadata/s3_images.csv`
+- `datasets/<name>/s3/metadata/s3_download_urls.txt`
 
 这里的 `s3_images.json/csv` 是“上传与 Label Studio 导入清单”，记录全量上传图片及其 S3/HTTPS/Nginx/proxy 地址；它不是 EC2 训练下载清单。
 
@@ -178,9 +178,9 @@ make 2-brand-s3-workflow-after-ls \
 该步骤不会下载图片，只生成：
 
 - `labels/{train,val,test}/*.txt`
-- `metadata/ec2_image_manifest.json`
-- `metadata/ec2_image_manifest.csv`
-- `config/generated/s3_<S3_DATASET_NAME>.yaml`
+- `s3/metadata/ec2_image_manifest.json`
+- `s3/metadata/ec2_image_manifest.csv`
+- `config/generated/<S3_DATASET_NAME>.yaml`
 
 这里的 `ec2_image_manifest.json/csv` 是“EC2 训练下载清单”，只包含标注转换后进入训练集的图片，并带有 `split`、`training_image_name`、`label_path`、`box_count` 等训练字段。后续 `brand-s3-ec2-upload-manifest` 会把 `ec2_image_manifest.json` 和 `ec2_image_manifest.csv` 都上传到 EC2；EC2 下载/训练实际读取的是 JSON 文件。
 
@@ -191,7 +191,7 @@ make 2-brand-s3-workflow-after-ls \
 这种情况下先确保已经有 S3 上传清单：
 
 ```text
-datasets/s3/<S3_DATASET_NAME>/metadata/s3_images.json
+datasets/<S3_DATASET_NAME>/s3/metadata/s3_images.json
 ```
 
 然后用本地 LS 导出 JSON 与 `s3_images.json` 做匹配，生成 EC2 训练需要的 labels 和 manifest：
@@ -202,7 +202,7 @@ make local-ls-s3-to-yolo \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_LABEL_NAME=diaper \
   S3_LOCAL_IMAGES_DIR=/path/to/original/images \
-  S3_MANIFEST_JSON=datasets/s3/ci_20260916_01/metadata/s3_images.json \
+  S3_MANIFEST_JSON=datasets/ci_20260916_01/s3/metadata/s3_images.json \
   S3_LS_TO_YOLO_CLEAR=1
 ```
 
@@ -226,7 +226,7 @@ make 2-local-ls-s3-merge-workflow-after-ls \
   S3_DATASET_NAME=ci_20260916_01 \
   S3_LABEL_NAME=diaper \
   S3_LOCAL_IMAGES_DIR=/path/to/original/images \
-  S3_MANIFEST_JSON=datasets/s3/ci_20260916_01/metadata/s3_images.json \
+  S3_MANIFEST_JSON=datasets/ci_20260916_01/s3/metadata/s3_images.json \
   S3_LS_TO_YOLO_CLEAR=1
 ```
 
@@ -269,10 +269,10 @@ make brand-s3-ec2-download-images \
   EC2_EXECUTE=1
 ```
 
-该命令在 EC2 上读取 `metadata/ec2_image_manifest.json`，把图片下载到：
+该命令在 EC2 上读取 `s3/metadata/ec2_image_manifest.json`，把图片下载到：
 
 ```text
-datasets/s3/<S3_DATASET_NAME>/images/{train,val,test}/
+datasets/<S3_DATASET_NAME>/images/{train,val,test}/
 ```
 
 EC2 图片下载支持三种模式：

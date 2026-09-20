@@ -301,14 +301,14 @@ http://localhost:3000
 通用目录默认遵循：
 
 ```text
-datasets/<来源>/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/
+datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/
 ```
 
-例如本地目录样本可以写到 `datasets/local/GH/v2026-09-18/allround_purple/`，S3 训练图工作流可以写到 `datasets/s3/GH/v2026-09-18/allround_purple/`。所有目录参数仍可手动覆盖。
+例如 `datasets/GH/v2026-09-18/allround_purple/`。Excel、本地目录、S3 只表示导入/访问方式，不再作为一级目录拆分同一数据集；S3 清单统一写在数据集内的 `s3/metadata/`。所有目录参数仍可手动覆盖。
 
 参数输入会自动缓存到浏览器 `localStorage`，缓存 key 为 `yoloConsole:paramValues:v1`。缓存按 Make 参数名共享，例如在一个命令中填写过 `EC2_HOST`、`S3_DATASET_NAME` 后，切换到其它包含同名参数的命令会自动带出；清空某个输入框会删除该参数缓存并恢复使用 Makefile 默认值，页面也提供“清空参数缓存”按钮。非敏感参数会同步保存到 `web-console/state.json`，该文件可提交 Git；私钥路径等敏感参数不会写入该文件。
 
-数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`datasets/local/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
+数据浏览页会扫描项目内白名单目录，例如 `datasets/`、`outputs/predict/`、`models/train/`、`artifacts/diaper_category/`、`data/samples/`，展示图片数量、训练集拆分统计、报告摘要和图片缩略图。点击缩略图可以查看大图。页面只面向本机使用，不提供登录和公网访问能力；EC2 命令默认仍为 dry-run，只有显式填写 `EC2_EXECUTE=1` 才会真实连接远端机器。
 ### 本地目录图片导入 Label Studio
 
 如果图片已经在本机某个目录中，不需要通过 Excel 下载，可以直接把该目录导入 Label Studio 做单类别矩形框标注。
@@ -338,6 +338,8 @@ make 2-label-workflow-after-ls \
 make 1-label-local-workflow-to-ls LABEL_SET=general LABELS=diaper,allround_purple
 ```
 
+通用本地目录流程会先把 `LABEL_LOCAL_IMAGES_DIR` 中的源图片复制/沉淀到标准 `raw/images/`，后续 Label Studio 导入、S3 上传和 YOLO 转换都围绕同一个 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/` 工作。
+
 历史 `1-local-dir-workflow-to-ls` / `2-local-dir-workflow-after-ls` 仍保留兼容，但推荐逐步切换到 `label-*` 通用命令。
 
 1. 启动 Label Studio：
@@ -352,7 +354,7 @@ make ls-start
 make 1-local-dir-workflow-to-ls \
   LOCAL_IMAGES_DIR=/Users/guobiao/Downloads/my_images \
   LOCAL_DATASET_NAME=my_images_v1 \
-  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/GH/v2026-09-18/my_images_v1 \
   LOCAL_LABEL_NAME=纸尿裤
 ```
 
@@ -362,7 +364,7 @@ make 1-local-dir-workflow-to-ls \
 | --- | --- |
 | `LOCAL_IMAGES_DIR` | 要导入的源图片目录，可以是绝对路径或相对路径。 |
 | `LOCAL_DATASET_NAME` | 数据集短名称，只能填 `my_images_v1` 这类名字，不能填路径。 |
-| `LOCAL_DATASET_ROOT` | 导出数据集目录；留空默认是 `datasets/local/<LOCAL_DATASET_NAME>/`，如需指定目录请改这个参数。 |
+| `LOCAL_DATASET_ROOT` | 导出数据集目录；留空默认是 `datasets/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/`，如需指定目录请改这个参数。 |
 | `LOCAL_LABEL_NAME` | Label Studio 和 YOLO 单类别名称。 |
 | `LOCAL_RECURSIVE` | 是否递归扫描子目录，默认 `1`；设为 `0` 只扫描当前层。 |
 | `LOCAL_LIMIT` | 最多导入多少张图片，留空表示全量。 |
@@ -370,8 +372,8 @@ make 1-local-dir-workflow-to-ls \
 该流程会生成：
 
 ```text
-datasets/local/<LOCAL_DATASET_NAME>/label_studio/local_dir_label_studio_import.json
-datasets/local/<LOCAL_DATASET_NAME>/label_studio/label_config.xml
+datasets/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/label_studio/local_dir_label_studio_import.json
+datasets/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/label_studio/label_config.xml
 ```
 
 并创建一个 Label Studio 项目。命令输出里的 `project_id` 用于后续导出。
@@ -381,7 +383,7 @@ datasets/local/<LOCAL_DATASET_NAME>/label_studio/label_config.xml
 ```bash
 make 2-local-dir-workflow-after-ls \
   LOCAL_DATASET_NAME=my_images_v1 \
-  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/GH/v2026-09-18/my_images_v1 \
   LOCAL_LABEL_NAME=纸尿裤 \
   LS_PROJECT_ID=<项目ID>
 ```
@@ -389,9 +391,9 @@ make 2-local-dir-workflow-after-ls \
 输出训练集：
 
 ```text
-datasets/local/<LOCAL_DATASET_NAME>/images/train|val|test
-datasets/local/<LOCAL_DATASET_NAME>/labels/train|val|test
-config/generated/local_<LOCAL_DATASET_NAME>.yaml
+datasets/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/images/train|val|test
+datasets/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/labels/train|val|test
+config/generated/<COUNTRY>_<DATA_VERSION>_<LOCAL_DATASET_NAME>.yaml
 ```
 
 如果只想分步执行，可使用：
@@ -410,10 +412,10 @@ make local-dir-ls-to-yolo LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/pa
 本地目录标注转换完成后，可以直接上传到 EC2 并训练。默认远端目录为：
 
 ```text
-/home/<EC2_USER>/yoloExample/datasets/local/<LOCAL_DATASET_NAME>/
-/home/<EC2_USER>/yoloExample/config/generated/local_<LOCAL_DATASET_NAME>.yaml
-/home/<EC2_USER>/yoloExample/models/ec2/local/<LOCAL_DATASET_NAME>/<EC2_RUN_NAME>/best.pt
-/home/<EC2_USER>/yoloExample/artifacts/local/<LOCAL_DATASET_NAME>/<EC2_RUN_NAME>/
+/home/<EC2_USER>/yoloExample/datasets/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/
+/home/<EC2_USER>/yoloExample/config/generated/<COUNTRY>_<DATA_VERSION>_<LOCAL_DATASET_NAME>.yaml
+/home/<EC2_USER>/yoloExample/models/ec2/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/<EC2_RUN_NAME>/best.pt
+/home/<EC2_USER>/yoloExample/artifacts/<COUNTRY>/<DATA_VERSION>/<LOCAL_DATASET_NAME>/<EC2_RUN_NAME>/
 ```
 
 推荐顺序：
@@ -422,14 +424,14 @@ make local-dir-ls-to-yolo LOCAL_DATASET_NAME=my_images_v1 LOCAL_DATASET_ROOT=/pa
 # 1. 上传本地目录 YOLO 数据集和 YAML；默认 dry-run，确认后加 EC2_EXECUTE=1
 make local-dir-ec2-upload-data \
   LOCAL_DATASET_NAME=my_images_v1 \
-  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/GH/v2026-09-18/my_images_v1 \
   LOCAL_LABEL_NAME=纸尿裤 \
   EC2_HOST=<EC2地址> EC2_KEY=/path/key.pem
 
 # 2. 训练；默认 dry-run，确认后加 EC2_EXECUTE=1
 make local-dir-ec2-train \
   LOCAL_DATASET_NAME=my_images_v1 \
-  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/local/my_images_v1 \
+  LOCAL_DATASET_ROOT=/Users/guobiao/PRO/me/yoloExample/datasets/GH/v2026-09-18/my_images_v1 \
   LOCAL_LABEL_NAME=纸尿裤 \
   EC2_BASE_MODEL=yolo26m.pt \
   EC2_TRAIN_EPOCHS=100 \
@@ -455,11 +457,11 @@ make local-dir-ec2-download-model \
 如需调整远端目录，可以覆盖：
 
 ```bash
-LOCAL_EC2_REMOTE_DATASET_ROOT=datasets/local/my_images_v1
-LOCAL_EC2_REMOTE_DATA_YAML=config/generated/local_my_images_v1.yaml
-LOCAL_EC2_TRAIN_NAME=local_my_images_v1
-LOCAL_EC2_REMOTE_FINAL_MODEL=models/ec2/local/my_images_v1/yolo26m_img960_e100/best.pt
-LOCAL_EC2_ARTIFACT_ROOT=artifacts/local/my_images_v1/yolo26m_img960_e100
+LOCAL_EC2_REMOTE_DATASET_ROOT=datasets/GH/v2026-09-18/my_images_v1
+LOCAL_EC2_REMOTE_DATA_YAML=config/generated/GH_v2026-09-18_my_images_v1.yaml
+LOCAL_EC2_TRAIN_NAME=GH_v2026-09-18_my_images_v1
+LOCAL_EC2_REMOTE_FINAL_MODEL=models/ec2/GH/v2026-09-18/my_images_v1/yolo26m_img960_e100/best.pt
+LOCAL_EC2_ARTIFACT_ROOT=artifacts/GH/v2026-09-18/my_images_v1/yolo26m_img960_e100
 ```
 
 Web 控制台中也可以在左侧选择“图片来源 / 标注准备 → 本地目录 → LS”或“EC2 训练 / 推理 / 下载 → 本地目录数据集 → EC2”，填写同样参数后执行。

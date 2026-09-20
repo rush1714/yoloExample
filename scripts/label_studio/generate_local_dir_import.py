@@ -17,15 +17,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 IMAGE_SUFFIXES = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "data" / "local_import" / "images"
 DEFAULT_OUTPUT = (
-    PROJECT_ROOT
-    / "datasets"
-    / "local"
-    / "local_dataset"
-    / "label_studio"
-    / "local_dir_label_studio_import.json"
+        PROJECT_ROOT
+        / "datasets"
+        / "dataset"
+        / "label_studio"
+        / "local_dir_label_studio_import.json"
 )
 DEFAULT_LABEL_CONFIG_OUTPUT = (
-    PROJECT_ROOT / "datasets" / "local" / "local_dataset" / "label_studio" / "label_config.xml"
+        PROJECT_ROOT / "datasets" / "dataset" / "label_studio" / "label_config.xml"
 )
 
 
@@ -67,10 +66,10 @@ def iter_image_files(input_dir: Path, recursive: bool) -> list[Path]:
 
 
 def build_tasks(
-    input_dir: Path,
-    image_paths: list[Path],
-    dataset_name: str,
-    limit: int | None,
+        input_dir: Path,
+        image_paths: list[Path],
+        dataset_name: str,
+        limit: int | None,
 ) -> list[dict[str, object]]:
     """Build Label Studio tasks without predictions.
 
@@ -135,7 +134,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_LABEL_CONFIG_OUTPUT,
         help="Label Studio XML 标签配置输出路径",
     )
-    parser.add_argument("--dataset-name", default="local_dataset", help="写入任务 meta 的数据集名称")
+    parser.add_argument("--dataset-name", default="dataset", help="写入任务 meta 的数据集名称")
     parser.add_argument("--limit", type=positive_int, default=None, help="仅生成前 N 张图片任务")
     parser.add_argument(
         "--recursive",

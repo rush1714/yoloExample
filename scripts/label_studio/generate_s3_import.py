@@ -57,7 +57,7 @@ def enrich_manifest_record(record: dict[str, Any], proxy_base_url: str, image_ur
     enriched = dict(record)
     bucket = str(enriched.get("s3_bucket", ""))
     key = str(enriched.get("s3_key", ""))
-    dataset_name = str(enriched.get("dataset_name", "local_dataset"))
+    dataset_name = str(enriched.get("dataset_name", "dataset"))
     region = str(enriched.get("region", ""))
     if bucket and key:
         enriched.setdefault("s3_uri", f"s3://{bucket}/{key}")
@@ -68,7 +68,8 @@ def enrich_manifest_record(record: dict[str, Any], proxy_base_url: str, image_ur
     return enriched
 
 
-def build_tasks(records: list[dict[str, Any]], label_name: str, image_url_mode: str, proxy_base_url: str) -> list[dict[str, object]]:
+def build_tasks(records: list[dict[str, Any]], label_name: str, image_url_mode: str, proxy_base_url: str) -> list[
+    dict[str, object]]:
     """把 S3 清单记录转换为 Label Studio 任务列表。"""
     tasks: list[dict[str, object]] = []
     for index, record in enumerate(records, start=1):
@@ -76,7 +77,7 @@ def build_tasks(records: list[dict[str, Any]], label_name: str, image_url_mode: 
         image_value = str(enriched.get("image", ""))
         if not image_value:
             raise ValueError(f"第 {index} 条 S3 清单缺少可用 image URL：{record}")
-        dataset_name = str(enriched.get("dataset_name", "local_dataset"))
+        dataset_name = str(enriched.get("dataset_name", "dataset"))
         image_name = str(enriched.get("image_name") or Path(str(enriched.get("relative_path", f"image_{index}"))).name)
         relative_path = str(enriched.get("relative_path") or image_name)
         s3_key = str(enriched.get("s3_key", ""))
@@ -119,7 +120,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-name", default="", help="数据集短名称")
     parser.add_argument("--label-name", default="", help="单类别标签名")
     parser.add_argument("--dataset-root", default="", help="本地 S3 工作流输出根目录")
-    parser.add_argument("--image-url-mode", choices=["nginx", "proxy", "https", "s3"], default="", help="LS 图片地址模式")
+    parser.add_argument("--image-url-mode", choices=["nginx", "proxy", "https", "s3"], default="",
+                        help="LS 图片地址模式")
     parser.add_argument("--proxy-base-url", default="", help="本地 S3 图片代理 base URL")
     return parser.parse_args()
 

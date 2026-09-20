@@ -21,23 +21,25 @@ LABEL_RESOLVE_PATH_SCRIPT := $(PROJECT_ROOT)/scripts/config/resolve_path.py
 # 默认数据集短名称由 LABEL_SET + LABELS 计算；也可显式覆盖 LABEL_DATASET_NAME。
 LABEL_DATASET_NAME ?= $(shell $(VENV_BIN)/python $(LABEL_PROFILE_SCRIPT) --catalog '$(LABEL_CATALOG)' --label-set '$(LABEL_SET)' --labels '$(LABELS)' $(LABEL_COMPACT_CLASS_IDS_ARG) --field dataset-name)
 LABEL_DISPLAY_NAME ?= $(shell $(VENV_BIN)/python $(LABEL_PROFILE_SCRIPT) --catalog '$(LABEL_CATALOG)' --label-set '$(LABEL_SET)' --labels '$(LABELS)' $(LABEL_COMPACT_CLASS_IDS_ARG) --field display-name)
-# 数据域用于区分来源：excel/local/s3；目录仍可通过 LABEL_DATASET_ROOT 覆盖。
+# 数据域仅保留为历史兼容参数；新标准目录不再按 excel/local/s3 来源拆分。
 LABEL_DATA_DOMAIN ?= $(if $(filter label-excel-import label-ls-import-json-from-raw label-ls-import-json-from-pseudo label-ocr label-pseudo-label 1-label-excel-workflow-to-ls 1-label-excel-ocr-yoloworld-workflow-to-ls,$(MAKECMDGOALS)),excel,local)
-LABEL_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
+# 同一国家、版本、类别组合只使用一套数据集根目录，图片来源只影响导入方式。
+LABEL_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
 LABEL_DATASET_ROOT_ABS := $(shell $(VENV_BIN)/python $(LABEL_RESOLVE_PATH_SCRIPT) '$(LABEL_DATASET_ROOT)')
 LABEL_RAW_DIR ?= $(LABEL_DATASET_ROOT_ABS)/raw/images
 LABEL_RAW_METADATA_DIR ?= $(LABEL_DATASET_ROOT_ABS)/raw/metadata
 LABEL_LOCAL_IMAGES_DIR ?= $(PROJECT_ROOT)/data/local_import/images
 LABEL_LOCAL_IMAGES_ABS := $(shell $(VENV_BIN)/python $(LABEL_RESOLVE_PATH_SCRIPT) '$(LABEL_LOCAL_IMAGES_DIR)')
+LABEL_LOCAL_STAGE_REPORT ?= $(LABEL_RAW_METADATA_DIR)/local_import_manifest.json
 LABEL_LS_IMPORT_JSON ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/label_studio_import.json
 LABEL_LS_LABEL_CONFIG_XML ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/label_config.xml
-LABEL_LS_LOCAL_FILES_PATH ?= $(if $(filter excel,$(LABEL_DATA_DOMAIN)),$(LABEL_RAW_DIR),$(LABEL_LOCAL_IMAGES_ABS))
+LABEL_LS_LOCAL_FILES_PATH ?= $(LABEL_RAW_DIR)
 LABEL_LS_EXPORT_DIR ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/exports
 LABEL_LS_EXPORT_PATH ?= $(LABEL_LS_EXPORT_DIR)/label_studio_export.json
 LABEL_LS_TO_YOLO_REPORT ?= $(LABEL_LS_EXPORT_DIR)/label_studio_to_yolo_report.json
-LABEL_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/$(LABEL_DATA_DOMAIN)_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
+LABEL_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
 LABEL_PSEUDO_ROOT ?= $(LABEL_DATASET_ROOT_ABS)/pseudo
-LABEL_PSEUDO_YAML ?= $(CONFIG_GENERATED_DIR)/$(LABEL_DATA_DOMAIN)_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME)_pseudo.yaml
+LABEL_PSEUDO_YAML ?= $(CONFIG_GENERATED_DIR)/$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME)_pseudo.yaml
 LABEL_OCR_OUTPUT_DIR ?= $(LABEL_DATASET_ROOT_ABS)/ocr
 LABEL_OCR_CANDIDATES_FILE ?= $(LABEL_OCR_OUTPUT_DIR)/metadata/ocr_candidates.txt
 LABEL_FILTER_ARG = $(if $(filter-out all,$(strip $(LABELS))),--brand-filter '$(LABELS)',)
@@ -55,40 +57,41 @@ LABEL_LS_PROJECT_EXPORT_DIR ?= $(LABEL_LS_EXPORT_DIR)/projects
 LABEL_MERGED_LS_EXPORT_PATH ?= $(LABEL_LS_EXPORT_DIR)/merged_label_studio_export.json
 LABEL_MERGE_REPORT ?= $(LABEL_LS_EXPORT_DIR)/merged_label_studio_export_report.json
 
-# ── 通用 S3/EC2 路径参数 ───────────────────────────────────────
-LABEL_S3_DATASET_ROOT ?= $(PROJECT_ROOT)/datasets/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
+# ── 通用云端清单/EC2 路径参数 ─────────────────────────────────
+# S3 只作为同一数据集下的辅助清单目录，不再作为 datasets/s3 一级来源目录。
+LABEL_S3_DATASET_ROOT ?= $(LABEL_DATASET_ROOT_ABS)
 LABEL_S3_DATASET_ROOT_ABS := $(shell $(VENV_BIN)/python $(LABEL_RESOLVE_PATH_SCRIPT) '$(LABEL_S3_DATASET_ROOT)')
-LABEL_S3_MANIFEST_JSON ?= $(LABEL_S3_DATASET_ROOT_ABS)/metadata/s3_images.json
-LABEL_S3_LS_IMPORT_JSON ?= $(LABEL_S3_DATASET_ROOT_ABS)/label_studio/s3_label_studio_import.json
-LABEL_S3_LS_LABEL_CONFIG_XML ?= $(LABEL_S3_DATASET_ROOT_ABS)/label_studio/label_config.xml
-LABEL_S3_LS_EXPORT_DIR ?= $(LABEL_S3_DATASET_ROOT_ABS)/label_studio/exports
+LABEL_S3_MANIFEST_JSON ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/s3_images.json
+LABEL_S3_LS_IMPORT_JSON ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/s3_label_studio_import.json
+LABEL_S3_LS_LABEL_CONFIG_XML ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/label_config.xml
+LABEL_S3_LS_EXPORT_DIR ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/exports
 LABEL_S3_LS_EXPORT_PATH ?= $(LABEL_S3_LS_EXPORT_DIR)/label_studio_export.json
-LABEL_S3_LS_TO_YOLO_REPORT ?= $(LABEL_S3_DATASET_ROOT_ABS)/metadata/label_studio_to_yolo_report.json
-LABEL_S3_EC2_IMAGE_MANIFEST_JSON ?= $(LABEL_S3_DATASET_ROOT_ABS)/metadata/ec2_image_manifest.json
-LABEL_S3_EC2_IMAGE_MANIFEST_CSV ?= $(LABEL_S3_DATASET_ROOT_ABS)/metadata/ec2_image_manifest.csv
-LABEL_S3_DATA_YAML ?= $(CONFIG_GENERATED_DIR)/s3_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
+LABEL_S3_LS_TO_YOLO_REPORT ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/label_studio_to_yolo_report.json
+LABEL_S3_EC2_IMAGE_MANIFEST_JSON ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/ec2_image_manifest.json
+LABEL_S3_EC2_IMAGE_MANIFEST_CSV ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/ec2_image_manifest.csv
+LABEL_S3_DATA_YAML ?= $(LABEL_DATA_YAML)
 LABEL_S3_PREFIX ?= $(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
-LABEL_S3_EC2_REMOTE_DATASET_ROOT ?= datasets/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
-LABEL_S3_EC2_REMOTE_DATA_YAML ?= config/generated/s3_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
-LABEL_S3_EC2_REMOTE_MANIFEST_JSON ?= datasets/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/metadata/ec2_image_manifest.json
-LABEL_S3_EC2_REMOTE_MANIFEST_CSV ?= datasets/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/metadata/ec2_image_manifest.csv
-LABEL_S3_EC2_TRAIN_NAME ?= s3_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME)
-LABEL_S3_EC2_REMOTE_FINAL_MODEL ?= models/ec2/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
-LABEL_S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
-LABEL_S3_EC2_ARTIFACT_ROOT ?= artifacts/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
+LABEL_S3_EC2_REMOTE_DATASET_ROOT ?= datasets/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
+LABEL_S3_EC2_REMOTE_DATA_YAML ?= config/generated/$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
+LABEL_S3_EC2_REMOTE_MANIFEST_JSON ?= datasets/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/s3/metadata/ec2_image_manifest.json
+LABEL_S3_EC2_REMOTE_MANIFEST_CSV ?= datasets/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/s3/metadata/ec2_image_manifest.csv
+LABEL_S3_EC2_TRAIN_NAME ?= $(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME)
+LABEL_S3_EC2_REMOTE_FINAL_MODEL ?= models/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
+LABEL_S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
+LABEL_S3_EC2_ARTIFACT_ROOT ?= artifacts/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
 LABEL_S3_EC2_LATEST_RUN_FILE ?= $(LABEL_S3_EC2_ARTIFACT_ROOT)/latest-run.txt
-LABEL_S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/s3/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
+LABEL_S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
 
-LABEL_EC2_REMOTE_DATASET_ROOT ?= datasets/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
-LABEL_EC2_REMOTE_DATA_YAML ?= config/generated/$(LABEL_DATA_DOMAIN)_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
-LABEL_EC2_TRAIN_NAME ?= $(LABEL_DATA_DOMAIN)_$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME)
-LABEL_EC2_REMOTE_FINAL_MODEL ?= models/ec2/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
-LABEL_FINAL_MODEL ?= $(PROJECT_ROOT)/models/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
-LABEL_EC2_ARTIFACT_ROOT ?= artifacts/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
+LABEL_EC2_REMOTE_DATASET_ROOT ?= datasets/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
+LABEL_EC2_REMOTE_DATA_YAML ?= config/generated/$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
+LABEL_EC2_TRAIN_NAME ?= $(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME)
+LABEL_EC2_REMOTE_FINAL_MODEL ?= models/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
+LABEL_FINAL_MODEL ?= $(PROJECT_ROOT)/models/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)/best.pt
+LABEL_EC2_ARTIFACT_ROOT ?= artifacts/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
 LABEL_EC2_LATEST_RUN_FILE ?= $(LABEL_EC2_ARTIFACT_ROOT)/latest-run.txt
-LABEL_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
+LABEL_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
 
-.PHONY: label-list label-yaml label-excel-import label-ocr label-pseudo-label label-ls-import-json-from-raw label-ls-import-json-from-pseudo label-local-ls-import-json label-local-ls-apply label-s3-upload-images label-s3-ls-import-json label-s3-ls-apply label-s3-ls-export \
+.PHONY: label-list label-yaml label-excel-import label-ocr label-pseudo-label label-ls-import-json-from-raw label-ls-import-json-from-pseudo label-stage-local-images label-local-ls-import-json label-local-ls-apply label-s3-upload-images label-s3-ls-import-json label-s3-ls-apply label-s3-ls-export \
 	label-ls-apply label-ls-export label-to-yolo label-s3-to-yolo label-local-s3-to-yolo label-merge-ls-projects label-merge-ls-projects-to-yolo \
 	1-label-excel-workflow-to-ls 1-label-excel-ocr-yoloworld-workflow-to-ls 1-label-local-workflow-to-ls 1-label-s3-workflow-to-ls 2-label-workflow-after-ls 2-label-s3-workflow-after-ls 2-label-local-s3-workflow-after-ls \
 	label-ec2-upload-data label-ec2-train label-ec2-evaluate label-ec2-download-artifacts label-ec2-download-model \
@@ -96,7 +99,7 @@ LABEL_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(LABEL_DATA_DOMAIN)/$(COUNTRY)/$(D
 
 label-list: ## 显示通用类别列表和当前 LABEL_SET 下可选类别
 	@printf "类别配置=%s\n" "$(LABEL_CATALOG)"
-	@printf "默认目录规则=datasets/<来源>/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>\n"
+	@printf "默认目录规则=datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>\n"
 	@printf "当前 COUNTRY=%s DATA_VERSION=%s LABEL_DATASET_NAME=%s\n" "$(COUNTRY)" "$(DATA_VERSION)" "$(LABEL_DATASET_NAME)"
 	@printf "可选类别列表：\n"
 	@$(VENV_BIN)/python $(LABEL_PROFILE_SCRIPT) --catalog '$(LABEL_CATALOG)' --label-set '$(LABEL_SET)' --labels '$(LABELS)' --field available-sets
@@ -183,14 +186,21 @@ label-ls-import-json-from-pseudo: label-yaml ## 根据 Excel 下载报告和预�
 		--label-config-output '$(LABEL_LS_LABEL_CONFIG_XML)' \
 		$(LABEL_IMPORT_LIMIT_ARG) $(LABEL_COMPACT_CLASS_IDS_ARG)
 
-label-local-ls-import-json: label-yaml ## 扫描本地图片目录并生成通用类别 LS 导入 JSON
+label-stage-local-images: ## 把本地图片目录沉淀到标准 raw/images 目录
+	$(VENV_BIN)/python scripts/data_import/stage_local_images.py \
+		--input-dir '$(LABEL_LOCAL_IMAGES_ABS)' \
+		--output-dir '$(LABEL_RAW_DIR)' \
+		--report '$(LABEL_LOCAL_STAGE_REPORT)' \
+		$(LABEL_RECURSIVE_ARG) $(LABEL_IMPORT_LIMIT_ARG)
+
+label-local-ls-import-json: label-yaml label-stage-local-images ## 扫描本地图片目录并生成通用类别 LS 导入 JSON
 	$(VENV_BIN)/python scripts/label_studio/generate_label_import.py \
 		--source local-dir \
 		--catalog '$(LABEL_CATALOG)' \
 		--label-set '$(LABEL_SET)' \
 		--labels '$(LABELS)' \
 		--dataset-name '$(LABEL_DATASET_NAME)' \
-		--input-dir '$(LABEL_LOCAL_IMAGES_ABS)' \
+		--input-dir '$(LABEL_RAW_DIR)' \
 		--output '$(LABEL_LS_IMPORT_JSON)' \
 		--label-config-output '$(LABEL_LS_LABEL_CONFIG_XML)' \
 		$(LABEL_RECURSIVE_ARG) $(LABEL_IMPORT_LIMIT_ARG) $(LABEL_COMPACT_CLASS_IDS_ARG)
@@ -198,7 +208,7 @@ label-local-ls-import-json: label-yaml ## 扫描本地图片目录并生成通�
 label-local-ls-apply: ls-db-check prepare-dirs ## 将本地目录通用类别导入 JSON 创建为 Label Studio 项目
 	$(MAKE) --no-print-directory label-ls-apply \
 		LABEL_DATA_DOMAIN='local' \
-		LABEL_LS_LOCAL_FILES_PATH='$(LABEL_LOCAL_IMAGES_ABS)'
+		LABEL_LS_LOCAL_FILES_PATH='$(LABEL_RAW_DIR)'
 
 label-ls-apply: ls-db-check prepare-dirs ## 将通用类别导入 JSON 创建为 Label Studio 项目
 	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
@@ -261,12 +271,12 @@ label-merge-ls-projects-to-yolo: label-merge-ls-projects ## 合并多个 LS 项�
 		LABEL_LS_TO_YOLO_CLEAR='$(LABEL_LS_TO_YOLO_CLEAR)' \
 		LABEL_LS_TO_YOLO_SKIP_EMPTY='$(LABEL_LS_TO_YOLO_SKIP_EMPTY)'
 
-label-s3-upload-images: ## 上传本地图片到 S3 并生成上传清单；S3_DRY_RUN=1 只生成计划
+label-s3-upload-images: label-stage-local-images ## 上传标准 raw/images 到 S3 并生成标准数据集内清单；S3_DRY_RUN=1 只生成计划
 	$(VENV_BIN)/python scripts/s3/upload_images_to_s3.py \
 		--config '$(BRAND_S3_CONFIG)' \
 		--dataset-name '$(LABEL_DATASET_NAME)' \
 		--label-name '$(LABEL_DISPLAY_NAME)' \
-		--input-dir '$(LABEL_LOCAL_IMAGES_ABS)' \
+		--input-dir '$(LABEL_RAW_DIR)' \
 		--dataset-root '$(LABEL_S3_DATASET_ROOT_ABS)' \
 		--bucket '$(S3_BUCKET)' \
 		--prefix '$(LABEL_S3_PREFIX)' \

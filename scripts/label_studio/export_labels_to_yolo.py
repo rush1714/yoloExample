@@ -108,7 +108,8 @@ def select_annotation(task: dict[str, object], annotation_index: str) -> dict[st
     return valid[0] if annotation_index == "first" else valid[-1]
 
 
-def result_to_yolo_line(result: dict[str, object], label_to_class: dict[str, LabelClass]) -> tuple[str, LabelClass] | None:
+def result_to_yolo_line(result: dict[str, object], label_to_class: dict[str, LabelClass]) -> tuple[
+                                                                                                 str, LabelClass] | None:
     """将单个 rectanglelabels 结果转换为 YOLO 行和类别。"""
     if result.get("type") != "rectanglelabels":
         return None
@@ -138,7 +139,8 @@ def result_to_yolo_line(result: dict[str, object], label_to_class: dict[str, Lab
     return f"{label_class.class_id} " + " ".join(f"{item:.6f}" for item in values), label_class
 
 
-def annotation_to_yolo_lines(annotation: dict[str, object], label_to_class: dict[str, LabelClass]) -> tuple[list[str], dict[str, int]]:
+def annotation_to_yolo_lines(annotation: dict[str, object], label_to_class: dict[str, LabelClass]) -> tuple[
+    list[str], dict[str, int]]:
     """转换 annotation 中的全部矩形框。"""
     results = annotation.get("result")
     if not isinstance(results, list):
@@ -199,7 +201,7 @@ def s3_identity_from_task(task: dict[str, object]) -> tuple[str, str, str]:
     key = str(data.get("s3_key", ""))
     uri = str(data.get("s3_uri", ""))
     if uri.startswith("s3://") and (not bucket or not key):
-        bucket, _, key = uri[len("s3://") :].partition("/")
+        bucket, _, key = uri[len("s3://"):].partition("/")
     if bucket and key and not uri:
         uri = f"s3://{bucket}/{key}"
     return bucket, key, uri
@@ -248,7 +250,8 @@ def add_unique(index: dict[str, dict[str, Any] | None], key: str, record: dict[s
         index[key] = record
 
 
-def build_manifest_indexes(records: list[dict[str, Any]]) -> tuple[dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None]]:
+def build_manifest_indexes(records: list[dict[str, Any]]) -> tuple[
+    dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None]]:
     """为 S3 上传清单建立 local_path、relative_path、image_name 三层索引。"""
     by_local_path: dict[str, dict[str, Any] | None] = {}
     by_relative_path: dict[str, dict[str, Any] | None] = {}
@@ -260,11 +263,14 @@ def build_manifest_indexes(records: list[dict[str, Any]]) -> tuple[dict[str, dic
             continue
         add_unique(by_local_path, normalized_path_key(str(record.get("local_path") or "")), record)
         add_unique(by_relative_path, str(record.get("relative_path") or "").strip().strip("/"), record)
-        add_unique(by_image_name, str(record.get("image_name") or Path(str(record.get("relative_path") or "")).name), record)
+        add_unique(by_image_name, str(record.get("image_name") or Path(str(record.get("relative_path") or "")).name),
+                   record)
     return by_local_path, by_relative_path, by_image_name
 
 
-def match_manifest_record(task: dict[str, object], indexes: tuple[dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None]], local_images_dir: Path | None) -> tuple[dict[str, Any] | None, str]:
+def match_manifest_record(task: dict[str, object], indexes: tuple[
+    dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None], dict[str, dict[str, Any] | None]],
+                          local_images_dir: Path | None) -> tuple[dict[str, Any] | None, str]:
     """把本地 LS 任务匹配到 S3 上传清单。"""
     by_local_path, by_relative_path, by_image_name = indexes
     path_key = normalized_path_key(task_image_path(task))
@@ -279,7 +285,9 @@ def match_manifest_record(task: dict[str, object], indexes: tuple[dict[str, dict
     return None, "not_found"
 
 
-def convert_local_tasks(tasks: list[dict[str, object]], output_root: Path, label_to_class: dict[str, LabelClass], annotation_index: str, include_empty_annotations: bool) -> tuple[list[ConvertedTask], list[str]]:
+def convert_local_tasks(tasks: list[dict[str, object]], output_root: Path, label_to_class: dict[str, LabelClass],
+                        annotation_index: str, include_empty_annotations: bool) -> tuple[
+    list[ConvertedTask], list[str]]:
     """转换本地图片任务，并复制图片到 YOLO images 目录。"""
     warnings: list[str] = []
     annotated_items: list[tuple[dict[str, object], Path, dict[str, object]]] = []
@@ -301,8 +309,10 @@ def convert_local_tasks(tasks: list[dict[str, object]], output_root: Path, label
             warnings.append(f"图片 {image_path.name} annotation 中没有可导出的目标框，已跳过。")
             continue
         split = split_by_index(index, len(annotated_items))
-        target_image = output_root / "images" / split / image_path.name
-        target_label = output_root / "labels" / split / image_path.with_suffix(".txt").name
+        relative_path = task_relative_path(task, None) or image_path.name
+        label_stem = safe_label_stem(relative_path, image_path.name)
+        target_image = output_root / "images" / split / f"{label_stem}{image_path.suffix}"
+        target_label = output_root / "labels" / split / f"{label_stem}.txt"
         target_image.parent.mkdir(parents=True, exist_ok=True)
         target_label.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(image_path, target_image)
@@ -316,13 +326,14 @@ def convert_local_tasks(tasks: list[dict[str, object]], output_root: Path, label
                 source_task_id=str(task.get("id", "")),
                 class_counts=class_counts,
                 image_name=image_path.name,
-                relative_path=image_path.name,
+                relative_path=relative_path,
             )
         )
     return converted, warnings
 
 
-def convert_s3_tasks(tasks: list[dict[str, object]], output_root: Path, label_to_class: dict[str, LabelClass], annotation_index: str, include_empty_annotations: bool) -> tuple[list[ConvertedTask], list[str]]:
+def convert_s3_tasks(tasks: list[dict[str, object]], output_root: Path, label_to_class: dict[str, LabelClass],
+                     annotation_index: str, include_empty_annotations: bool) -> tuple[list[ConvertedTask], list[str]]:
     """转换 S3 图片任务，只写 YOLO labels 和 manifest 元数据。"""
     warnings: list[str] = []
     annotated_items: list[tuple[dict[str, object], dict[str, object]]] = []
@@ -371,7 +382,10 @@ def convert_s3_tasks(tasks: list[dict[str, object]], output_root: Path, label_to
     return converted, warnings
 
 
-def convert_local_s3_tasks(tasks: list[dict[str, object]], manifest_records: list[dict[str, Any]], output_root: Path, label_to_class: dict[str, LabelClass], annotation_index: str, include_empty_annotations: bool, local_images_dir: Path | None) -> tuple[list[ConvertedTask], list[str]]:
+def convert_local_s3_tasks(tasks: list[dict[str, object]], manifest_records: list[dict[str, Any]], output_root: Path,
+                           label_to_class: dict[str, LabelClass], annotation_index: str,
+                           include_empty_annotations: bool, local_images_dir: Path | None) -> tuple[
+    list[ConvertedTask], list[str]]:
     """转换本地地址 LS 任务，并用 S3 上传清单补齐 EC2 下载字段。"""
     warnings: list[str] = []
     indexes = build_manifest_indexes(manifest_records)
@@ -379,7 +393,8 @@ def convert_local_s3_tasks(tasks: list[dict[str, object]], manifest_records: lis
     for task in tasks:
         record, match_mode = match_manifest_record(task, indexes, local_images_dir)
         if record is None:
-            warnings.append(f"任务 {task.get('id', '-')} / {task_image_name(task)} 无法唯一匹配 S3 上传清单，匹配方式={match_mode}，已跳过。")
+            warnings.append(
+                f"任务 {task.get('id', '-')} / {task_image_name(task)} 无法唯一匹配 S3 上传清单，匹配方式={match_mode}，已跳过。")
             continue
         annotation = select_annotation(task, annotation_index)
         if annotation is None:
@@ -397,7 +412,8 @@ def convert_local_s3_tasks(tasks: list[dict[str, object]], manifest_records: lis
             continue
         split = split_by_index(index, len(annotated_items))
         label_stem = safe_label_stem(relative_path, image_name)
-        image_suffix = Path(image_name).suffix or Path(str(record.get("image_name") or "")).suffix or Path(str(record.get("s3_key") or "")).suffix
+        image_suffix = Path(image_name).suffix or Path(str(record.get("image_name") or "")).suffix or Path(
+            str(record.get("s3_key") or "")).suffix
         target_label = output_root / "labels" / split / f"{label_stem}.txt"
         target_label.parent.mkdir(parents=True, exist_ok=True)
         target_label.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
@@ -420,7 +436,9 @@ def convert_local_s3_tasks(tasks: list[dict[str, object]], manifest_records: lis
     return converted, warnings
 
 
-def write_outputs(converted: list[ConvertedTask], warnings: list[str], report_path: Path, data_yaml: Path, dataset_root_for_yaml: str, classes: list[LabelClass], ec2_manifest_json: Path | None, ec2_manifest_csv: Path | None) -> None:
+def write_outputs(converted: list[ConvertedTask], warnings: list[str], report_path: Path, data_yaml: Path,
+                  dataset_root_for_yaml: str, classes: list[LabelClass], ec2_manifest_json: Path | None,
+                  ec2_manifest_csv: Path | None) -> None:
     """写转换报告、YOLO YAML 和可选 EC2 manifest。"""
     report_path.parent.mkdir(parents=True, exist_ok=True)
     total_class_counts: dict[str, int] = {}
@@ -460,7 +478,9 @@ def write_outputs(converted: list[ConvertedTask], warnings: list[str], report_pa
         encoding="utf-8",
     )
     with report_path.with_suffix(".csv").open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["image", "label", "split", "box_count", "source_task_id", "class_counts", "s3_uri"])
+        writer = csv.DictWriter(file,
+                                fieldnames=["image", "label", "split", "box_count", "source_task_id", "class_counts",
+                                            "s3_uri"])
         writer.writeheader()
         for item in converted:
             writer.writerow(
@@ -478,11 +498,14 @@ def write_outputs(converted: list[ConvertedTask], warnings: list[str], report_pa
     data_yaml.write_text(yolo_yaml_text(dataset_root_for_yaml, classes), encoding="utf-8")
     if ec2_manifest_json is not None:
         ec2_manifest_json.parent.mkdir(parents=True, exist_ok=True)
-        ec2_manifest_json.write_text(json.dumps({"items": items}, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        ec2_manifest_json.write_text(json.dumps({"items": items}, ensure_ascii=False, indent=2, default=str),
+                                     encoding="utf-8")
     if ec2_manifest_csv is not None:
         ec2_manifest_csv.parent.mkdir(parents=True, exist_ok=True)
         with ec2_manifest_csv.open("w", encoding="utf-8", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=["split", "image_name", "relative_path", "training_image_name", "s3_bucket", "s3_key", "s3_uri", "label_path", "box_count", "class_counts"])
+            writer = csv.DictWriter(file, fieldnames=["split", "image_name", "relative_path", "training_image_name",
+                                                      "s3_bucket", "s3_key", "s3_uri", "label_path", "box_count",
+                                                      "class_counts"])
             writer.writeheader()
             for item in converted:
                 writer.writerow(
@@ -511,8 +534,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--label-set", default="general", help="类别列表名称，默认使用通用自定义类别集合")
     parser.add_argument("--labels", default="", help="类别多选，逗号分隔；空值表示全部启用类别，all 仅作历史兼容")
     parser.add_argument("--compact-class-ids", action="store_true", help="将所选类别重编号为连续类别 ID")
-    parser.add_argument("--annotation-index", choices=["first", "latest"], default="latest", help="选择 first/latest annotation")
-    parser.add_argument("--skip-empty-annotations", action="store_true", help="跳过无框 annotation；默认保留为空标签负样本")
+    parser.add_argument("--annotation-index", choices=["first", "latest"], default="latest",
+                        help="选择 first/latest annotation")
+    parser.add_argument("--skip-empty-annotations", action="store_true",
+                        help="跳过无框 annotation；默认保留为空标签负样本")
     parser.add_argument("--clear-output", action="store_true", help="转换前清空旧输出")
     parser.add_argument("--report", type=Path, required=True, help="转换报告 JSON 输出路径")
     parser.add_argument("--data-yaml", type=Path, required=True, help="YOLO YAML 输出路径")
@@ -537,7 +562,8 @@ def main() -> None:
     tasks = load_export_tasks(args.input)
     include_empty = not args.skip_empty_annotations
     if args.mode == "local":
-        converted, warnings = convert_local_tasks(tasks, output_root, label_to_class, args.annotation_index, include_empty)
+        converted, warnings = convert_local_tasks(tasks, output_root, label_to_class, args.annotation_index,
+                                                  include_empty)
     elif args.mode == "s3":
         converted, warnings = convert_s3_tasks(tasks, output_root, label_to_class, args.annotation_index, include_empty)
     else:

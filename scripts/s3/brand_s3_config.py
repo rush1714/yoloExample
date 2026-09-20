@@ -57,6 +57,11 @@ class BrandS3Config:
     data_yaml: Path
 
 
+def s3_metadata_dir(dataset_root: Path) -> Path:
+    """返回标准数据集下保存 S3/EC2 清单的目录。"""
+    return dataset_root / "s3" / "metadata"
+
+
 def _read_config_file(config_path: Path | None) -> dict[str, Any]:
     """读取 YAML 配置；路径为空或文件不存在时返回空配置。
 
@@ -96,7 +101,7 @@ def resolve_project_path(value: str | Path, default: Path) -> Path:
     """把用户传入路径归一化为绝对路径。
 
     相对路径按项目根目录解析，`~` 会展开到用户主目录。这样 Makefile 中的
-    `datasets/s3/demo` 和命令行里的绝对路径能得到一致行为。
+    `datasets/demo` 和命令行里的绝对路径能得到一致行为。
     """
     text = str(value).strip() if value is not None else ""
     if not text:
@@ -173,7 +178,7 @@ def nginx_url_for_object(proxy_base_url: str, dataset_name: str, key: str) -> st
     suffix = Path(key).suffix.lower()
     safe_dataset = "".join(
         char if ord(char) < 128 and (char.isalnum() or char in "._-") else "_"
-        for char in (dataset_name.strip() or "local_dataset")
+        for char in (dataset_name.strip() or "dataset")
     )
     return f"{proxy_base_url.rstrip('/')}/image/{safe_dataset}/{digest}{suffix}"
 
@@ -208,11 +213,11 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
     本地路径信息，真正访问 S3 的脚本会在执行前检查。
     """
     payload = _read_config_file(config_path)
-    dataset_name = _first_text(overrides.get("dataset_name"), _nested_get(payload, "dataset_name"), default="local_dataset")
+    dataset_name = _first_text(overrides.get("dataset_name"), _nested_get(payload, "dataset_name"), default="dataset")
     label_name = _first_text(overrides.get("label_name"), _nested_get(payload, "label_name"), default="diaper")
     dataset_root = resolve_project_path(
         _first_text(overrides.get("dataset_root"), _nested_get(payload, "dataset_root")),
-        PROJECT_ROOT / "datasets" / "s3" / dataset_name,
+        PROJECT_ROOT / "datasets" / dataset_name,
     )
     local_images_dir = resolve_project_path(
         _first_text(overrides.get("local_images_dir"), _nested_get(payload, "local_images_dir")),
@@ -223,11 +228,13 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
         _first_text(overrides.get("prefix"), _nested_get(payload, "s3.prefix")),
         dataset_name,
     )
-    region = _first_text(overrides.get("region"), os.environ.get("AWS_REGION"), _nested_get(payload, "s3.region"), default="ap-southeast-1")
+    region = _first_text(overrides.get("region"), os.environ.get("AWS_REGION"), _nested_get(payload, "s3.region"),
+                         default="ap-southeast-1")
     profile = _first_text(overrides.get("profile"), os.environ.get("AWS_PROFILE"), _nested_get(payload, "s3.profile"))
     endpoint_url = _first_text(overrides.get("endpoint_url"), _nested_get(payload, "s3.endpoint_url"))
     public_base_url = _first_text(overrides.get("public_base_url"), _nested_get(payload, "s3.public_base_url"))
-    image_url_mode = _first_text(overrides.get("image_url_mode"), _nested_get(payload, "label_studio.image_url_mode"), default="nginx")
+    image_url_mode = _first_text(overrides.get("image_url_mode"), _nested_get(payload, "label_studio.image_url_mode"),
+                                 default="nginx")
     proxy_base_url = _first_text(
         overrides.get("proxy_base_url"),
         _nested_get(payload, "label_studio.proxy_base_url"),
@@ -238,7 +245,7 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
         _nested_get(payload, "label_studio.proxy_allowed_origin"),
         default="http://localhost:9001",
     )
-    metadata_dir = dataset_root / "metadata"
+    metadata_dir = s3_metadata_dir(dataset_root)
     label_studio_dir = dataset_root / "label_studio"
     return BrandS3Config(
         dataset_name=dataset_name,
@@ -260,16 +267,19 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
         label_studio_import_json=resolve_project_path(
             overrides.get("label_studio_import_json") or "", label_studio_dir / "s3_label_studio_import.json"
         ),
-        label_config_xml=resolve_project_path(overrides.get("label_config_xml") or "", label_studio_dir / "label_config.xml"),
+        label_config_xml=resolve_project_path(overrides.get("label_config_xml") or "",
+                                              label_studio_dir / "label_config.xml"),
         label_studio_export_path=resolve_project_path(
             overrides.get("label_studio_export_path") or "", label_studio_dir / "exports" / "label_studio_export.json"
         ),
         yolo_report_json=resolve_project_path(
             overrides.get("yolo_report_json") or "", metadata_dir / "label_studio_to_yolo_report.json"
         ),
-        ec2_manifest_json=resolve_project_path(overrides.get("ec2_manifest_json") or "", metadata_dir / "ec2_image_manifest.json"),
-        ec2_manifest_csv=resolve_project_path(overrides.get("ec2_manifest_csv") or "", metadata_dir / "ec2_image_manifest.csv"),
+        ec2_manifest_json=resolve_project_path(overrides.get("ec2_manifest_json") or "",
+                                               metadata_dir / "ec2_image_manifest.json"),
+        ec2_manifest_csv=resolve_project_path(overrides.get("ec2_manifest_csv") or "",
+                                              metadata_dir / "ec2_image_manifest.csv"),
         data_yaml=resolve_project_path(
-            overrides.get("data_yaml") or "", PROJECT_ROOT / "config" / "generated" / f"s3_{dataset_name}.yaml"
+            overrides.get("data_yaml") or "", PROJECT_ROOT / "config" / "generated" / f"{dataset_name}.yaml"
         ),
     )
