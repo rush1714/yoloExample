@@ -30,7 +30,7 @@ def profile(catalog_path: Path, label_set_name: str, labels: str, compact_class_
     label_set = find_label_set(label_sets, label_set_name)
     selected = select_label_classes(label_set, labels, compact_class_ids)
     raw_filters = parse_label_filters(labels)
-    is_all = not raw_filters or any(item.lower() == "all" for item in raw_filters)
+    is_all = not raw_filters or any(item.lower() == "all" for item in raw_filters) or len(selected) == len(label_set.classes)
     return {
         "label_set": label_set.name,
         "label_set_display_name": label_set.display_name,
@@ -49,8 +49,8 @@ def main() -> None:
     """命令行入口，按字段输出，便于 Makefile 调用。"""
     parser = argparse.ArgumentParser(description="解析通用标签类别运行配置。")
     parser.add_argument("--catalog", type=Path, default=DEFAULT_LABEL_CATALOG, help="通用类别配置 JSON")
-    parser.add_argument("--label-set", default="brands", help="类别列表名称，例如 brands/general")
-    parser.add_argument("--labels", default="all", help="类别多选，逗号分隔；all 表示全部启用类别")
+    parser.add_argument("--label-set", default="general", help="类别列表名称，默认使用通用自定义类别集合")
+    parser.add_argument("--labels", default="", help="类别多选，逗号分隔；空值表示全部启用类别，all 仅作历史兼容")
     parser.add_argument("--compact-class-ids", action="store_true", help="将所选类别重编号为从 0 开始的连续 ID")
     parser.add_argument(
         "--field",
@@ -79,7 +79,7 @@ def main() -> None:
         "label-filter": str(resolved["label_filter"]),
         "class-count": str(resolved["class_count"]),
         "available-sets": "\n".join(resolved["available_sets"]),
-        "available-labels": "\n".join(["all", *resolved["available_labels"]]),
+        "available-labels": "\n".join(resolved["available_labels"]),
         "json": json.dumps(resolved, ensure_ascii=False),
     }
     print(fields[args.field])

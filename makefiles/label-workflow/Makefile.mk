@@ -8,11 +8,11 @@ LABEL_CATALOG ?= $(PROJECT_ROOT)/config/label_categories.json
 COUNTRY ?= default
 # 数据版本；默认当天日期，业务执行建议显式传入，例如 DATA_VERSION=v2026-09-18。
 DATA_VERSION ?= v$(shell date +%Y-%m-%d)
-# 类别列表名称，例如 brands/general；可在 config/label_categories.json 中自定义。
-LABEL_SET ?= brands
+# 类别列表名称，默认使用 config/label_categories.json 中的通用自定义类别集合。
+LABEL_SET ?= general
 export LABEL_SET
-# 类别多选，英文逗号分隔；all 表示当前类别列表全部启用类别。
-LABELS ?= all
+# 类别多选，英文逗号分隔；留空表示当前类别列表全部启用类别，all 仅作历史兼容。
+LABELS ?=
 # 选择部分类别时默认把 class_id 压缩成从 0 开始的连续值；全量类别默认保持配置中的稳定 class_id。
 LABEL_COMPACT_CLASS_IDS ?= $(if $(filter-out all,$(strip $(LABELS))),1,0)
 LABEL_COMPACT_CLASS_IDS_ARG = $(if $(filter 1 true yes,$(LABEL_COMPACT_CLASS_IDS)),--compact-class-ids,)

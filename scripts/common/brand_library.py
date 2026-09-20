@@ -18,8 +18,8 @@ from typing import Any
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-# 默认使用新的通用类别配置；函数内部仍兼容旧 brand_keywords.json 结构。
-DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "config" / "label_categories.json"
+# 历史品牌 OCR/预标注流程默认读取旧品牌库，避免通用类别配置承担品牌集合职责。
+DEFAULT_BRAND_LIBRARY = PROJECT_ROOT / "config" / "brand_keywords.json"
 # Label Studio 标签颜色：循环使用，避免所有品牌同色。
 LABEL_COLORS = [
     "#FFA500",

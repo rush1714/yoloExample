@@ -837,9 +837,10 @@
       input.multiple = definition.type === 'multiselect';
       const activeSet = paramName === 'LABELS' ? cachedParamValue('LABEL_SET', state.config.params.LABEL_SET || {}) : null;
       const options = paramName === 'LABELS'
-        ? (state.config.labelsBySet?.[activeSet] || definition.options || ['all'])
+        ? (state.config.labelsBySet?.[activeSet] || definition.options || [])
         : (definition.options || [definition.defaultValue || '']);
-      const selectedValues = new Set(String(cachedValue || definition.defaultValue || '').split(',').map((item) => item.trim()).filter(Boolean));
+      const allowedOptions = new Set(options);
+      const selectedValues = new Set(String(cachedValue || definition.defaultValue || '').split(',').map((item) => item.trim()).filter((item) => allowedOptions.has(item)));
       options.forEach((optionValue) => {
         const option = document.createElement('option');
         option.value = optionValue;
@@ -847,7 +848,9 @@
         if (input.multiple && selectedValues.has(optionValue)) option.selected = true;
         input.appendChild(option);
       });
-      if (input.multiple && selectedValues.size === 0 && input.options.length > 0) input.options[0].selected = true;
+      if (input.multiple && selectedValues.size === 0) {
+        Array.from(input.options).forEach((option) => { option.selected = true; });
+      }
       if (!input.multiple) input.value = options.includes(cachedValue) ? cachedValue : (definition.defaultValue || options[0] || '');
     } else {
       input = document.createElement('input');

@@ -173,8 +173,8 @@ const COMMAND_GROUPS = [
           { target: 'workflow-to-ls', title: '兼容：品牌 OCR + YOLO-World 到 LS', description: '保留历史多品牌自动预标注流程，防止遗漏 OCR/YOLO-World 功能。', params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_CONF'] },
           { target: 'workflow-to-ls-llm', title: '兼容：Ollama OCR 到 LS', description: '保留历史本地视觉大模型 OCR 分支。', params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'LLM_OCR_MODEL', 'LLM_OCR_WORKERS', 'PSEUDO_LIMIT'] },
           { target: 'workflow-to-ls-visual', title: '兼容：YOLOE Visual 到 LS', description: '保留历史 YOLOE visual prompt 分支。', params: ['BRAND', 'EXCEL', 'EXCEL_COLUMN', 'OCR_LIMIT', 'PSEUDO_LIMIT', 'PSEUDO_VISUAL_MODEL', 'PSEUDO_VISUAL_DEVICE'] },
-          { target: 'label-ocr', title: '通用品牌 OCR 筛选', description: '在 LABEL_SET=brands 下按 LABELS 多选品牌执行 OCR 候选筛选。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'OCR_ENGINE', 'OCR_WORKERS', 'OCR_LIMIT', 'OCR_FUZZY_THRESHOLD', 'OCR_RESUME'] },
-          { target: 'label-pseudo-label', title: '通用品牌 YOLO-World 预标注', description: '在 LABEL_SET=brands 下按 LABELS 多选品牌生成 YOLO-World 预标注。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'PSEUDO_MODEL', 'PSEUDO_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ', 'PSEUDO_USE_OCR_CANDIDATES'] },
+          { target: 'label-ocr', title: '通用类别 OCR 筛选', description: '按当前 LABEL_SET/LABELS 多选类别执行 OCR 候选筛选；类别名称会作为文本匹配词。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'OCR_ENGINE', 'OCR_WORKERS', 'OCR_LIMIT', 'OCR_FUZZY_THRESHOLD', 'OCR_RESUME'] },
+          { target: 'label-pseudo-label', title: '通用类别 YOLO-World 预标注', description: '按当前 LABEL_SET/LABELS 多选类别生成 YOLO-World 预标注。', params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'PSEUDO_MODEL', 'PSEUDO_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ', 'PSEUDO_USE_OCR_CANDIDATES'] },
           { target: 'yolo-world-ab-test', title: 'YOLO-World A/B 测试', description: '对比多个 YOLO-World 模型候选框质量。', params: ['BRAND', 'AB_MODELS', 'AB_LIMIT', 'AB_PREVIEW_LIMIT', 'PSEUDO_CONF', 'PSEUDO_IMGSZ'] },
         ],
       },
@@ -281,8 +281,8 @@ const PARAM_DEFINITIONS = {
   LABEL_CATALOG: { label: '类别配置文件', defaultValue: 'config/label_categories.json', type: 'text', help: '可提交 Git 的通用类别配置。' },
   COUNTRY: { label: '国家/市场', defaultValue: 'default', type: 'text', help: '用于默认目录：datasets/<来源>/<COUNTRY>/<DATA_VERSION>/<数据集>。' },
   DATA_VERSION: { label: '数据版本', defaultValue: '', type: 'text', help: '留空时 Make 默认使用当天日期，例如 v2026-09-18。' },
-  LABEL_SET: { label: '类别列表', defaultValue: 'brands', type: 'select', options: ['brands', 'general'], help: '来自 config/label_categories.json。' },
-  LABELS: { label: '选择类别', defaultValue: 'all', type: 'multiselect', options: ['all'], help: '可多选；all 表示当前类别列表全部启用类别。' },
+  LABEL_SET: { label: '类别列表', defaultValue: 'general', type: 'select', options: ['general'], help: '来自 config/label_categories.json。' },
+  LABELS: { label: '选择类别', defaultValue: '', type: 'multiselect', options: [], help: '可多选；需要全部类别时请全选。命令行空值仍表示全部。' },
   LABEL_DATASET_NAME: { label: '数据集短名称', defaultValue: '', type: 'text', help: '留空时根据 LABEL_SET/LABELS 自动生成。' },
   LABEL_DATA_DOMAIN: { label: '数据来源域', defaultValue: 'local', type: 'select', options: ['excel', 'local', 's3'], help: '用于默认目录分层。' },
   LABEL_DATASET_ROOT: { label: '通用数据集目录', defaultValue: '', type: 'text', help: '留空时使用 datasets/<来源>/<国家>/<版本>/<数据集>。' },
@@ -978,21 +978,25 @@ async function readBrands() {
   try {
     const data = await readLabelCatalog();
     const brandSet = (data.sets || []).find((item) => item.name === 'brands');
-    const names = (brandSet?.classes || [])
+    const catalogNames = (brandSet?.classes || [])
+      .filter((brand) => brand.enabled !== false && brand.name)
+      .map((brand) => brand.name);
+    if (catalogNames.length > 0) {
+      return ['all', ...catalogNames];
+    }
+  } catch (_error) {
+    // 读取通用类别失败时继续回退到历史品牌库。
+  }
+
+  try {
+    const brandPath = path.join(PROJECT_ROOT, 'config', 'brand_keywords.json');
+    const data = JSON.parse(await fsp.readFile(brandPath, 'utf8'));
+    const names = (data.brands || [])
       .filter((brand) => brand.enabled !== false && brand.name)
       .map((brand) => brand.name);
     return ['all', ...names];
-  } catch (error) {
-    try {
-      const brandPath = path.join(PROJECT_ROOT, 'config', 'brand_keywords.json');
-      const data = JSON.parse(await fsp.readFile(brandPath, 'utf8'));
-      const names = (data.brands || [])
-        .filter((brand) => brand.enabled !== false && brand.name)
-        .map((brand) => brand.name);
-      return ['all', ...names];
-    } catch (_fallbackError) {
-      return ['all'];
-    }
+  } catch (_fallbackError) {
+    return ['all'];
   }
 }
 
@@ -1002,7 +1006,7 @@ async function labelCatalogOptions() {
   const setNames = sets.map((item) => item.name).filter(Boolean);
   const labelsBySet = {};
   for (const item of sets) {
-    labelsBySet[item.name] = ['all', ...(item.classes || []).filter((label) => label.enabled !== false).map((label) => label.name)];
+    labelsBySet[item.name] = (item.classes || []).filter((label) => label.enabled !== false).map((label) => label.name);
   }
   return { catalog, setNames, labelsBySet };
 }
@@ -1133,8 +1137,8 @@ async function handleConfig(_request, response) {
   const { catalog, setNames, labelsBySet } = await labelCatalogOptions();
   const paramDefinitions = JSON.parse(JSON.stringify(PARAM_DEFINITIONS));
   paramDefinitions.BRAND.options = brands;
-  paramDefinitions.LABEL_SET.options = setNames.length > 0 ? setNames : ['brands'];
-  paramDefinitions.LABELS.options = ['all', ...Object.values(labelsBySet).flat().filter((value, index, array) => value !== 'all' && array.indexOf(value) === index)];
+  paramDefinitions.LABEL_SET.options = setNames.length > 0 ? setNames : ['general'];
+  paramDefinitions.LABELS.options = Object.values(labelsBySet).flat().filter((value, index, array) => array.indexOf(value) === index);
   jsonResponse(response, 200, {
     projectRoot: PROJECT_ROOT,
     commandGroups: COMMAND_GROUPS,

@@ -29,11 +29,35 @@ class LabelCatalogWorkflowTest(unittest.TestCase):
         """类别配置应支持自定义列表和多选类别。"""
         label_sets = load_label_sets(Path("config/label_categories.json"))
         general = find_label_set(label_sets, "general")
+        selected = select_label_classes(general, "diaper", compact_class_ids=True)
+
+        self.assertEqual([item.class_id for item in selected], [0])
+        self.assertEqual([item.class_name for item in selected], ["diaper"])
+        self.assertEqual(dataset_name_for_selection(general, "diaper"), "diaper")
+
+    def test_default_catalog_only_contains_general_custom_set(self) -> None:
+        """默认类别配置只应暴露通用自定义类别集合。"""
+        label_sets = load_label_sets(Path("config/label_categories.json"))
+
+        self.assertEqual([item.name for item in label_sets], ["general"])
+        self.assertNotIn("brands", [item.name for item in label_sets])
+
+    def test_selecting_every_real_label_is_treated_as_all(self) -> None:
+        """控制台全选真实类别时应等价于命令行空 LABELS 的全量选择。"""
+        label_sets = load_label_sets(Path("config/label_categories.json"))
+        general = find_label_set(label_sets, "general")
         selected = select_label_classes(general, "diaper,allround_purple", compact_class_ids=True)
 
         self.assertEqual([item.class_id for item in selected], [0, 1])
-        self.assertEqual([item.class_name for item in selected], ["diaper", "allround_purple"])
-        self.assertEqual(dataset_name_for_selection(general, "diaper,allround_purple"), "general_diaper_allround_purple")
+        self.assertEqual(dataset_name_for_selection(general, "diaper,allround_purple"), "general_all")
+
+    def test_web_console_does_not_offer_all_as_label_option(self) -> None:
+        """控制台 LABELS 多选框只能暴露真实类别，不再暴露 all 伪选项。"""
+        console = Path("web-console/server.js").read_text(encoding="utf-8")
+
+        self.assertNotIn("['all', ...Object.values(labelsBySet)", console)
+        self.assertNotIn("labelsBySet[item.name] = ['all'", console)
+        self.assertIn("paramDefinitions.LABELS.options = Object.values(labelsBySet).flat()", console)
 
     def test_yolo_yaml_and_label_config_are_generated_from_labels(self) -> None:
         """YOLO YAML 和 LS XML 都应来自同一组 LabelClass。"""

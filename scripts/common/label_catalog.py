@@ -277,10 +277,16 @@ def find_label_set(label_sets: list[LabelSet], name: str) -> LabelSet:
     raise ValueError(f"未知类别列表：{name}。可选值：{available}")
 
 
+def _selected_filters_cover_all_classes(label_set: LabelSet, selected: list[LabelClass]) -> bool:
+    """判断显式多选结果是否已经覆盖当前类别集合的全部启用类别。"""
+    return len(selected) == len(label_set.classes)
+
+
 def select_label_classes(label_set: LabelSet, labels: str | list[str] | None, compact_class_ids: bool = False) -> list[LabelClass]:
-    """按 LABELS 多选过滤类别；空值或 all 代表全量启用类别。"""
+    """按 LABELS 多选过滤类别；空值、历史 all 或显式全选代表全量启用类别。"""
     filters = parse_label_filters(labels)
-    if not filters or any(item.lower() == "all" for item in filters):
+    explicit_all = not filters or any(item.lower() == "all" for item in filters)
+    if explicit_all:
         selected = list(label_set.classes)
     else:
         allowed = {normalize_key(item) for item in filters if normalize_key(item)}
@@ -293,7 +299,7 @@ def select_label_classes(label_set: LabelSet, labels: str | list[str] | None, co
         ]
     if not selected:
         raise ValueError(f"类别过滤后没有可用类别：{labels}")
-    if not compact_class_ids:
+    if explicit_all or _selected_filters_cover_all_classes(label_set, selected) or not compact_class_ids:
         return selected
     return [
         LabelClass(
@@ -312,6 +318,9 @@ def dataset_name_for_selection(label_set: LabelSet, labels: str | list[str] | No
     """为类别集合和多选类别生成默认数据集名称。"""
     filters = parse_label_filters(labels)
     if not filters or any(item.lower() == "all" for item in filters):
+        return f"{label_set.name}_all"
+    selected = select_label_classes(label_set, labels, compact_class_ids=False)
+    if _selected_filters_cover_all_classes(label_set, selected):
         return f"{label_set.name}_all"
     if len(filters) == 1:
         return dataset_slug(filters[0])

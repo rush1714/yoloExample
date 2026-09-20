@@ -9,8 +9,8 @@
 | 参数 | 说明 | 默认值 |
 |---|---|---|
 | `LABEL_CATALOG` | 通用类别配置 JSON | `config/label_categories.json` |
-| `LABEL_SET` | 类别列表名称 | `brands` |
-| `LABELS` | 多选类别，英文逗号分隔；`all` 表示全部启用类别 | `all` |
+| `LABEL_SET` | 类别列表名称 | `general` |
+| `LABELS` | 多选类别，英文逗号分隔；控制台全选表示全部，命令行留空表示全部，`all` 仅作历史兼容 | 空值 |
 | `COUNTRY` | 国家/市场代码，用于默认目录 | `default` |
 | `DATA_VERSION` | 数据版本，用于默认目录 | 当天日期 |
 | `LABEL_DATASET_NAME` | 数据集短名称；留空时自动从类别选择生成 | 自动生成 |

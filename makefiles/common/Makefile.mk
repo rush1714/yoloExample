@@ -24,7 +24,7 @@ EXCEL_TIMEOUT      ?= 30
 
 # ── 品牌与数据目录公共参数 ───────────────────────────────────
 BRAND              ?= all
-BRAND_LIBRARY      ?= $(PROJECT_ROOT)/config/label_categories.json
+BRAND_LIBRARY      ?= $(PROJECT_ROOT)/config/brand_keywords.json
 BRAND_PROFILE_SCRIPT := $(PROJECT_ROOT)/scripts/config/brand_profile.py
 DATASET_NAME       := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field dataset-name)
 BRAND_DISPLAY_NAME := $(shell $(VENV_BIN)/python $(BRAND_PROFILE_SCRIPT) --brand-library $(BRAND_LIBRARY) --brand '$(BRAND)' --field display-name)

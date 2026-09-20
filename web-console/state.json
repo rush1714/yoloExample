@@ -1,9 +1,8 @@
 {
   "paramCache": {
-    "COUNTRY": "default",
+    "COUNTRY": "GH",
     "DATA_VERSION": "v2026-09-18",
     "LABEL_SET": "general",
-    "LABELS": "all",
     "LS_PROJECT_ID": "25",
     "S3_DATASET_ROOT": "datasets/allround_purple/v2026-09-17/",
     "S3_DATASET_NAME": "allround_purple",
@@ -20,7 +19,25 @@
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
     "EC2_HOST": "3.238.13.254",
-    "EC2_EXECUTE": "1"
+    "EC2_EXECUTE": "1",
+    "LABELS": "allround_purple"
   },
-  "favorites": []
+  "favorites": [
+    {
+      "id": "fav_1789734519135_wdpmpp",
+      "group": "Excel数据下载导入LS",
+      "title": "a.一键 Excel 导入到 LS",
+      "target": "1-label-excel-workflow-to-ls",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-18",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/CI_2026-08-26_最新1801个_02.xlsx",
+        "EXCEL_COLUMN": "生动化照片链接",
+        "EXCEL_WORKERS": "10",
+        "EXCEL_TIMEOUT": "30"
+      }
+    }
+  ]
 }

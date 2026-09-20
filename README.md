@@ -100,7 +100,7 @@ datasets/multibrand/
 - `images/...` + `labels/...`：正式训练数据。每张图片必须有一个同名 `.txt` 标签文件，标签中的 class_id 来自 `config/brand_keywords.json`。
 - `pseudo/...`：YOLO-World 自动生成的多品牌候选标签，可能误检/漏检，只能作为人工复核起点。
 - `config/label_categories.json`：通用标签类别配置，是新流程 Label Studio、YOLO YAML、本地/EC2 训练的统一类别来源，可在控制台“类别管理”中维护并提交 Git。
-- `config/brand_keywords.json`：历史品牌标识库，仍被品牌 OCR/YOLO-World 兼容流程使用；默认已可通过通用类别配置中的 `LABEL_SET=brands` 覆盖主要训练/标注场景。
+- `config/brand_keywords.json`：历史品牌标识库，仍被品牌 OCR/YOLO-World 兼容流程使用；默认通用类别配置不再内置 `brands` 集合，通用训练/标注场景优先维护 `config/label_categories.json` 中的 `general` 类别集合。
 - `config/generated/multibrand.yaml`：全品牌正式训练数据配置；由 `make brand-yaml` 根据品牌库生成。
 - `config/generated/multibrand_pseudo.yaml`：全品牌伪标注数据配置；由 `make brand-yaml` 根据品牌库生成。
 - `config/generated/<品牌>.yaml`：单品牌正式训练配置；执行 `make brand-yaml BRAND=<品牌>` 自动生成。

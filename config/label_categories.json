@@ -1,280 +1,10 @@
 {
-  "description": "YOLO/Label Studio/OCR/EC2 通用标签类别配置。类别定义属于可提交 Git 的结果配置；训练图片、临时标注和模型权重不在此文件中保存。",
+  "description": "YOLO/Label Studio/EC2 通用标签类别配置。这里维护的是用户可自定义的检测类别；历史品牌 OCR/预标注兼容类别继续使用 config/brand_keywords.json。",
   "sets": [
-    {
-      "name": "brands",
-      "display_name": "品牌包装",
-      "description": "历史多品牌包装识别类别；由 config/brand_keywords.json 迁移而来，class_id 保持稳定。",
-      "task_type": "detection",
-      "classes": [
-        {
-          "class_id": 0,
-          "name": "SOFTCARE",
-          "class_name": "softcare",
-          "aliases": [
-            "SOFT CARE",
-            "Softcae",
-            "Softcane",
-            "Softcate",
-            "Softcaue",
-            "Sogtcare",
-            "Softcave",
-            "Softce",
-            "oftcae",
-            "Softcue",
-            "Suftcae",
-            "Soltcare",
-            "Saftcare"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 1,
-          "name": "KLEESOFT",
-          "class_name": "kleesoft",
-          "aliases": [
-            "KLEE SOFT",
-            "Keeson",
-            "Kleeson",
-            "Keesoft",
-            "Kleesoft",
-            "Rlepsoft",
-            "Nep5ort",
-            "KEESOTE",
-            "NEESOTE",
-            "KEESE",
-            "Meesoft",
-            "Kleespf",
-            "Keesuft",
-            "Kleesore",
-            "Keesor",
-            "Keesors",
-            "Kleesd",
-            "Kleeted"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 2,
-          "name": "DOFFI",
-          "class_name": "doffi",
-          "aliases": [
-            "Doffl",
-            "Deff",
-            "Hdovi"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 3,
-          "name": "LAVITA",
-          "class_name": "lavita",
-          "aliases": [
-            "Lavta",
-            "Cavita",
-            "Qavita",
-            "Tavita",
-            "Javita",
-            "Zavita",
-            "Lavit?s",
-            "avital"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 4,
-          "name": "NICEDAY",
-          "class_name": "niceday",
-          "aliases": [
-            "NICE BABY",
-            "Niceday",
-            "Kondays"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 5,
-          "name": "MOSSE",
-          "class_name": "mosse",
-          "aliases": [
-            "MOSS"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 6,
-          "name": "MAYA",
-          "class_name": "maya",
-          "aliases": [
-            "MAXA",
-            "Mama",
-            "Mada",
-            "Mady",
-            "Myar",
-            "Madar",
-            "Madap",
-            "MadaF",
-            "Matap",
-            "Maiar",
-            "Maday"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 7,
-          "name": "CLINCLEER",
-          "class_name": "clincleer",
-          "aliases": [
-            "cleaner",
-            "CNCEN",
-            "Scltccewe"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 8,
-          "name": "VEESPER",
-          "class_name": "veesper",
-          "aliases": [
-            "Reesert",
-            "Reesor",
-            "Veesper"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 9,
-          "name": "CUETTIE",
-          "class_name": "cuettie",
-          "aliases": [
-            "Cuette",
-            "Cuettle",
-            "Cueutie",
-            "Cuettiz",
-            "ettie",
-            "Cueque"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 10,
-          "name": "T-GUARD",
-          "class_name": "t_guard",
-          "aliases": [
-            "T GUARD",
-            "Gurd",
-            "TGuard"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 11,
-          "name": "ATHENA",
-          "class_name": "athena",
-          "aliases": [
-            "Athen e",
-            "Githena",
-            "Mthene",
-            "Athone",
-            "Mtnenas"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 12,
-          "name": "MCGEL",
-          "class_name": "mcgel",
-          "aliases": [
-            "MC Gel",
-            "McGel"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 13,
-          "name": "FASKIT",
-          "class_name": "faskit",
-          "aliases": [
-            "Favit",
-            "Fasy",
-            "Fita",
-            "Faskit"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 14,
-          "name": "DR.X",
-          "class_name": "dr_x",
-          "aliases": [
-            "DR X",
-            "DRX",
-            "ramx"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 15,
-          "name": "Avril",
-          "class_name": "avril",
-          "aliases": [
-            "vril",
-            "Jvril",
-            "Svril",
-            "Avriz",
-            "Avru"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 16,
-          "name": "DIAMOND",
-          "class_name": "diamond",
-          "aliases": [
-            "DIAMOND"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 17,
-          "name": "JIEBAI",
-          "class_name": "jiebai",
-          "aliases": [
-            "JIJi",
-            "Jiebai"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 18,
-          "name": "MEDIPOWER",
-          "class_name": "medipower",
-          "aliases": [
-            "medisom",
-            "medisoft",
-            "medisoit",
-            "medisoll",
-            "MEDI POWER",
-            "MediPower"
-          ],
-          "enabled": true
-        },
-        {
-          "class_id": 19,
-          "name": "KINPOWER",
-          "class_name": "kinpower",
-          "aliases": [
-            "KIN POWER",
-            "KinPower"
-          ],
-          "enabled": true
-        }
-      ]
-    },
     {
       "name": "general",
       "display_name": "通用陈列类别",
-      "description": "控制台可维护的通用检测类别集合。默认提供历史单类别示例，后续可在控制台继续新增。",
+      "description": "控制台可维护的通用检测类别集合；可按业务需要新增、删除或重命名类别。",
       "task_type": "detection",
       "classes": [
         {
@@ -285,17 +15,27 @@
             "纸尿裤"
           ],
           "enabled": true,
-          "description": "历史纸尿裤大类流程的默认类别。"
+          "description": "纸尿裤大类示例，可按实际业务重命名或删除。"
         },
         {
           "class_id": 1,
+          "name": "kleesoft_purple",
+          "class_name": "kleesoft_purple",
+          "aliases": [
+            "kleesoft Purple"
+          ],
+          "enabled": true,
+          "description": "kleesoft_purple 类示例，可按实际业务重命名或删除。"
+        },
+        {
+          "class_id": 2,
           "name": "allround_purple",
           "class_name": "allround_purple",
           "aliases": [
             "Allround Purple"
           ],
           "enabled": true,
-          "description": "历史 allround_purple 本地/S3 流程类别。"
+          "description": "allround_purple 示例类别，可按实际业务重命名或删除。"
         }
       ]
     }

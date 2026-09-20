@@ -28,8 +28,8 @@ def main() -> None:
     """解析命令行参数并写入 YOLO YAML。"""
     parser = argparse.ArgumentParser(description="根据通用标签类别配置生成 YOLO 数据集 YAML。")
     parser.add_argument("--catalog", type=Path, default=DEFAULT_LABEL_CATALOG, help="通用类别配置 JSON")
-    parser.add_argument("--label-set", default="brands", help="类别列表名称")
-    parser.add_argument("--labels", default="all", help="类别多选，逗号分隔；all 表示全部启用类别")
+    parser.add_argument("--label-set", default="general", help="类别列表名称，默认使用通用自定义类别集合")
+    parser.add_argument("--labels", default="", help="类别多选，逗号分隔；空值表示全部启用类别，all 仅作历史兼容")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="正式训练 YAML 输出路径")
     parser.add_argument("--pseudo-output", type=Path, default=None, help="可选：伪标注 YAML 输出路径")
     parser.add_argument("--dataset-root", required=True, help="YAML 中的 path 值")
