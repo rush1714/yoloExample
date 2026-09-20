@@ -72,12 +72,12 @@ diaper-ls-import-json: ## 生成纸尿裤大类 LS 导入 JSON，无预标注 pr
 		--dataset-name $(DIAPER_DATASET_NAME)
 
 diaper-ls-apply: ls-db-check diaper-prepare-dirs ## 导入纸尿裤大类任务到 Label Studio（每执行一次都会创建一个新 LS 项目）
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
+	cd $(LS_WORK_DIR) && \
 		LS_IMPORT_JSON='$(DIAPER_LS_IMPORT_JSON)' \
 		LS_LOCAL_FILES_PATH='$(DIAPER_RAW_DIR)' \
 		LS_PROJECT_TITLE='Diaper Category $(DIAPER_COUNTRY) $(DIAPER_VERSION)' \
 		LS_LABEL_CONFIG_XML='$(DIAPER_LS_LABEL_CONFIG_XML)' \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/apply_import.py
 
 diaper-ls-export: ls-db-check diaper-prepare-dirs ## 从 Label Studio 导出纸尿裤大类 JSON；需传 LS_PROJECT_ID=<项目ID>
 	@[ -n "$(LS_PROJECT_ID)" ] || (echo "错误：请传入 LS_PROJECT_ID，例如：make diaper-ls-export LS_PROJECT_ID=2" && exit 1)

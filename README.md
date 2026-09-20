@@ -340,6 +340,33 @@ make 1-label-local-workflow-to-ls LABEL_SET=general LABELS=diaper,allround_purpl
 
 通用本地目录流程会先把 `LABEL_LOCAL_IMAGES_DIR` 中的源图片复制/沉淀到标准 `raw/images/`，后续 Label Studio 导入、S3 上传和 YOLO 转换都围绕同一个 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/` 工作。
 
+如果已经执行“通用本地 LS 转 YOLO”并生成了 `images/{train,val,test}`，且 `raw/images` 中还有大量未标注图片，则不要上传 `raw/images` 全量图片。推荐只上传训练图片目录：
+
+```bash
+make label-s3-upload-images \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-20 \
+  LABEL_SET=general \
+  LABELS=kleesoft_purple,allround_purple \
+  LABEL_LOCAL_IMAGES_DIR=datasets/GH/v2026-09-20/general_kleesoft_purple_allround_purple/images \
+  LABEL_RECURSIVE=1 \
+  S3_BUCKET=<bucket> \
+  S3_DRY_RUN=0
+```
+
+上传完成后，执行 `label-yolo-s3-to-ec2-manifest`，由已有 YOLO `images/labels` 和 S3 上传清单生成 EC2 下载清单：
+
+```bash
+make label-yolo-s3-to-ec2-manifest \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-20 \
+  LABEL_SET=general \
+  LABELS=kleesoft_purple,allround_purple \
+  LABEL_LS_TO_YOLO_SKIP_EMPTY=1
+```
+
+随后可继续执行 `3-label-s3-workflow-ec2-train`。
+
 历史 `1-local-dir-workflow-to-ls` / `2-local-dir-workflow-after-ls` 仍保留兼容，但推荐逐步切换到 `label-*` 通用命令。
 
 1. 启动 Label Studio：

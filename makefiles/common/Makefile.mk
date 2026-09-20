@@ -214,8 +214,7 @@ ls-start: ls-db-check prepare-dirs ## 后台启动 Label Studio
 	fi
 
 ls-migrate: ls-db-create prepare-dirs ## 执行 Django 数据库迁移
-	cd $(LS_WORK_DIR) && printf 'from django.core.management import call_command\ncall_command("migrate", "--no-color")\nexit()\n' | \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+	cd $(LS_WORK_DIR) && PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/run_migrations.py
 
 ls-shell: ls-db-check prepare-dirs ## 进入 Label Studio Django shell
 	cd $(LS_WORK_DIR) && PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
@@ -225,8 +224,7 @@ ls-stop: ## 停止 Label Studio
 	if [ -n "$$pids" ]; then kill $$pids && rm -f $(LS_PID_FILE) && echo "已停止 PID $$pids"; else rm -f $(LS_PID_FILE); echo "端口 $(LS_PORT) 没有运行中的进程"; fi
 
 ls-apply: ls-db-check prepare-dirs ## 通过 Django shell 导入任务到 Label Studio
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+	cd $(LS_WORK_DIR) && PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/apply_import.py
 
 ls-export: ls-db-check prepare-dirs ## 从 Label Studio 导出 JSON；需传 LS_PROJECT_ID=<项目ID>
 	@[ -n "$(LS_PROJECT_ID)" ] || (echo "错误：请传入 LS_PROJECT_ID，例如：make ls-export LS_PROJECT_ID=2" && exit 1)
@@ -237,14 +235,14 @@ ls-export: ls-db-check prepare-dirs ## 从 Label Studio 导出 JSON；需传 LS_
 
 ls-clone-annotated-project: ls-db-check prepare-dirs ## 复制已有 Label Studio 项目，只保留已标注有效框任务；需传 LS_SOURCE_PROJECT_ID=<项目ID>
 	@[ -n "$(LS_SOURCE_PROJECT_ID)" ] || (echo "错误：请传入 LS_SOURCE_PROJECT_ID，例如：make ls-clone-annotated-project LS_SOURCE_PROJECT_ID=2" && exit 1)
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/clone_annotated_project.py", encoding="utf-8").read())\nexit()\n' | \
+	cd $(LS_WORK_DIR) && \
 		LS_SOURCE_PROJECT_ID='$(LS_SOURCE_PROJECT_ID)' \
 		LS_CLONE_PROJECT_TITLE='$(LS_CLONE_PROJECT_TITLE)' \
 		LS_PROJECT_TITLE='$(LS_PROJECT_TITLE)' \
 		LS_CLONE_LABEL_NAME='$(LS_CLONE_LABEL_NAME)' \
 		LS_CLONE_ANNOTATION_INDEX='$(LS_CLONE_ANNOTATION_INDEX)' \
 		LS_LOCAL_FILES_PATH='$(LS_LOCAL_FILES_PATH)' \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/clone_annotated_project.py
 
 train: data-validate ## 训练 YOLO 模型
 	$(VENV_BIN)/python scripts/training/train.py \

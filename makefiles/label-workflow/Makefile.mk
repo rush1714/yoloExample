@@ -51,6 +51,7 @@ LABEL_LS_TO_YOLO_CLEAR ?= 0
 LABEL_LS_TO_YOLO_SKIP_EMPTY ?= 0
 LABEL_LS_TO_YOLO_CLEAR_ARG := $(if $(filter 1 true yes,$(LABEL_LS_TO_YOLO_CLEAR)),--clear-output,)
 LABEL_LS_TO_YOLO_SKIP_EMPTY_ARG := $(if $(filter 1 true yes,$(LABEL_LS_TO_YOLO_SKIP_EMPTY)),--skip-empty-annotations,)
+LABEL_YOLO_S3_TO_EC2_SKIP_EMPTY_ARG := $(if $(filter 1 true yes,$(LABEL_LS_TO_YOLO_SKIP_EMPTY)),--skip-empty-labels,)
 # 多项目合并可传 LS_PROJECT_IDS=21,20，也兼容控制台常用的 LS_PROJECT_ID=21,20。
 LABEL_LS_PROJECT_IDS ?= $(LS_PROJECT_IDS)
 LABEL_LS_PROJECT_EXPORT_DIR ?= $(LABEL_LS_EXPORT_DIR)/projects
@@ -67,6 +68,7 @@ LABEL_S3_LS_LABEL_CONFIG_XML ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/label_con
 LABEL_S3_LS_EXPORT_DIR ?= $(LABEL_DATASET_ROOT_ABS)/label_studio/exports
 LABEL_S3_LS_EXPORT_PATH ?= $(LABEL_S3_LS_EXPORT_DIR)/label_studio_export.json
 LABEL_S3_LS_TO_YOLO_REPORT ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/label_studio_to_yolo_report.json
+LABEL_YOLO_S3_TO_EC2_REPORT ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/yolo_dataset_to_ec2_manifest_report.json
 LABEL_S3_EC2_IMAGE_MANIFEST_JSON ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/ec2_image_manifest.json
 LABEL_S3_EC2_IMAGE_MANIFEST_CSV ?= $(LABEL_S3_DATASET_ROOT_ABS)/s3/metadata/ec2_image_manifest.csv
 LABEL_S3_DATA_YAML ?= $(LABEL_DATA_YAML)
@@ -92,7 +94,7 @@ LABEL_EC2_LATEST_RUN_FILE ?= $(LABEL_EC2_ARTIFACT_ROOT)/latest-run.txt
 LABEL_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
 
 .PHONY: label-list label-yaml label-excel-import label-ocr label-pseudo-label label-ls-import-json-from-raw label-ls-import-json-from-pseudo label-stage-local-images label-local-ls-import-json label-local-ls-apply label-s3-upload-images label-s3-ls-import-json label-s3-ls-apply label-s3-ls-export \
-	label-ls-apply label-ls-export label-to-yolo label-s3-to-yolo label-local-s3-to-yolo label-merge-ls-projects label-merge-ls-projects-to-yolo \
+	label-ls-apply label-ls-export label-to-yolo label-s3-to-yolo label-local-s3-to-yolo label-yolo-s3-to-ec2-manifest label-merge-ls-projects label-merge-ls-projects-to-yolo \
 	1-label-excel-workflow-to-ls 1-label-excel-ocr-yoloworld-workflow-to-ls 1-label-local-workflow-to-ls 1-label-s3-workflow-to-ls 2-label-workflow-after-ls 2-label-s3-workflow-after-ls 2-label-local-s3-workflow-after-ls \
 	label-ec2-upload-data label-ec2-train label-ec2-evaluate label-ec2-download-artifacts label-ec2-download-model \
 	label-s3-ec2-upload-manifest label-s3-ec2-download-images label-s3-ec2-train label-s3-ec2-evaluate label-s3-ec2-download-artifacts label-s3-ec2-download-model 3-label-s3-workflow-ec2-train
@@ -211,7 +213,7 @@ label-local-ls-apply: ls-db-check prepare-dirs ## 将本地目录通用类别导
 		LABEL_LS_LOCAL_FILES_PATH='$(LABEL_RAW_DIR)'
 
 label-ls-apply: ls-db-check prepare-dirs ## 将通用类别导入 JSON 创建为 Label Studio 项目
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
+	cd $(LS_WORK_DIR) && \
 		LS_IMPORT_JSON='$(LABEL_LS_IMPORT_JSON)' \
 		LS_LOCAL_FILES_PATH='$(LABEL_LS_LOCAL_FILES_PATH)' \
 		LS_PROJECT_TITLE='$(LABEL_DISPLAY_NAME) $(COUNTRY) $(DATA_VERSION)' \
@@ -219,7 +221,7 @@ label-ls-apply: ls-db-check prepare-dirs ## 将通用类别导入 JSON 创建为
 		LS_LOCAL_FILES_STORAGE_TITLE='$(LABEL_DATASET_NAME) images' \
 		LS_LOCAL_FILES_STORAGE_DESCRIPTION='通用标签类别流程导入的本地图片。' \
 		LS_LABEL_CONFIG_XML='$(LABEL_LS_LABEL_CONFIG_XML)' \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/apply_import.py
 
 1-label-excel-workflow-to-ls: label-excel-import label-ls-import-json-from-raw label-ls-apply ## Excel 图片下载并按通用类别导入 Label Studio
 
@@ -271,12 +273,12 @@ label-merge-ls-projects-to-yolo: label-merge-ls-projects ## 合并多个 LS 项�
 		LABEL_LS_TO_YOLO_CLEAR='$(LABEL_LS_TO_YOLO_CLEAR)' \
 		LABEL_LS_TO_YOLO_SKIP_EMPTY='$(LABEL_LS_TO_YOLO_SKIP_EMPTY)'
 
-label-s3-upload-images: label-stage-local-images ## 上传标准 raw/images 到 S3 并生成标准数据集内清单；S3_DRY_RUN=1 只生成计划
+label-s3-upload-images: ## 上传 LABEL_LOCAL_IMAGES_DIR 指向的图片目录到 S3，并在标准数据集内生成清单；S3_DRY_RUN=1 只生成计划
 	$(VENV_BIN)/python scripts/s3/upload_images_to_s3.py \
 		--config '$(BRAND_S3_CONFIG)' \
 		--dataset-name '$(LABEL_DATASET_NAME)' \
 		--label-name '$(LABEL_DISPLAY_NAME)' \
-		--input-dir '$(LABEL_RAW_DIR)' \
+		--input-dir '$(LABEL_LOCAL_IMAGES_ABS)' \
 		--dataset-root '$(LABEL_S3_DATASET_ROOT_ABS)' \
 		--bucket '$(S3_BUCKET)' \
 		--prefix '$(LABEL_S3_PREFIX)' \
@@ -303,7 +305,7 @@ label-s3-ls-import-json: ## 根据 S3 上传清单生成通用类别 LS 导入 J
 		$(LABEL_IMPORT_LIMIT_ARG) $(LABEL_COMPACT_CLASS_IDS_ARG)
 
 label-s3-ls-apply: ls-db-check prepare-dirs ## 将通用类别 S3 图片任务导入 Label Studio
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
+	cd $(LS_WORK_DIR) && \
 		LS_IMPORT_JSON='$(LABEL_S3_LS_IMPORT_JSON)' \
 		LS_LOCAL_FILES_PATH='$(PROJECT_ROOT)' \
 		LS_PROJECT_TITLE='S3 $(LABEL_DISPLAY_NAME) $(COUNTRY) $(DATA_VERSION)' \
@@ -311,7 +313,7 @@ label-s3-ls-apply: ls-db-check prepare-dirs ## 将通用类别 S3 图片任务�
 		LS_LOCAL_FILES_STORAGE_TITLE='S3 $(LABEL_DATASET_NAME)' \
 		LS_LOCAL_FILES_STORAGE_DESCRIPTION='S3 图片任务不依赖本地图片存储，本 storage 只用于满足 Label Studio 权限。' \
 		LS_LABEL_CONFIG_XML='$(LABEL_S3_LS_LABEL_CONFIG_XML)' \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/apply_import.py
 
 1-label-s3-workflow-to-ls: label-s3-upload-images label-s3-ls-import-json label-s3-ls-apply ## 本地图片上传 S3 并按通用类别导入 Label Studio
 
@@ -358,6 +360,16 @@ label-local-s3-to-yolo: ## 将本地地址 LS 导出结合 S3 上传清单生成
 		$(LABEL_LS_TO_YOLO_CLEAR_ARG) $(LABEL_LS_TO_YOLO_SKIP_EMPTY_ARG) $(LABEL_COMPACT_CLASS_IDS_ARG)
 
 2-label-local-s3-workflow-after-ls: label-ls-export label-local-s3-to-yolo ## 导出本地地址 LS 标注，并结合 S3 清单生成 EC2 manifest
+
+label-yolo-s3-to-ec2-manifest: label-yaml ## 已生成 YOLO images/labels 后，结合 S3 上传清单生成 EC2 manifest
+	$(VENV_BIN)/python scripts/s3/yolo_dataset_to_ec2_manifest.py \
+		--dataset-root '$(LABEL_DATASET_ROOT_ABS)' \
+		--s3-manifest '$(LABEL_S3_MANIFEST_JSON)' \
+		--data-yaml '$(LABEL_DATA_YAML)' \
+		--ec2-manifest-json '$(LABEL_S3_EC2_IMAGE_MANIFEST_JSON)' \
+		--ec2-manifest-csv '$(LABEL_S3_EC2_IMAGE_MANIFEST_CSV)' \
+		--report '$(LABEL_YOLO_S3_TO_EC2_REPORT)' \
+		$(LABEL_YOLO_S3_TO_EC2_SKIP_EMPTY_ARG)
 
 label-ec2-upload-data: label-yaml ## 上传通用本地 YOLO 数据集到 EC2，默认 dry-run
 	$(VENV_BIN)/python scripts/ec2/diaper_workflow.py upload-data \

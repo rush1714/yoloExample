@@ -207,7 +207,7 @@ brand-s3-nginx-stop: ## 停止本地 Nginx 图片代理
 	fi
 
 brand-s3-ls-apply: ls-db-check prepare-dirs ## 将 S3/Nginx/proxy 图片任务导入 Label Studio
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
+	cd $(LS_WORK_DIR) && \
 		LS_IMPORT_JSON='$(S3_LS_IMPORT_JSON)' \
 		LS_LOCAL_FILES_PATH='$(PROJECT_ROOT)' \
 		LS_PROJECT_TITLE='S3 Images $(S3_DATASET_NAME)' \
@@ -215,7 +215,7 @@ brand-s3-ls-apply: ls-db-check prepare-dirs ## 将 S3/Nginx/proxy 图片任务�
 		LS_LOCAL_FILES_STORAGE_TITLE='S3 Images $(S3_DATASET_NAME)' \
 		LS_LOCAL_FILES_STORAGE_DESCRIPTION='S3 image tasks do not depend on local image storage; this storage only satisfies Label Studio import permissions.' \
 		LS_LABEL_CONFIG_XML='$(S3_LS_LABEL_CONFIG_XML)' \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/apply_import.py
 
 1-brand-s3-workflow-to-ls: brand-s3-upload-images brand-s3-nginx-start brand-s3-ls-import-json brand-s3-ls-apply ## 上传 S3、启动 Nginx 代理、生成并导入 Label Studio
 

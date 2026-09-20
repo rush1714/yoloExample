@@ -3,7 +3,7 @@
     "COUNTRY": "GH",
     "DATA_VERSION": "v2026-09-20",
     "LABEL_SET": "general",
-    "LS_PROJECT_ID": "25",
+    "LS_PROJECT_ID": "29",
     "S3_DATASET_ROOT": "datasets/allround_purple/v2026-09-17/",
     "S3_DATASET_NAME": "allround_purple",
     "LOCAL_DATASET_NAME": "allround_purple",
@@ -18,12 +18,14 @@
     "S3_DRY_RUN": "0",
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
-    "EC2_HOST": "3.238.13.254",
-    "EC2_EXECUTE": "1",
+    "EC2_HOST": "18.209.241.0",
+    "EC2_EXECUTE": "0",
     "LABELS": "kleesoft_purple,allround_purple",
     "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
     "EXCEL_COLUMN": "整改后图片URL",
-    "LABEL_LOCAL_IMAGES_DIR": "datasets/excel/GH/v2026-09-20/general_kleesoft_purple_allround_purple/raw/images"
+    "LABEL_LOCAL_IMAGES_DIR": "datasets/GH/v2026-09-20/general_kleesoft_purple_allround_purple/images",
+    "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1",
+    "LABEL_LS_PROJECT_IDS": "21"
   },
   "favorites": [
     {
@@ -57,39 +59,6 @@
       }
     },
     {
-      "id": "fav_1789871745497_vhll9e",
-      "group": "准备",
-      "title": "3.上传本地图片到 S3",
-      "target": "label-s3-upload-images",
-      "params": {
-        "COUNTRY": "GH",
-        "DATA_VERSION": "v2026-09-20",
-        "LABEL_SET": "general",
-        "LABELS": "kleesoft_purple,allround_purple",
-        "LABEL_LOCAL_IMAGES_DIR": "data/local_import/images",
-        "S3_BUCKET": "uat-smdp4cust-bak",
-        "S3_REGION": "af-south-1",
-        "S3_PROFILE": "smdp-yolo",
-        "S3_UPLOAD_WORKERS": "10",
-        "S3_DRY_RUN": "0"
-      }
-    },
-    {
-      "id": "fav_1789872988923_nucczd",
-      "group": "准备",
-      "title": "4.本地 LS + S3 清单转 EC2 清单",
-      "target": "label-local-s3-to-yolo",
-      "params": {
-        "COUNTRY": "GH",
-        "DATA_VERSION": "v2026-09-20",
-        "LABEL_SET": "general",
-        "LABELS": "kleesoft_purple,allround_purple",
-        "LABEL_LOCAL_IMAGES_DIR": "data/local_import/images",
-        "LABEL_LS_TO_YOLO_CLEAR": "0",
-        "LABEL_LS_TO_YOLO_SKIP_EMPTY": "0"
-      }
-    },
-    {
       "id": "fav_1789873004196_0ybdd3",
       "group": "训练",
       "title": "1.一键上传并训练 S3 数据",
@@ -109,6 +78,85 @@
         "EC2_TRAIN_DEVICE": "0",
         "EC2_RUN_NAME": "yolo26m_img960_e100",
         "EC2_EXECUTE": "1"
+      }
+    },
+    {
+      "id": "fav_1789892165960_62ym6j",
+      "group": "准备",
+      "title": "3.通用本地 LS 转 YOLO",
+      "target": "label-to-yolo",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LABEL_LS_TO_YOLO_CLEAR": "0",
+        "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1"
+      }
+    },
+    {
+      "id": "fav_1789895996043_3p38gk",
+      "group": "准备",
+      "title": "4.上传本地图片到 S3",
+      "target": "label-s3-upload-images",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LABEL_LOCAL_IMAGES_DIR": "datasets/GH/v2026-09-20/general_kleesoft_purple_allround_purple/images",
+        "S3_BUCKET": "uat-smdp4cust-bak",
+        "S3_REGION": "af-south-1",
+        "S3_PROFILE": "smdp-yolo",
+        "S3_UPLOAD_WORKERS": "10",
+        "LABEL_RECURSIVE": "1",
+        "S3_DRY_RUN": "0"
+      }
+    },
+    {
+      "id": "fav_1789896277703_jfyva2",
+      "group": "准备",
+      "title": "5.已生成 YOLO + S3 清单转 EC2 清单",
+      "target": "label-yolo-s3-to-ec2-manifest",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1"
+      }
+    },
+    {
+      "id": "fav_1789896830019_3hat9z",
+      "group": "训练",
+      "title": "2.评估归档 S3 训练",
+      "target": "label-s3-ec2-evaluate",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "EC2_HOST": "18.209.241.0",
+        "EC2_USER": "ec2-user",
+        "EC2_RUN_NAME": "yolo26m_img960_e100",
+        "EC2_EVAL_NOTES": "training start",
+        "EC2_EXECUTE": "0"
+      }
+    },
+    {
+      "id": "fav_1789896843289_3madif",
+      "group": "训练",
+      "title": "3.下载 S3 训练归档",
+      "target": "label-s3-ec2-download-artifacts",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "EC2_HOST": "18.209.241.0",
+        "EC2_USER": "ec2-user",
+        "EC2_RUN_NAME": "yolo26m_img960_e100",
+        "EC2_EXECUTE": "0"
       }
     }
   ]

@@ -151,6 +151,16 @@ uv run python scripts/s3/render_nginx_image_proxy.py \
   --pid-path .tmp/s3-nginx/demo/nginx.pid
 nginx -c .tmp/s3-nginx/demo/nginx.conf
 
+# 已生成 YOLO images/labels 后，只上传训练图片并生成 EC2 下载清单
+uv run python scripts/s3/yolo_dataset_to_ec2_manifest.py \
+  --dataset-root datasets/GH/v1/general_diaper_allround_purple \
+  --s3-manifest datasets/GH/v1/general_diaper_allround_purple/s3/metadata/s3_images.json \
+  --data-yaml config/generated/GH_v1_general_diaper_allround_purple.yaml \
+  --ec2-manifest-json datasets/GH/v1/general_diaper_allround_purple/s3/metadata/ec2_image_manifest.json \
+  --ec2-manifest-csv datasets/GH/v1/general_diaper_allround_purple/s3/metadata/ec2_image_manifest.csv \
+  --report datasets/GH/v1/general_diaper_allround_purple/s3/metadata/yolo_dataset_to_ec2_manifest_report.json \
+  --skip-empty-labels
+
 # EC2 编排（默认 dry-run；加 --execute 才真实执行）
 uv run python scripts/ec2/diaper_workflow.py train \
   --host <host> \

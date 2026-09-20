@@ -27,6 +27,7 @@ from scripts.s3.brand_s3_config import (
 )
 from scripts.s3.render_nginx_image_proxy import render_config, render_map, upstream_url_for_record, write_nginx_files
 from scripts.s3.upload_images_to_s3 import build_manifest_record, record_from_s3_object, upload_images, write_manifest
+from scripts.s3.yolo_dataset_to_ec2_manifest import build_ec2_manifest_items, write_outputs as write_yolo_s3_manifest
 
 
 class BrandS3Ec2WorkflowTest(unittest.TestCase):
@@ -343,12 +344,10 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         command = download_images_command(args)
 
         self.assertIn("ec2_image_manifest.json", command)
-        self.assertIn("s3_images.json", command)
-        self.assertIn("needs_boto3_identity", command)
-        self.assertIn("urlretrieve", command)
+        self.assertIn("scripts/ec2/download_s3_manifest_images.py", command)
+        self.assertNotIn("python -c", command)
+        self.assertNotIn("needs_boto3_identity", command)
         self.assertIn("https://cdn.example.test/base", command)
-        self.assertIn("boto3", command)
-        self.assertIn("download_file", command)
         self.assertIn("datasets/GH/v1/demo", command)
 
     def test_ec2_public_download_mode_prefers_http_url(self) -> None:
@@ -368,11 +367,10 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
 
         command = download_images_command(args)
 
-        self.assertIn('download_mode = "public"', command)
-        self.assertIn("urlretrieve", command)
-        self.assertIn("source_url", command)
-        self.assertIn("https_url", command)
-        self.assertIn("public_base_url", command)
+        self.assertIn("scripts/ec2/download_s3_manifest_images.py", command)
+        self.assertIn("--download-mode public", command)
+        self.assertIn("--public-base-url https://cdn.example.test/base", command)
+        self.assertNotIn("python -c", command)
 
     def test_upload_manifest_hint_distinguishes_s3_and_ec2_manifests(self) -> None:
         """缺少 EC2 manifest 但存在上传清单时，应提示先生成标注后的 EC2 清单。"""
@@ -400,6 +398,70 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
             self.assertIn("s3_images.json", message)
             self.assertIn("ec2_image_manifest.json", message)
             self.assertIn("2-brand-s3-workflow-after-ls", message)
+
+    def test_yolo_dataset_to_ec2_manifest_uses_training_images_only(self) -> None:
+        """已生成 YOLO 训练集时，应只把 images 训练图片映射到 S3 EC2 清单。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            dataset_root = root / "dataset"
+            train_image = dataset_root / "images" / "train" / "a.jpg"
+            val_image = dataset_root / "images" / "val" / "nested" / "b.jpg"
+            train_label = dataset_root / "labels" / "train" / "a.txt"
+            val_label = dataset_root / "labels" / "val" / "nested" / "b.txt"
+            train_image.parent.mkdir(parents=True)
+            val_image.parent.mkdir(parents=True)
+            train_label.parent.mkdir(parents=True)
+            val_label.parent.mkdir(parents=True)
+            train_image.write_bytes(b"train-image")
+            val_image.write_bytes(b"val-image")
+            train_label.write_text("0 0.5 0.5 0.1 0.1\n", encoding="utf-8")
+            val_label.write_text("1 0.4 0.4 0.2 0.2\n", encoding="utf-8")
+            data_yaml = root / "data.yaml"
+            data_yaml.write_text("path: dataset\nnames:\n  0: diaper\n  1: allround_purple\n", encoding="utf-8")
+            manifest_records = [
+                {
+                    "dataset_name": "demo",
+                    "image_name": "a.jpg",
+                    "relative_path": "train/a.jpg",
+                    "local_path": str(train_image),
+                    "s3_bucket": "bucket-a",
+                    "s3_key": "yolo-training/demo/train/a.jpg",
+                    "s3_uri": "s3://bucket-a/yolo-training/demo/train/a.jpg",
+                    "https_url": "https://cdn.example.test/train/a.jpg",
+                    "uploaded": True,
+                },
+                {
+                    "dataset_name": "demo",
+                    "image_name": "b.jpg",
+                    "relative_path": "val/nested/b.jpg",
+                    "local_path": str(val_image),
+                    "s3_bucket": "bucket-a",
+                    "s3_key": "yolo-training/demo/val/nested/b.jpg",
+                    "s3_uri": "s3://bucket-a/yolo-training/demo/val/nested/b.jpg",
+                    "uploaded": True,
+                },
+                {
+                    "dataset_name": "demo",
+                    "image_name": "raw-only.jpg",
+                    "relative_path": "raw-only.jpg",
+                    "s3_bucket": "bucket-a",
+                    "s3_key": "yolo-training/demo/raw-only.jpg",
+                    "uploaded": True,
+                },
+            ]
+
+            items, warnings = build_ec2_manifest_items(dataset_root, manifest_records, data_yaml, skip_empty_labels=True)
+            ec2_json = dataset_root / "s3" / "metadata" / "ec2_image_manifest.json"
+            ec2_csv = dataset_root / "s3" / "metadata" / "ec2_image_manifest.csv"
+            report = dataset_root / "s3" / "metadata" / "yolo_dataset_to_ec2_manifest_report.json"
+            write_yolo_s3_manifest(items, warnings, report, ec2_json, ec2_csv)
+
+            self.assertFalse(warnings)
+            self.assertEqual([item["relative_path"] for item in items], ["train/a.jpg", "val/nested/b.jpg"])
+            self.assertEqual(items[0]["class_counts"], {"diaper": 1})
+            self.assertEqual(items[1]["training_image_name"], "nested/b.jpg")
+            self.assertIn("yolo-training/demo/train/a.jpg", ec2_json.read_text(encoding="utf-8"))
+            self.assertIn("val/nested/b.jpg", ec2_csv.read_text(encoding="utf-8"))
 
     def test_makefiles_and_console_contain_multi_project_targets(self) -> None:
         """Makefile 和控制台应提供通用多项目合并与 S3 EC2 训练入口。"""

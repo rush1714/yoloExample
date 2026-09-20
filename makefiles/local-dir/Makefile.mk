@@ -61,7 +61,7 @@ local-dir-ls-import-json: local-dir-check ## 扫描本地图片目录并生成�
 		$(LOCAL_RECURSIVE_ARG) $(LOCAL_LIMIT_ARG)
 
 local-dir-ls-apply: local-dir-check ls-db-check prepare-dirs ## 将本地目录图片任务导入 Label Studio（每执行一次创建新项目）
-	cd $(LS_WORK_DIR) && printf 'exec(open("$(PROJECT_ROOT)/scripts/label_studio/apply_import.py", encoding="utf-8").read())\nexit()\n' | \
+	cd $(LS_WORK_DIR) && \
 		LS_IMPORT_JSON='$(LOCAL_LS_IMPORT_JSON)' \
 		LS_LOCAL_FILES_PATH='$(LOCAL_IMAGES_ABS)' \
 		LS_PROJECT_TITLE='Local Dir $(LOCAL_DATASET_NAME)' \
@@ -69,7 +69,7 @@ local-dir-ls-apply: local-dir-check ls-db-check prepare-dirs ## 将本地目录�
 		LS_LOCAL_FILES_STORAGE_TITLE='Local Dir $(LOCAL_DATASET_NAME) images' \
 		LS_LOCAL_FILES_STORAGE_DESCRIPTION='Local image directory imported from LOCAL_IMAGES_DIR.' \
 		LS_LABEL_CONFIG_XML='$(LOCAL_LS_LABEL_CONFIG_XML)' \
-		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR)
+		PYTHONSAFEPATH=1 $(VENV_BIN)/label-studio shell --data-dir $(LS_DATA_DIR) < $(PROJECT_ROOT)/scripts/label_studio/apply_import.py
 
 1-local-dir-workflow-to-ls: local-dir-ls-import-json local-dir-ls-apply ## 扫描本地目录并导入 Label Studio
 

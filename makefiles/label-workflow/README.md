@@ -101,7 +101,27 @@ make 3-label-s3-workflow-ec2-train \
   EC2_KEY=/path/key.pem
 ```
 
-该一键流程同样会先把 `LABEL_LOCAL_IMAGES_DIR` 沉淀到标准 `raw/images/`，再上传标准目录中的图片；S3 上传清单写入 `s3/metadata/s3_images.json`。
+该一键流程适合“还没有本地 YOLO 训练集、希望直接把图片先上传到 S3 再建 LS 项目”的情况。若已经完成“通用本地 LS 转 YOLO”，并且只想上传 `images/{train,val,test}` 中的训练图片，请单独执行：
+
+```bash
+make label-s3-upload-images \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  LABEL_LOCAL_IMAGES_DIR=datasets/GH/v2026-09-18/allround_purple/images \
+  LABEL_RECURSIVE=1 \
+  S3_BUCKET=<bucket>
+
+make label-yolo-s3-to-ec2-manifest \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  LABEL_LS_TO_YOLO_SKIP_EMPTY=1
+```
+
+第二个命令会基于已有 YOLO `images/labels` 和 `s3/metadata/s3_images.json` 生成 `s3/metadata/ec2_image_manifest.json|csv`，不再读取 LS export，也不会重写训练集。
 
 EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
 

@@ -176,7 +176,7 @@ const COMMAND_GROUPS = [
                         target: 'label-s3-upload-images',
                         title: '上传本地图片到 S3',
                         description: '扫描本地图片目录，上传到 S3，并生成上传清单。',
-                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_S3_DATASET_ROOT', 'S3_BUCKET', 'LABEL_S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_UPLOAD_WORKERS', 'S3_DRY_RUN']
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_S3_DATASET_ROOT', 'S3_BUCKET', 'LABEL_S3_PREFIX', 'S3_REGION', 'S3_PROFILE', 'S3_UPLOAD_WORKERS', 'LABEL_RECURSIVE','S3_DRY_RUN']
                     },
                     {
                         target: 'label-s3-ls-import-json',
@@ -313,6 +313,12 @@ const COMMAND_GROUPS = [
                         title: '本地 LS + S3 清单转 EC2 清单',
                         description: '本地地址 LS 标注后，结合 S3 上传清单生成 EC2 下载训练清单。',
                         params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_LS_EXPORT_PATH', 'LABEL_S3_MANIFEST_JSON', 'LABEL_LOCAL_IMAGES_DIR', 'LABEL_S3_DATASET_ROOT', 'LABEL_LS_TO_YOLO_CLEAR', 'LABEL_LS_TO_YOLO_SKIP_EMPTY']
+                    },
+                    {
+                        target: 'label-yolo-s3-to-ec2-manifest',
+                        title: '已生成 YOLO + S3 清单转 EC2 清单',
+                        description: '只上传已生成的 YOLO 训练图片后，结合 S3 上传清单生成 EC2 下载训练清单。',
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'LABEL_DATASET_ROOT', 'LABEL_S3_MANIFEST_JSON', 'LABEL_S3_EC2_IMAGE_MANIFEST_JSON', 'LABEL_S3_EC2_IMAGE_MANIFEST_CSV', 'LABEL_YOLO_S3_TO_EC2_REPORT', 'LABEL_LS_TO_YOLO_SKIP_EMPTY']
                     },
                 ],
             },
@@ -587,6 +593,7 @@ const PARAM_DEFINITIONS = {
     LABEL_S3_LS_EXPORT_PATH: {label: '通用 S3 LS 导出 JSON', defaultValue: '', type: 'text'},
     LABEL_S3_EC2_IMAGE_MANIFEST_JSON: {label: '通用 EC2 图片清单 JSON', defaultValue: '', type: 'text'},
     LABEL_S3_EC2_IMAGE_MANIFEST_CSV: {label: '通用 EC2 图片清单 CSV', defaultValue: '', type: 'text'},
+    LABEL_YOLO_S3_TO_EC2_REPORT: {label: 'YOLO+S3 转 EC2 报告', defaultValue: '', type: 'text'},
     LABEL_S3_EC2_REMOTE_MANIFEST_JSON: {label: '远端 EC2 图片清单 JSON', defaultValue: '', type: 'text'},
     LABEL_S3_FINAL_MODEL: {label: '通用 S3 本地模型路径', defaultValue: '', type: 'text'},
     LABEL_FINAL_MODEL: {label: '通用本地模型路径', defaultValue: '', type: 'text'},
@@ -640,7 +647,7 @@ const PARAM_DEFINITIONS = {
     },
     AB_LIMIT: {label: 'A/B 图片上限', defaultValue: '50', type: 'number'},
     AB_PREVIEW_LIMIT: {label: 'A/B 预览图上限', defaultValue: '30', type: 'number'},
-    LS_PROJECT_ID: {label: 'LS 项目 ID', defaultValue: '', type: 'text', help: '单项目填 21；多项目合并命令可填 21,20。'},
+    LS_PROJECT_ID: {label: 'LS 项目 ID,多个可以是21,20', defaultValue: '', type: 'text', help: '单项目填 21；多项目合并命令可填 21,20。'},
     LS_SOURCE_PROJECT_ID: {
         label: '源 LS 项目 ID',
         defaultValue: '',

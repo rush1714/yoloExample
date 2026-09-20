@@ -116,117 +116,49 @@ def upload_manifest(args: argparse.Namespace) -> None:
     )
 
 
+def upload_download_script(args: argparse.Namespace) -> None:
+    """上传远端图片下载脚本，避免 dry-run 打印大段内联 Python 源码。"""
+    target = ssh_target(args.user, args.host)
+    local_script = Path(__file__).resolve().with_name("download_s3_manifest_images.py")
+    remote_script = remote_project_path(args, "scripts/ec2/download_s3_manifest_images.py")
+    run_or_print(
+        [
+            "ssh",
+            *ssh_base_args(args.port, args.key),
+            target,
+            f"mkdir -p {shlex.quote(posixpath.dirname(remote_script))}",
+        ],
+        args.execute,
+    )
+    run_or_print(
+        ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_script), f"{target}:{remote_script}"],
+        args.execute,
+    )
+
+
 def download_images_command(args: argparse.Namespace) -> str:
-    """生成 EC2 端根据 manifest 从 S3 下载图片的 Python 单行命令。"""
+    """生成 EC2 端根据 manifest 从 S3 下载图片的脚本命令。"""
     manifest_abs = remote_project_path(args, args.remote_manifest_json)
     dataset_abs = remote_project_path(args, remote_dataset_root(args))
-    code = r'''
-import json
-from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlsplit
-from urllib.request import urlretrieve
-
-download_mode = "__DOWNLOAD_MODE__"
-public_base_url = "__PUBLIC_BASE_URL__".rstrip("/")
-if download_mode not in {"auto", "public", "boto3"}:
-    raise SystemExit(f"未知 S3 下载模式：{download_mode}，只能是 auto/public/boto3。")
-
-
-def public_url_for_item(item):
-    """优先读取 manifest 中的公共 URL；没有时用 public_base_url + s3_key 拼出 URL。"""
-    for field_name in ("source_url", "https_url", "public_url"):
-        value = str(item.get(field_name) or "").strip()
-        if value.startswith(("http://", "https://")):
-            return value
-    if public_base_url and item.get("s3_key"):
-        parsed_base = urlsplit(public_base_url)
-        safe_key = quote(str(item["s3_key"]).lstrip("/"), safe="/")
-        if parsed_base.query:
-            separator = "&" if not public_base_url.endswith(("?", "&")) else ""
-            return f"{public_base_url}{separator}key={quote(str(item['s3_key']), safe='/')}"
-        return f"{public_base_url}/{safe_key}"
-    return ""
-
-
-def download_public_url(url, target):
-    """通过公共 HTTP(S) URL 下载图片，不需要 EC2 配置 AWS credentials。"""
-    try:
-        urlretrieve(url, str(target))
-    except (HTTPError, URLError, OSError) as exc:
-        raise RuntimeError(f"公共 URL 下载失败：{url} -> {target}: {exc}") from exc
-
-
-_s3_client = None
-
-
-def s3_client():
-    """懒加载 boto3 client；public 模式成功时不会触发 AWS 凭证检查。"""
-    global _s3_client  # pylint: disable=global-statement
-    if _s3_client is None:
-        try:
-            import boto3
-        except ImportError as exc:
-            raise SystemExit("EC2 缺少 boto3，请先在远端环境安装 boto3，或使用 S3_EC2_DOWNLOAD_MODE=public。") from exc
-        _s3_client = boto3.client("s3")
-    return _s3_client
-
-
-manifest_path = Path(MANIFEST)
-dataset_root = Path(DATASET_ROOT)
-payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-items = payload.get("items", payload if isinstance(payload, list) else [])
-if not isinstance(items, list) or not items:
-    raise SystemExit("EC2 图片下载清单为空或格式不正确；请确认使用的是 ec2_image_manifest.json，而不是上传阶段的 s3_images.json。")
-for index, item in enumerate(items):
-    if not isinstance(item, dict):
-        raise SystemExit(f"EC2 图片下载清单第 {index} 项不是对象；请重新生成 ec2_image_manifest.json。")
-    missing = [field for field in ("split",) if not item.get(field)]
-    needs_boto3_identity = download_mode == "boto3" or (download_mode == "auto" and not public_url_for_item(item))
-    if needs_boto3_identity:
-        missing.extend(field for field in ("s3_bucket", "s3_key") if not item.get(field))
-    if download_mode == "public" and not public_url_for_item(item):
-        missing.append("source_url/https_url/public_url 或 public_base_url+s3_key")
-    if missing:
-        raise SystemExit(
-            f"EC2 图片下载清单第 {index} 项缺少字段：{', '.join(missing)}。"
-            "请确认上传的是标注转换生成的 ec2_image_manifest.json；公共下载模式需要 manifest 中有公共 URL 或传入 S3_PUBLIC_BASE_URL。"
-        )
-for item in items:
-    split = item["split"]
-    image_name = item.get("training_image_name") or Path(str(item.get("relative_path") or item.get("image_name") or item.get("s3_key") or "image")).name
-    target = dataset_root / "images" / split / image_name
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists() and target.stat().st_size > 0:
-        print(f"skip existing {target}")
-        continue
-    public_url = public_url_for_item(item)
-    if download_mode in {"auto", "public"} and public_url:
-        print(f"download {public_url} -> {target}")
-        try:
-            download_public_url(public_url, target)
-            continue
-        except RuntimeError as exc:
-            if download_mode == "public":
-                raise SystemExit(str(exc)) from exc
-            print(f"公共 URL 下载失败，回退 boto3：{exc}")
-    elif download_mode == "public":
-        raise SystemExit(f"图片 {image_name} 没有可用公共 URL，无法在 public 模式下载。")
-    print(f"download s3://{item['s3_bucket']}/{item['s3_key']} -> {target}")
-    s3_client().download_file(item["s3_bucket"], item["s3_key"], str(target))
-print(f"downloaded/checked {len(items)} images")
-'''.strip()
-    code = (
-        code.replace("MANIFEST", repr(manifest_abs))
-        .replace("DATASET_ROOT", repr(dataset_abs))
-        .replace("__DOWNLOAD_MODE__", args.download_mode)
-        .replace("__PUBLIC_BASE_URL__", args.public_base_url)
+    return shell_join(
+        [
+            *args.python_cmd.split(),
+            "scripts/ec2/download_s3_manifest_images.py",
+            "--manifest",
+            manifest_abs,
+            "--dataset-root",
+            dataset_abs,
+            "--download-mode",
+            args.download_mode,
+            "--public-base-url",
+            args.public_base_url,
+        ]
     )
-    return shell_join([*args.python_cmd.split(), "-c", code])
 
 
 def download_images(args: argparse.Namespace) -> None:
     """在 EC2 上根据 manifest 从 S3 下载训练图片。"""
+    upload_download_script(args)
     command = download_images_command(args)
     run_or_print(remote_command(args, command), args.execute)
 
@@ -262,6 +194,7 @@ def upload_existing_yaml_command(args: argparse.Namespace) -> str:
 
 def train(args: argparse.Namespace) -> None:
     """在 EC2 上确保图片已下载、生成 YAML 后启动训练。"""
+    upload_download_script(args)
     training_command = shell_join(
         [
             *args.python_cmd.split(),
