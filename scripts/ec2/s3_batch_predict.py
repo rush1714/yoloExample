@@ -497,15 +497,23 @@ def s3_key_for_output(prefix: str, root: Path, file_path: Path) -> str:
 
 def iter_result_files(paths: PredictionPaths) -> Iterable[Path]:
     """只枚举需要上传给业务查看的推理结果文件，不回传下载缓存图片。"""
-    for file_path in (paths.root / "summary.json", paths.root / "summary.csv"):
+    for file_path in (paths.root / "summary.json", paths.root / "summary.csv", paths.root / "source_image_uris.txt"):
         if file_path.is_file():
             yield file_path
     for directory in (paths.json_dir, paths.annotated_dir):
         yield from sorted(path for path in directory.rglob("*") if path.is_file())
 
 
+def write_source_image_uris(outputs: list[dict[str, Any]], paths: PredictionPaths) -> Path:
+    """写入本批次原始图片来源地址，供本地结果下载命令拉取原图。"""
+    source_path = paths.root / "source_image_uris.txt"
+    sources = [str(output.get("source") or "") for output in outputs if output.get("source")]
+    source_path.write_text("\n".join(sources) + ("\n" if sources else ""), encoding="utf-8")
+    return source_path
+
+
 def upload_results_to_s3(paths: PredictionPaths, output_s3_uri: str) -> list[str]:
-    """把汇总、单图 JSON 和带框图上传到指定 S3 目录。"""
+    """把汇总、单图 JSON、带框图和记录文本上传到指定 S3 目录。"""
     location = parse_s3_uri(output_s3_uri)
     client = boto3_client()
     uploaded_uris = []
@@ -514,6 +522,12 @@ def upload_results_to_s3(paths: PredictionPaths, output_s3_uri: str) -> list[str
         client.upload_file(str(file_path), location.bucket, key)
         uploaded_uris.append(f"s3://{location.bucket}/{key}")
         print(f"upload {file_path} -> s3://{location.bucket}/{key}")
+    uri_list_path = paths.root / "uploaded_s3_uris.txt"
+    uri_list_path.write_text("\n".join(uploaded_uris) + "\n", encoding="utf-8")
+    key = s3_key_for_output(location.key, paths.root, uri_list_path)
+    client.upload_file(str(uri_list_path), location.bucket, key)
+    uploaded_uris.append(f"s3://{location.bucket}/{key}")
+    print(f"upload {uri_list_path} -> s3://{location.bucket}/{key}")
     return uploaded_uris
 
 
@@ -576,6 +590,7 @@ def main() -> None:
         items = items[: args.limit]
     outputs = run_predictions(items, args, paths)
     summary_json, summary_csv = write_summary(outputs, paths, args)
+    write_source_image_uris(outputs, paths)
     uploaded_uris = upload_results_to_s3(paths, args.output_s3_uri)
     result = {
         "summary_json": str(summary_json),

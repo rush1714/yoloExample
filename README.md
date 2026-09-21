@@ -378,14 +378,32 @@ make label-s3-ec2-predict-manifest \
   EC2_HOST=<EC2地址> \
   EC2_KEY=/path/key.pem \
   EC2_RUN_NAME=yolo26m_img960_e100 \
-  EC2_PREDICT_MANIFEST_SOURCE=s3://<bucket>/predict-inputs/images.xlsx \
+  EC2_PREDICT_LOCAL_MANIFEST=/Users/guobiao/Downloads/predict_images.xlsx \
   EC2_PREDICT_INPUT_COLUMN=整改后图片URL \
   EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-20/run1 \
   EC2_PREDICT_LIMIT=20 \
   EC2_EXECUTE=1
 ```
 
-推理输出会包含 `summary.json`、`summary.csv`、`json/` 单图检测结果和 `annotated/` 带框图片，并统一上传到 `EC2_PREDICT_OUTPUT_S3_URI`。
+推理输出会包含 `summary.json`、`summary.csv`、`source_image_uris.txt`、`uploaded_s3_uris.txt`、`json/` 单图检测结果和 `annotated/` 带框图片，并统一上传到 `EC2_PREDICT_OUTPUT_S3_URI`。
+
+如需把推理结果和原始推理图片下载回本地标准目录，执行：
+
+```bash
+make label-s3-ec2-download-predict-results \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-20 \
+  LABEL_SET=general \
+  LABELS=kleesoft_purple,allround_purple \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-20/run1 \
+  EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES=1 \
+  S3_PROFILE=smdp-yolo
+```
+
+下载后的结果默认进入 `outputs/ec2_predict/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/<EC2_RUN_NAME>/`，原始推理图进入 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/predict/images/<EC2_RUN_NAME>/`，S3 结果记录文本和下载报告进入 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/s3/metadata/`。
+
+EC2 端上传/下载 S3 依赖 AWS 凭证。推荐给 EC2 绑定 IAM Role/Instance Profile，并授予输入图片和清单的 `s3:GetObject`、输出结果目录的 `s3:PutObject`；这样 `boto3` 会自动使用角色凭证。可在 EC2 上用 `aws sts get-caller-identity` 和 `aws s3 ls s3://<bucket>/<prefix>/` 验证。短期也可在 EC2 上执行 `aws configure` 写入 `~/.aws/credentials`，但不要把 Access Key 写进 Makefile、Git 或控制台 state。
 
 历史 `1-local-dir-workflow-to-ls` / `2-local-dir-workflow-after-ls` 仍保留兼容，但推荐逐步切换到 `label-*` 通用命令。
 

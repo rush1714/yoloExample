@@ -70,6 +70,11 @@ S3_EC2_LATEST_RUN_FILE ?= $(S3_EC2_ARTIFACT_ROOT)/latest-run.txt
 S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 S3_EC2_PREDICT_WORK_DIR ?= $(if $(EC2_PREDICT_WORK_DIR),$(EC2_PREDICT_WORK_DIR),outputs/ec2_predict/$(S3_DATASET_NAME)/$(EC2_RUN_NAME))
 S3_EC2_PREDICT_MODEL ?= $(if $(EC2_PREDICT_MODEL),$(EC2_PREDICT_MODEL),$(S3_EC2_REMOTE_FINAL_MODEL))
+S3_EC2_PREDICT_URI_LIST ?= $(S3_DATASET_ROOT)/s3/metadata/ec2_predict_$(EC2_RUN_NAME)_uploaded_s3_uris.txt
+S3_EC2_PREDICT_REPORT_JSON ?= $(S3_DATASET_ROOT)/s3/metadata/ec2_predict_$(EC2_RUN_NAME)_download_report.json
+S3_EC2_PREDICT_REPORT_CSV ?= $(S3_DATASET_ROOT)/s3/metadata/ec2_predict_$(EC2_RUN_NAME)_download_report.csv
+S3_EC2_LOCAL_PREDICT_RESULT_ROOT ?= $(if $(EC2_PREDICT_LOCAL_RESULT_ROOT),$(EC2_PREDICT_LOCAL_RESULT_ROOT),$(PROJECT_ROOT)/outputs/ec2_predict/$(S3_DATASET_NAME)/$(EC2_RUN_NAME))
+S3_EC2_LOCAL_PREDICT_SOURCE_IMAGE_ROOT ?= $(if $(EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT),$(EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT),$(S3_DATASET_ROOT)/predict/images/$(EC2_RUN_NAME))
 # EC2 下载 S3 图片的模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK/IAM。
 S3_EC2_DOWNLOAD_MODE ?= auto
 # 多项目合并可传 LS_PROJECT_IDS=21,20，也兼容控制台常用的 LS_PROJECT_ID=21,20。
@@ -80,7 +85,7 @@ LS_PROJECT_IDS ?= $(LS_PROJECT_ID)
 	1-brand-s3-workflow-to-ls brand-s3-ls-export brand-s3-ls-to-yolo 2-brand-s3-workflow-after-ls \
 	local-ls-s3-to-yolo local-ls-s3-merge-projects 2-local-ls-s3-workflow-after-ls 2-local-ls-s3-merge-workflow-after-ls \
 	brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train brand-s3-ec2-evaluate brand-s3-ec2-download-artifacts \
-	brand-s3-ec2-download-model brand-s3-ec2-predict-manifest 3-brand-s3-workflow-ec2-train
+	brand-s3-ec2-download-model brand-s3-ec2-predict-manifest brand-s3-ec2-download-predict-results 3-brand-s3-workflow-ec2-train
 
 brand-s3-check-config: ## 检查 S3 工作流关键参数
 	@printf "BRAND_S3_CONFIG=%s\n" "$(BRAND_S3_CONFIG)"
@@ -396,9 +401,22 @@ brand-s3-ec2-predict-manifest: ## 在 EC2 读取 S3/Excel/JSON/TXT 图片清单�
 		--remote-final-model '$(S3_EC2_REMOTE_FINAL_MODEL)' --run-name '$(EC2_RUN_NAME)' \
 		--public-base-url '$(S3_PUBLIC_BASE_URL)' --download-mode '$(S3_EC2_DOWNLOAD_MODE)' \
 		--predict-manifest-source '$(EC2_PREDICT_MANIFEST_SOURCE)' \
+		--predict-local-manifest '$(EC2_PREDICT_LOCAL_MANIFEST)' \
+		--predict-remote-manifest '$(EC2_PREDICT_REMOTE_MANIFEST)' \
 		--predict-output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
 		--predict-model '$(S3_EC2_PREDICT_MODEL)' \
 		--predict-work-dir '$(S3_EC2_PREDICT_WORK_DIR)' \
 		--predict-input-column '$(EC2_PREDICT_INPUT_COLUMN)' \
 		--predict-conf $(EC2_PREDICT_CONF) --predict-imgsz $(EC2_PREDICT_IMGSZ) \
 		--predict-limit $(EC2_PREDICT_LIMIT) --device $(EC2_TRAIN_DEVICE) $(EC2_EXECUTE_ARG)
+
+brand-s3-ec2-download-predict-results: ## 下载兼容 S3 流程的 EC2 批量推理结果到本地标准目录
+	$(VENV_BIN)/python scripts/s3/download_predict_results.py \
+		--output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
+		--uri-list-output '$(S3_EC2_PREDICT_URI_LIST)' \
+		--result-root '$(S3_EC2_LOCAL_PREDICT_RESULT_ROOT)' \
+		--source-image-root '$(S3_EC2_LOCAL_PREDICT_SOURCE_IMAGE_ROOT)' \
+		--report-json '$(S3_EC2_PREDICT_REPORT_JSON)' \
+		--report-csv '$(S3_EC2_PREDICT_REPORT_CSV)' \
+		--profile '$(S3_PROFILE)' --region '$(S3_REGION)' --endpoint-url '$(S3_ENDPOINT_URL)' \
+		$(EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES_ARG)

@@ -457,7 +457,13 @@ const COMMAND_GROUPS = [
                         target: 'label-s3-ec2-predict-manifest',
                         title: 'EC2 S3 批量推理验证',
                         description: 'EC2 读取 S3/Excel/JSON/TXT 图片清单，下载图片推理，并把 JSON、CSV 和带框图上传到指定 S3 目录。',
-                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_RUN_NAME', 'EC2_PREDICT_MANIFEST_SOURCE', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_MODEL', 'EC2_PREDICT_INPUT_COLUMN', 'EC2_PREDICT_CONF', 'EC2_PREDICT_IMGSZ', 'EC2_PREDICT_LIMIT', 'EC2_PREDICT_WORK_DIR', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_TRAIN_DEVICE', 'EC2_EXECUTE']
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_RUN_NAME', 'EC2_PREDICT_LOCAL_MANIFEST', 'EC2_PREDICT_MANIFEST_SOURCE', 'EC2_PREDICT_REMOTE_MANIFEST', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_MODEL', 'EC2_PREDICT_INPUT_COLUMN', 'EC2_PREDICT_CONF', 'EC2_PREDICT_IMGSZ', 'EC2_PREDICT_LIMIT', 'EC2_PREDICT_WORK_DIR', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_TRAIN_DEVICE', 'EC2_EXECUTE']
+                    },
+                    {
+                        target: 'label-s3-ec2-download-predict-results',
+                        title: '下载 EC2 批量推理结果',
+                        description: '先下载 S3 结果记录文本，再把 summary、单图 JSON、带框图和原始推理图片同步到本地标准目录。',
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_RUN_NAME', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES', 'EC2_PREDICT_LOCAL_RESULT_ROOT', 'EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT', 'S3_PROFILE', 'S3_REGION', 'S3_ENDPOINT_URL']
                     },
                 ],
             },
@@ -923,7 +929,19 @@ const PARAM_DEFINITIONS = {
         label: 'EC2 批量推理清单',
         defaultValue: '',
         type: 'text',
-        help: '支持 s3://、http(s):// 或 EC2 本地 txt/csv/json/xlsx 清单。'
+        help: '支持 s3://、http(s):// 或 EC2 本地 txt/csv/json/xlsx 清单；本地文件推荐填 EC2_PREDICT_LOCAL_MANIFEST。'
+    },
+    EC2_PREDICT_LOCAL_MANIFEST: {
+        label: '本地推理清单',
+        defaultValue: '',
+        type: 'text',
+        help: '本机 Excel/CSV/JSON/TXT 文件路径；执行时会先 rsync 上传到 EC2。'
+    },
+    EC2_PREDICT_REMOTE_MANIFEST: {
+        label: '远端推理清单路径',
+        defaultValue: '',
+        type: 'text',
+        help: '留空时自动上传到 EC2 推理工作目录的 manifest 子目录。'
     },
     EC2_PREDICT_OUTPUT_S3_URI: {
         label: '推理结果 S3 目录',
@@ -947,6 +965,14 @@ const PARAM_DEFINITIONS = {
     EC2_PREDICT_CONF: {label: 'EC2 推理置信度', defaultValue: '0.35', type: 'number'},
     EC2_PREDICT_IMGSZ: {label: 'EC2 推理图片尺寸', defaultValue: '960', type: 'number'},
     EC2_PREDICT_LIMIT: {label: 'EC2 推理数量上限', defaultValue: '0', type: 'number', help: '0 表示全量。'},
+    EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES: {
+        label: '下载原始推理图片',
+        defaultValue: '1',
+        type: 'select',
+        options: ['1', '0']
+    },
+    EC2_PREDICT_LOCAL_RESULT_ROOT: {label: '本地推理结果目录', defaultValue: '', type: 'text'},
+    EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT: {label: '本地推理原图目录', defaultValue: '', type: 'text'},
     LABEL_S3_LS_TO_YOLO_REPORT: {label: '通用 S3 转换报告', defaultValue: '', type: 'text'},
     LABEL_S3_DATA_YAML: {label: '通用 S3 YOLO YAML', defaultValue: '', type: 'text'},
 };

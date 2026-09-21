@@ -19,13 +19,18 @@
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
     "EC2_HOST": "18.209.241.0",
-    "EC2_EXECUTE": "1",
+    "EC2_EXECUTE": "0",
     "LABELS": "kleesoft_purple,allround_purple",
     "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
     "EXCEL_COLUMN": "整改后图片URL",
     "LABEL_LOCAL_IMAGES_DIR": "datasets/GH/v2026-09-20/general_kleesoft_purple_allround_purple/images",
     "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1",
-    "LABEL_LS_PROJECT_IDS": "21"
+    "LABEL_LS_PROJECT_IDS": "21",
+    "S3_PUBLIC_BASE_URL": "https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com",
+    "EC2_RUN_NAME": "yolo26m_img960_e100",
+    "EC2_PREDICT_INPUT_COLUMN": "整改后图片URL",
+    "EC2_PREDICT_LOCAL_MANIFEST": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/推理/97278fde971288c276262a09192a68de.xlsx",
+    "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/"
   },
   "favorites": [
     {

@@ -123,7 +123,7 @@ make label-yolo-s3-to-ec2-manifest \
 
 第二个命令会基于已有 YOLO `images/labels` 和 `s3/metadata/s3_images.json` 生成 `s3/metadata/ec2_image_manifest.json|csv`，不再读取 LS export，也不会重写训练集。
 
-训练完成后，如果要用 EC2 上的模型批量验证一批 S3 图片，可传入 S3 上的 txt/csv/json/xlsx 清单，并指定结果上传目录：
+训练完成后，如果要用 EC2 上的模型批量验证一批图片，可直接传本地 Excel/CSV/JSON/TXT 清单；命令会先把清单上传到 EC2，再由 EC2 下载图片推理，并把结果上传到指定 S3 目录：
 
 ```bash
 make label-s3-ec2-predict-manifest \
@@ -134,14 +134,32 @@ make label-s3-ec2-predict-manifest \
   EC2_HOST=<host> \
   EC2_KEY=/path/key.pem \
   EC2_RUN_NAME=yolo26m_img960_e100 \
-  EC2_PREDICT_MANIFEST_SOURCE=s3://<bucket>/predict-inputs/images.xlsx \
+  EC2_PREDICT_LOCAL_MANIFEST=/Users/guobiao/Downloads/predict_images.xlsx \
   EC2_PREDICT_INPUT_COLUMN=整改后图片URL \
   EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-18/run1 \
   EC2_PREDICT_LIMIT=20 \
   EC2_EXECUTE=1
 ```
 
-推理结果会上传 `summary.json`、`summary.csv`、`json/` 单图结果和 `annotated/` 带框图片。EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
+推理结果会上传 `summary.json`、`summary.csv`、`source_image_uris.txt`、`uploaded_s3_uris.txt`、`json/` 单图结果和 `annotated/` 带框图片。EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
+
+如需把推理结果和原始推理图片下载回本地标准目录：
+
+```bash
+make label-s3-ec2-download-predict-results \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-18/run1 \
+  EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES=1 \
+  S3_PROFILE=smdp-yolo
+```
+
+本地下载默认目录：结果在 `outputs/ec2_predict/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/<EC2_RUN_NAME>/`，原始推理图在 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/predict/images/<EC2_RUN_NAME>/`，S3 记录文本和下载报告在数据集 `s3/metadata/`。
+
+EC2 访问 S3 推荐绑定 IAM Role/Instance Profile，授予输入清单/图片 `s3:GetObject` 和输出结果目录 `s3:PutObject`。如临时使用 access key，可登录 EC2 执行 `aws configure`，但不要把 key 写进 Makefile、Git 或控制台 state。
 
 ## 兼容说明
 

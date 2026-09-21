@@ -21,6 +21,7 @@ from scripts.ec2.s3_batch_predict import (  # noqa: E402
     PredictionPaths,
     iter_result_files,
     load_manifest_items,
+    write_source_image_uris,
     parse_s3_uri,
     s3_key_for_output,
 )
@@ -149,6 +150,10 @@ class S3BatchPredictTest(unittest.TestCase):
                 path.mkdir()
             (root / "summary.json").write_text("{}", encoding="utf-8")
             (root / "summary.csv").write_text("source,status\n", encoding="utf-8")
+            (root / "source_image_uris.txt").write_text(
+                "s3://bucket/source.jpg\n",
+                encoding="utf-8",
+            )
             (paths.image_dir / "downloaded.jpg").write_bytes(b"raw")
             (paths.json_dir / "a.json").write_text("{}", encoding="utf-8")
             (paths.annotated_dir / "a-annotated.jpg").write_bytes(b"annotated")
@@ -157,7 +162,38 @@ class S3BatchPredictTest(unittest.TestCase):
 
             self.assertEqual(
                 uploaded,
-                ["summary.json", "summary.csv", "json/a.json", "annotated/a-annotated.jpg"],
+                [
+                    "summary.json",
+                    "summary.csv",
+                    "source_image_uris.txt",
+                    "json/a.json",
+                    "annotated/a-annotated.jpg",
+                ],
+            )
+
+    def test_write_source_image_uris_records_output_sources(self) -> None:
+        """原始图片来源应写入 source_image_uris.txt 供本地下载命令使用。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = PredictionPaths(
+                root=root,
+                manifest_dir=root / "manifest",
+                image_dir=root / "images",
+                json_dir=root / "json",
+                annotated_dir=root / "annotated",
+            )
+
+            output = write_source_image_uris(
+                [
+                    {"source": "s3://bucket/input/a.jpg"},
+                    {"source": "https://cdn.example.test/b.jpg"},
+                ],
+                paths,
+            )
+
+            self.assertEqual(
+                output.read_text(encoding="utf-8").splitlines(),
+                ["s3://bucket/input/a.jpg", "https://cdn.example.test/b.jpg"],
             )
 
 

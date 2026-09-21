@@ -10,6 +10,7 @@ import posixpath
 import shlex
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import yaml
 
@@ -325,15 +326,57 @@ def download_artifacts(args: argparse.Namespace) -> None:
     )
 
 
+def is_url_source(source: str) -> bool:
+    """判断推理清单是否是 EC2 可直接读取的 URL。"""
+    return urlsplit(source).scheme in {"s3", "http", "https"}
+
+
+def remote_predict_manifest_path(args: argparse.Namespace, local_manifest: Path) -> str:
+    """返回本地清单上传到 EC2 后的远端路径。"""
+    if args.predict_remote_manifest:
+        return args.predict_remote_manifest
+    return f"{args.predict_work_dir.rstrip('/')}/manifest/{local_manifest.name}"
+
+
+def resolve_predict_manifest_source(args: argparse.Namespace) -> str:
+    """解析推理清单来源；本地文件自动 rsync 到 EC2 后返回远端路径。"""
+    source = args.predict_local_manifest or args.predict_manifest_source
+    if is_url_source(source):
+        return source
+    local_path = Path(source).expanduser()
+    if not local_path.is_absolute():
+        local_path = (PROJECT_ROOT / local_path).resolve()
+    if not local_path.is_file():
+        return source
+    target = ssh_target(args.user, args.host)
+    remote_manifest = remote_predict_manifest_path(args, local_path)
+    remote_manifest_abs = remote_project_path(args, remote_manifest)
+    run_or_print(
+        [
+            "ssh",
+            *ssh_base_args(args.port, args.key),
+            target,
+            f"mkdir -p {shlex.quote(posixpath.dirname(remote_manifest_abs))}",
+        ],
+        args.execute,
+    )
+    run_or_print(
+        ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_path), f"{target}:{remote_manifest_abs}"],
+        args.execute,
+    )
+    return remote_manifest
+
+
 def predict_s3_manifest(args: argparse.Namespace) -> None:
     """在 EC2 上读取 S3/Excel/JSON/TXT 图片清单，推理并上传结果到 S3。"""
     upload_predict_script(args)
+    manifest_source = resolve_predict_manifest_source(args)
     model_path = args.predict_model or args.remote_final_model
     command_parts = [
         *args.python_cmd.split(),
         "scripts/ec2/s3_batch_predict.py",
         "--input",
-        args.predict_manifest_source,
+        manifest_source,
         "--output-s3-uri",
         args.predict_output_s3_uri,
         "--model",
@@ -419,6 +462,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="不在 EC2 重新生成单类别 YAML，直接使用已上传 YAML")
     parser.add_argument("--notes", default="", help="写入 evaluation-summary.md 的备注")
     parser.add_argument("--predict-manifest-source", default="", help="S3/HTTP/EC2 本地图片清单路径，支持 txt/csv/json/xlsx")
+    parser.add_argument("--predict-local-manifest", default="", help="本机待上传到 EC2 的图片清单文件，支持 txt/csv/json/xlsx")
+    parser.add_argument("--predict-remote-manifest", default="", help="本地清单上传到 EC2 后的远端路径；留空自动放入 work-dir/manifest")
     parser.add_argument("--predict-output-s3-uri", default="", help="推理结果上传目标目录，格式 s3://bucket/prefix")
     parser.add_argument("--predict-model", default="", help="EC2 上推理模型路径；留空时使用 remote-final-model")
     parser.add_argument("--predict-work-dir", default="outputs/ec2_predict/dataset/default", help="EC2 本地推理工作目录")
@@ -441,8 +486,8 @@ def main() -> None:
         "download-artifacts": download_artifacts,
         "predict-s3-manifest": predict_s3_manifest,
     }
-    if args.action == "predict-s3-manifest" and not args.predict_manifest_source:
-        raise SystemExit("请传入 --predict-manifest-source，指向 S3/HTTP/EC2 本地图片清单。")
+    if args.action == "predict-s3-manifest" and not (args.predict_local_manifest or args.predict_manifest_source):
+        raise SystemExit("请传入 --predict-local-manifest 或 --predict-manifest-source，指向图片清单。")
     if args.action == "predict-s3-manifest" and not args.predict_output_s3_uri:
         raise SystemExit("请传入 --predict-output-s3-uri，格式为 s3://bucket/prefix。")
     actions[args.action](args)
