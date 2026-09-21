@@ -460,10 +460,16 @@ const COMMAND_GROUPS = [
                         params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_RUN_NAME', 'EC2_PREDICT_LOCAL_MANIFEST', 'EC2_PREDICT_MANIFEST_SOURCE', 'EC2_PREDICT_REMOTE_MANIFEST', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_MODEL', 'EC2_PREDICT_INPUT_COLUMN', 'EC2_PREDICT_CONF', 'EC2_PREDICT_IMGSZ', 'EC2_PREDICT_LIMIT', 'EC2_PREDICT_WORK_DIR', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_TRAIN_DEVICE', 'EC2_EXECUTE']
                     },
                     {
+                        target: 'label-s3-ec2-upload-existing-predict-results',
+                        title: '补传已有 EC2 推理结果到 S3',
+                        description: '推理已完成但 S3 上传失败时，只上传 EC2 work-dir 中已有 summary、单图 JSON 和带框图，不重新推理。',
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_RUN_NAME', 'EC2_PREDICT_WORK_DIR', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_EXECUTE']
+                    },
+                    {
                         target: 'label-s3-ec2-download-predict-results',
                         title: '下载 EC2 批量推理结果',
                         description: '先下载 S3 结果记录文本，再把 summary、单图 JSON、带框图和原始推理图片同步到本地标准目录。',
-                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_RUN_NAME', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES', 'EC2_PREDICT_LOCAL_RESULT_ROOT', 'EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT', 'S3_PROFILE', 'S3_REGION', 'S3_ENDPOINT_URL']
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_RUN_NAME', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES', 'EC2_PREDICT_DOWNLOAD_WORKERS', 'EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT', 'S3_PUBLIC_BASE_URL', 'EC2_PREDICT_LOCAL_RESULT_ROOT', 'EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT', 'S3_PROFILE', 'S3_REGION', 'S3_ENDPOINT_URL']
                     },
                 ],
             },
@@ -970,6 +976,18 @@ const PARAM_DEFINITIONS = {
         defaultValue: '1',
         type: 'select',
         options: ['1', '0']
+    },
+    EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT: {
+        label: '原图下载超时秒数',
+        defaultValue: '30',
+        type: 'number',
+        help: '下载 HTTP(S) 原始推理图片的超时秒数，避免单张图片长时间卡住。'
+    },
+    EC2_PREDICT_DOWNLOAD_WORKERS: {
+        label: '下载并发数',
+        defaultValue: '8',
+        type: 'number',
+        help: '并发下载推理结果文件和原始推理图片的线程数。'
     },
     EC2_PREDICT_LOCAL_RESULT_ROOT: {label: '本地推理结果目录', defaultValue: '', type: 'text'},
     EC2_PREDICT_LOCAL_SOURCE_IMAGE_ROOT: {label: '本地推理原图目录', defaultValue: '', type: 'text'},

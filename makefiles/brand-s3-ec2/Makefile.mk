@@ -85,7 +85,7 @@ LS_PROJECT_IDS ?= $(LS_PROJECT_ID)
 	1-brand-s3-workflow-to-ls brand-s3-ls-export brand-s3-ls-to-yolo 2-brand-s3-workflow-after-ls \
 	local-ls-s3-to-yolo local-ls-s3-merge-projects 2-local-ls-s3-workflow-after-ls 2-local-ls-s3-merge-workflow-after-ls \
 	brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train brand-s3-ec2-evaluate brand-s3-ec2-download-artifacts \
-	brand-s3-ec2-download-model brand-s3-ec2-predict-manifest brand-s3-ec2-download-predict-results 3-brand-s3-workflow-ec2-train
+	brand-s3-ec2-download-model brand-s3-ec2-predict-manifest brand-s3-ec2-upload-existing-predict-results brand-s3-ec2-download-predict-results 3-brand-s3-workflow-ec2-train
 
 brand-s3-check-config: ## 检查 S3 工作流关键参数
 	@printf "BRAND_S3_CONFIG=%s\n" "$(BRAND_S3_CONFIG)"
@@ -410,6 +410,15 @@ brand-s3-ec2-predict-manifest: ## 在 EC2 读取 S3/Excel/JSON/TXT 图片清单�
 		--predict-conf $(EC2_PREDICT_CONF) --predict-imgsz $(EC2_PREDICT_IMGSZ) \
 		--predict-limit $(EC2_PREDICT_LIMIT) --device $(EC2_TRAIN_DEVICE) $(EC2_EXECUTE_ARG)
 
+brand-s3-ec2-upload-existing-predict-results: ## 补传兼容 S3 流程 EC2 work-dir 已有批量推理结果到 S3，默认 dry-run
+	$(VENV_BIN)/python scripts/ec2/s3_workflow.py upload-existing-predict-results \
+		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
+		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
+		--dataset-name '$(S3_DATASET_NAME)' --label-name '$(S3_LABEL_NAME)' \
+		--remote-final-model '$(S3_EC2_REMOTE_FINAL_MODEL)' --run-name '$(EC2_RUN_NAME)' \
+		--predict-output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
+		--predict-work-dir '$(S3_EC2_PREDICT_WORK_DIR)' $(EC2_EXECUTE_ARG)
+
 brand-s3-ec2-download-predict-results: ## 下载兼容 S3 流程的 EC2 批量推理结果到本地标准目录
 	$(VENV_BIN)/python scripts/s3/download_predict_results.py \
 		--output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
@@ -419,4 +428,7 @@ brand-s3-ec2-download-predict-results: ## 下载兼容 S3 流程的 EC2 批量�
 		--report-json '$(S3_EC2_PREDICT_REPORT_JSON)' \
 		--report-csv '$(S3_EC2_PREDICT_REPORT_CSV)' \
 		--profile '$(S3_PROFILE)' --region '$(S3_REGION)' --endpoint-url '$(S3_ENDPOINT_URL)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' \
+		--source-download-timeout $(EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT) \
+		--workers $(EC2_PREDICT_DOWNLOAD_WORKERS) \
 		$(EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES_ARG)

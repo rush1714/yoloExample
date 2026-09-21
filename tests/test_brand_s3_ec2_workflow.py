@@ -512,6 +512,7 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         self.assertIn("3-label-s3-workflow-ec2-train:", label_makefile)
         self.assertIn("label-s3-ec2-predict-manifest:", label_makefile)
         self.assertIn("label-s3-ec2-download-predict-results:", label_makefile)
+        self.assertIn("label-s3-ec2-upload-existing-predict-results:", label_makefile)
         self.assertIn("local-ls-s3-to-yolo:", s3_makefile)
         self.assertIn("local-ls-s3-merge-projects:", s3_makefile)
         self.assertIn("2-local-ls-s3-workflow-after-ls:", s3_makefile)
@@ -519,6 +520,7 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         self.assertIn("3-brand-s3-workflow-ec2-train:", s3_makefile)
         self.assertIn("brand-s3-ec2-predict-manifest:", s3_makefile)
         self.assertIn("brand-s3-ec2-download-predict-results:", s3_makefile)
+        self.assertIn("brand-s3-ec2-upload-existing-predict-results:", s3_makefile)
         self.assertIn("brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train", s3_makefile)
         self.assertIn("label-merge-ls-projects-to-yolo", console)
         self.assertIn("label-local-s3-to-yolo", console)
@@ -527,6 +529,8 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         self.assertIn("EC2_PREDICT_OUTPUT_S3_URI", console)
         self.assertIn("EC2_PREDICT_LOCAL_MANIFEST", console)
         self.assertIn("label-s3-ec2-download-predict-results", console)
+        self.assertIn("label-s3-ec2-upload-existing-predict-results", console)
+        self.assertIn("S3_PUBLIC_BASE_URL", console)
 
 
 if __name__ == "__main__":

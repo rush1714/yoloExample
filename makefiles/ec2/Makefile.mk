@@ -51,6 +51,10 @@ EC2_PREDICT_IMGSZ ?= $(EC2_TRAIN_IMGSZ)
 EC2_PREDICT_LIMIT ?= 0
 # 是否在下载 EC2 推理结果时同步下载原始推理图片。
 EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES ?= 1
+# HTTP(S) 原始推理图片下载超时秒数，避免单张图片长时间卡住。
+EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT ?= 30
+# 本地下载 EC2 推理结果和原始图片的并发数。
+EC2_PREDICT_DOWNLOAD_WORKERS ?= 8
 # 本地推理结果下载目录；留空时由具体流程按数据集和运行名分层。
 EC2_PREDICT_LOCAL_RESULT_ROOT ?=
 # 本地原始推理图片下载目录；留空时由具体流程放到 datasets/.../predict/images。
@@ -82,4 +86,6 @@ ec2-print-params: ## 显示 EC2 公共连接与训练参数
 	@printf "EC2_PREDICT_CONF=%s\n" "$(EC2_PREDICT_CONF)"
 	@printf "EC2_PREDICT_IMGSZ=%s\n" "$(EC2_PREDICT_IMGSZ)"
 	@printf "EC2_PREDICT_LIMIT=%s\n" "$(EC2_PREDICT_LIMIT)"
+	@printf "EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT=%s\n" "$(EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT)"
+	@printf "EC2_PREDICT_DOWNLOAD_WORKERS=%s\n" "$(EC2_PREDICT_DOWNLOAD_WORKERS)"
 	@printf "EC2_EXECUTE=%s\n" "$(EC2_EXECUTE)"

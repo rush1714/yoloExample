@@ -563,9 +563,9 @@ def run_predictions(items: list[ImageInput], args: argparse.Namespace, paths: Pr
 def parse_args() -> argparse.Namespace:
     """解析命令行参数。"""
     parser = argparse.ArgumentParser(description="在 EC2 上按 S3/Excel/JSON/TXT 清单批量推理并上传结果。")
-    parser.add_argument("--input", required=True, help="图片清单：s3://、http(s):// 或 EC2 本地文件路径")
+    parser.add_argument("--input", default="", help="图片清单：s3://、http(s):// 或 EC2 本地文件路径")
     parser.add_argument("--output-s3-uri", required=True, help="推理结果上传目录，格式 s3://bucket/prefix")
-    parser.add_argument("--model", required=True, help="EC2 上 YOLO best.pt 路径，支持项目相对路径")
+    parser.add_argument("--model", default="", help="EC2 上 YOLO best.pt 路径，支持项目相对路径")
     parser.add_argument("--work-dir", type=Path, default=PROJECT_ROOT / "outputs" / "ec2_predict" / "default", help="EC2 本地推理工作目录")
     parser.add_argument("--input-column", default="", help="CSV/Excel/JSON 中指定图片地址列名；留空时自动扫描")
     parser.add_argument("--download-mode", choices=["auto", "public", "boto3"], default="auto", help="S3 图片下载模式")
@@ -574,6 +574,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--imgsz", type=int, default=960, help="推理图片尺寸")
     parser.add_argument("--device", default="0", help="推理设备，例如 0/cpu；空值由 Ultralytics 自动选择")
     parser.add_argument("--limit", type=int, default=0, help="只处理前 N 张图片；0 表示全量")
+    parser.add_argument("--upload-existing-only", action="store_true", help="只上传 work-dir 已有推理结果，不重新读取清单或推理")
     return parser.parse_args()
 
 
@@ -584,6 +585,27 @@ def main() -> None:
         raise SystemExit("--conf 必须位于 0 到 1 之间。")
     parse_s3_uri(args.output_s3_uri)
     paths = ensure_prediction_paths(args.work_dir)
+    if args.upload_existing_only:
+        if not (paths.root / "summary.json").is_file() and not any(paths.json_dir.glob("*.json")):
+            raise SystemExit(f"补传目录中没有找到已有推理结果：{paths.root}")
+        uploaded_uris = upload_results_to_s3(paths, args.output_s3_uri)
+        print(
+            json.dumps(
+                {
+                    "mode": "upload-existing-only",
+                    "work_dir": str(paths.root),
+                    "output_s3_uri": args.output_s3_uri.rstrip("/"),
+                    "uploaded_files": len(uploaded_uris),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return
+    if not args.input:
+        raise SystemExit("非补传模式必须传入 --input。")
+    if not args.model:
+        raise SystemExit("非补传模式必须传入 --model。")
     manifest_path = resolve_input_manifest(args.input, paths.manifest_dir)
     items = load_manifest_items(manifest_path, input_column=args.input_column)
     if args.limit > 0:

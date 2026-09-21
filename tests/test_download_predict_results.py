@@ -16,7 +16,11 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.s3.download_predict_results import (  # noqa: E402
     image_name_for_source,
     local_result_path,
+    is_existing_file,
+    parse_args,
     parse_s3_uri,
+    positive_worker_count,
+    public_url_for_s3_uri,
     read_uri_list,
     s3_uri_join,
 )
@@ -65,6 +69,62 @@ class DownloadPredictResultsTest(unittest.TestCase):
         self.assertEqual(parse_s3_uri("s3://bucket-a/a.txt").bucket, "bucket-a")
         with self.assertRaises(ValueError):
             parse_s3_uri("s3://bucket-a")
+
+    def test_parse_args_defaults_source_download_timeout(self) -> None:
+        """下载脚本默认使用 30 秒 HTTP 原图下载超时。"""
+        original_argv = sys.argv
+        try:
+            sys.argv = [
+                "download_predict_results.py",
+                "--output-s3-uri",
+                "s3://bucket/results/run1",
+                "--uri-list-output",
+                "uris.txt",
+                "--result-root",
+                "outputs/predict",
+                "--source-image-root",
+                "datasets/demo/predict/images",
+                "--report-json",
+                "report.json",
+                "--report-csv",
+                "report.csv",
+            ]
+            args = parse_args()
+        finally:
+            sys.argv = original_argv
+
+        self.assertEqual(args.source_download_timeout, 30)
+        self.assertEqual(args.workers, 8)
+
+    def test_positive_worker_count_clamps_to_one(self) -> None:
+        """下载并发数最小应归一化为 1。"""
+        self.assertEqual(positive_worker_count(0), 1)
+        self.assertEqual(positive_worker_count(16), 16)
+
+    def test_public_url_for_s3_uri_uses_object_key(self) -> None:
+        """配置 public base URL 后应按 S3 key 拼接 HTTP 下载地址。"""
+        self.assertEqual(
+            public_url_for_s3_uri(
+                "s3://bucket-a/yolo-training/predict-results/summary.json",
+                "https://bucket-a.s3.af-south-1.amazonaws.com",
+            ),
+            "https://bucket-a.s3.af-south-1.amazonaws.com/"
+            "yolo-training/predict-results/summary.json",
+        )
+
+    def test_is_existing_file_skips_only_non_empty_files(self) -> None:
+        """只有已存在且非空的目标文件才会被断点续传跳过。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            missing = root / "missing.txt"
+            empty = root / "empty.txt"
+            ready = root / "ready.txt"
+            empty.write_text("", encoding="utf-8")
+            ready.write_text("ok", encoding="utf-8")
+
+            self.assertFalse(is_existing_file(missing))
+            self.assertFalse(is_existing_file(empty))
+            self.assertTrue(is_existing_file(ready))
 
 
 if __name__ == "__main__":

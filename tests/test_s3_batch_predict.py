@@ -21,6 +21,7 @@ from scripts.ec2.s3_batch_predict import (  # noqa: E402
     PredictionPaths,
     iter_result_files,
     load_manifest_items,
+    parse_args,
     write_source_image_uris,
     parse_s3_uri,
     s3_key_for_output,
@@ -170,6 +171,24 @@ class S3BatchPredictTest(unittest.TestCase):
                     "annotated/a-annotated.jpg",
                 ],
             )
+
+    def test_parse_args_allows_upload_existing_without_input_or_model(self) -> None:
+        """补传已有结果模式不需要清单和模型参数。"""
+        original_argv = sys.argv
+        try:
+            sys.argv = [
+                "s3_batch_predict.py",
+                "--upload-existing-only",
+                "--output-s3-uri",
+                "s3://bucket/results/run1",
+            ]
+            args = parse_args()
+        finally:
+            sys.argv = original_argv
+
+        self.assertTrue(args.upload_existing_only)
+        self.assertEqual(args.input, "")
+        self.assertEqual(args.model, "")
 
     def test_write_source_image_uris_records_output_sources(self) -> None:
         """原始图片来源应写入 source_image_uris.txt 供本地下载命令使用。"""

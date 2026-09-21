@@ -401,6 +401,23 @@ def predict_s3_manifest(args: argparse.Namespace) -> None:
     run_or_print(remote_command(args, shell_join(command_parts)), args.execute)
 
 
+def upload_existing_predict_results(args: argparse.Namespace) -> None:
+    """只上传 EC2 work-dir 中已存在的批量推理结果，不重新推理。"""
+    upload_predict_script(args)
+    command = shell_join(
+        [
+            *args.python_cmd.split(),
+            "scripts/ec2/s3_batch_predict.py",
+            "--upload-existing-only",
+            "--work-dir",
+            args.predict_work_dir,
+            "--output-s3-uri",
+            args.predict_output_s3_uri,
+        ]
+    )
+    run_or_print(remote_command(args, command), args.execute)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """构造命令行解析器。"""
     parser = argparse.ArgumentParser(description="S3 训练图 EC2 工作流工具。")
@@ -414,6 +431,7 @@ def build_parser() -> argparse.ArgumentParser:
             "download-model",
             "download-artifacts",
             "predict-s3-manifest",
+            "upload-existing-predict-results",
         ],
     )
     parser.add_argument("--host", required=True, help="EC2 公网地址或 SSH Host 别名")
@@ -485,10 +503,11 @@ def main() -> None:
         "download-model": download_model,
         "download-artifacts": download_artifacts,
         "predict-s3-manifest": predict_s3_manifest,
+        "upload-existing-predict-results": upload_existing_predict_results,
     }
     if args.action == "predict-s3-manifest" and not (args.predict_local_manifest or args.predict_manifest_source):
         raise SystemExit("请传入 --predict-local-manifest 或 --predict-manifest-source，指向图片清单。")
-    if args.action == "predict-s3-manifest" and not args.predict_output_s3_uri:
+    if args.action in {"predict-s3-manifest", "upload-existing-predict-results"} and not args.predict_output_s3_uri:
         raise SystemExit("请传入 --predict-output-s3-uri，格式为 s3://bucket/prefix。")
     actions[args.action](args)
 

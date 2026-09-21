@@ -387,6 +387,21 @@ make label-s3-ec2-predict-manifest \
 
 推理输出会包含 `summary.json`、`summary.csv`、`source_image_uris.txt`、`uploaded_s3_uris.txt`、`json/` 单图检测结果和 `annotated/` 带框图片，并统一上传到 `EC2_PREDICT_OUTPUT_S3_URI`。
 
+如果推理已经完成但 S3 上传因凭证或网络失败，修复 EC2 凭证后可以只补传已有结果，不重新推理：
+
+```bash
+make label-s3-ec2-upload-existing-predict-results \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-20 \
+  LABEL_SET=general \
+  LABELS=kleesoft_purple,allround_purple \
+  EC2_HOST=<EC2地址> \
+  EC2_KEY=/path/key.pem \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-20/run1 \
+  EC2_EXECUTE=1
+```
+
 如需把推理结果和原始推理图片下载回本地标准目录，执行：
 
 ```bash
@@ -398,10 +413,13 @@ make label-s3-ec2-download-predict-results \
   EC2_RUN_NAME=yolo26m_img960_e100 \
   EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-20/run1 \
   EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES=1 \
+  EC2_PREDICT_DOWNLOAD_WORKERS=16 \
+  EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT=30 \
+  S3_PUBLIC_BASE_URL=https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com \
   S3_PROFILE=smdp-yolo
 ```
 
-下载后的结果默认进入 `outputs/ec2_predict/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/<EC2_RUN_NAME>/`，原始推理图进入 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/predict/images/<EC2_RUN_NAME>/`，S3 结果记录文本和下载报告进入 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/s3/metadata/`。
+下载时会实时打印 `download uri list`、`start/done result file n/N` 和 `start/done source image n/N` 进度；结果文件和原始图片默认并发数为 8，可通过 `EC2_PREDICT_DOWNLOAD_WORKERS` 调整；已下载且非空的文件会自动跳过，支持断点续传；HTTP(S) 原始图片默认 30 秒超时，可通过 `EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT` 调整；如果设置 `S3_PUBLIC_BASE_URL`，S3 结果文件和 S3 原图会优先用 public URL 下载，失败后回退 boto3。下载后的结果默认进入 `outputs/ec2_predict/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/<EC2_RUN_NAME>/`，原始推理图进入 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/predict/images/<EC2_RUN_NAME>/`，S3 结果记录文本和下载报告进入 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/s3/metadata/`。
 
 EC2 端上传/下载 S3 依赖 AWS 凭证。推荐给 EC2 绑定 IAM Role/Instance Profile，并授予输入图片和清单的 `s3:GetObject`、输出结果目录的 `s3:PutObject`；这样 `boto3` 会自动使用角色凭证。可在 EC2 上用 `aws sts get-caller-identity` 和 `aws s3 ls s3://<bucket>/<prefix>/` 验证。短期也可在 EC2 上执行 `aws configure` 写入 `~/.aws/credentials`，但不要把 Access Key 写进 Makefile、Git 或控制台 state。
 

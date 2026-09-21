@@ -143,6 +143,21 @@ make label-s3-ec2-predict-manifest \
 
 推理结果会上传 `summary.json`、`summary.csv`、`source_image_uris.txt`、`uploaded_s3_uris.txt`、`json/` 单图结果和 `annotated/` 带框图片。EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
 
+如果推理已经完成但 S3 上传因凭证或网络失败，修复 EC2 凭证后可以只补传已有结果，不重新推理：
+
+```bash
+make label-s3-ec2-upload-existing-predict-results \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-18/run1 \
+  EC2_EXECUTE=1
+```
+
 如需把推理结果和原始推理图片下载回本地标准目录：
 
 ```bash
@@ -154,10 +169,13 @@ make label-s3-ec2-download-predict-results \
   EC2_RUN_NAME=yolo26m_img960_e100 \
   EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-18/run1 \
   EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES=1 \
+  EC2_PREDICT_DOWNLOAD_WORKERS=16 \
+  EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT=30 \
+  S3_PUBLIC_BASE_URL=https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com \
   S3_PROFILE=smdp-yolo
 ```
 
-本地下载默认目录：结果在 `outputs/ec2_predict/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/<EC2_RUN_NAME>/`，原始推理图在 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/predict/images/<EC2_RUN_NAME>/`，S3 记录文本和下载报告在数据集 `s3/metadata/`。
+下载过程会实时打印 `start/done result file n/N` 和 `start/done source image n/N`，结果文件和原始图片默认并发数为 8，可用 `EC2_PREDICT_DOWNLOAD_WORKERS` 调整；已下载且非空的文件会自动跳过，支持断点续传；HTTP(S) 原始图片默认 30 秒超时，可用 `EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT` 调整；如果设置 `S3_PUBLIC_BASE_URL`，S3 结果文件和 S3 原图会优先用 public URL 下载，失败后回退 boto3。本地下载默认目录：结果在 `outputs/ec2_predict/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/<EC2_RUN_NAME>/`，原始推理图在 `datasets/<COUNTRY>/<DATA_VERSION>/<LABEL_DATASET_NAME>/predict/images/<EC2_RUN_NAME>/`，S3 记录文本和下载报告在数据集 `s3/metadata/`。
 
 EC2 访问 S3 推荐绑定 IAM Role/Instance Profile，授予输入清单/图片 `s3:GetObject` 和输出结果目录 `s3:PutObject`。如临时使用 access key，可登录 EC2 执行 `aws configure`，但不要把 key 写进 Makefile、Git 或控制台 state。
 

@@ -18,8 +18,8 @@
     "S3_DRY_RUN": "0",
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
-    "EC2_HOST": "18.209.241.0",
-    "EC2_EXECUTE": "0",
+    "EC2_HOST": "3.238.16.79",
+    "EC2_EXECUTE": "1",
     "LABELS": "kleesoft_purple,allround_purple",
     "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
     "EXCEL_COLUMN": "整改后图片URL",
@@ -30,7 +30,8 @@
     "EC2_RUN_NAME": "yolo26m_img960_e100",
     "EC2_PREDICT_INPUT_COLUMN": "整改后图片URL",
     "EC2_PREDICT_LOCAL_MANIFEST": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/推理/97278fde971288c276262a09192a68de.xlsx",
-    "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/"
+    "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/",
+    "EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT": "60"
   },
   "favorites": [
     {
@@ -162,6 +163,67 @@
         "EC2_USER": "ec2-user",
         "EC2_RUN_NAME": "yolo26m_img960_e100",
         "EC2_EXECUTE": "0"
+      }
+    },
+    {
+      "id": "fav_1789978970946_wsz9bt",
+      "group": "推理",
+      "title": "1.EC2 S3 批量推理验证",
+      "target": "label-s3-ec2-predict-manifest",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "EC2_HOST": "3.238.16.79",
+        "EC2_USER": "ec2-user",
+        "EC2_PROJECT_ROOT": "/home/ec2-user/yoloExample",
+        "EC2_RUN_NAME": "yolo26m_img960_e100",
+        "EC2_PREDICT_LOCAL_MANIFEST": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/推理/97278fde971288c276262a09192a68de.xlsx",
+        "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/",
+        "EC2_PREDICT_INPUT_COLUMN": "整改后图片URL",
+        "EC2_PREDICT_CONF": "0.35",
+        "EC2_PREDICT_IMGSZ": "960",
+        "EC2_PREDICT_LIMIT": "0",
+        "S3_PUBLIC_BASE_URL": "https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com",
+        "S3_EC2_DOWNLOAD_MODE": "auto",
+        "EC2_TRAIN_DEVICE": "0",
+        "EC2_EXECUTE": "1"
+      }
+    },
+    {
+      "id": "fav_1789978982799_3t5yyv",
+      "group": "推理",
+      "title": "1.1 补传已有 EC2 推理结果到 S3",
+      "target": "label-s3-ec2-upload-existing-predict-results",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "EC2_HOST": "3.238.16.79",
+        "EC2_USER": "ec2-user",
+        "EC2_PROJECT_ROOT": "/home/ec2-user/yoloExample",
+        "EC2_RUN_NAME": "yolo26m_img960_e100",
+        "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/",
+        "EC2_EXECUTE": "1"
+      }
+    },
+    {
+      "id": "fav_1789978990342_z985il",
+      "group": "推理",
+      "title": "2.下载 EC2 批量推理结果",
+      "target": "label-s3-ec2-download-predict-results",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "EC2_RUN_NAME": "yolo26m_img960_e100",
+        "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/",
+        "EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES": "1",
+        "S3_PROFILE": "smdp-yolo",
+        "S3_REGION": "af-south-1"
       }
     }
   ]

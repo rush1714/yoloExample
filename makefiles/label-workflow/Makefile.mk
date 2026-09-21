@@ -104,7 +104,7 @@ LABEL_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_
 	label-ls-apply label-ls-export label-to-yolo label-s3-to-yolo label-local-s3-to-yolo label-yolo-s3-to-ec2-manifest label-merge-ls-projects label-merge-ls-projects-to-yolo \
 	1-label-excel-workflow-to-ls 1-label-excel-ocr-yoloworld-workflow-to-ls 1-label-local-workflow-to-ls 1-label-s3-workflow-to-ls 2-label-workflow-after-ls 2-label-s3-workflow-after-ls 2-label-local-s3-workflow-after-ls \
 	label-ec2-upload-data label-ec2-train label-ec2-evaluate label-ec2-download-artifacts label-ec2-download-model \
-	label-s3-ec2-upload-manifest label-s3-ec2-download-images label-s3-ec2-train label-s3-ec2-evaluate label-s3-ec2-download-artifacts label-s3-ec2-download-model label-s3-ec2-predict-manifest label-s3-ec2-download-predict-results 3-label-s3-workflow-ec2-train
+	label-s3-ec2-upload-manifest label-s3-ec2-download-images label-s3-ec2-train label-s3-ec2-evaluate label-s3-ec2-download-artifacts label-s3-ec2-download-model label-s3-ec2-predict-manifest label-s3-ec2-upload-existing-predict-results label-s3-ec2-download-predict-results 3-label-s3-workflow-ec2-train
 
 label-list: ## 显示通用类别列表和当前 LABEL_SET 下可选类别
 	@printf "类别配置=%s\n" "$(LABEL_CATALOG)"
@@ -545,6 +545,15 @@ label-s3-ec2-predict-manifest: ## 在 EC2 读取 S3/Excel/JSON/TXT 图片清单�
 		--predict-conf $(EC2_PREDICT_CONF) --predict-imgsz $(EC2_PREDICT_IMGSZ) \
 		--predict-limit $(EC2_PREDICT_LIMIT) --device $(EC2_TRAIN_DEVICE) $(EC2_EXECUTE_ARG)
 
+label-s3-ec2-upload-existing-predict-results: ## 补传 EC2 work-dir 已有批量推理结果到 S3，默认 dry-run
+	$(VENV_BIN)/python scripts/ec2/s3_workflow.py upload-existing-predict-results \
+		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
+		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
+		--dataset-name '$(LABEL_DATASET_NAME)' --label-name '$(LABEL_DISPLAY_NAME)' \
+		--remote-final-model '$(LABEL_S3_EC2_REMOTE_FINAL_MODEL)' --run-name '$(EC2_RUN_NAME)' \
+		--predict-output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
+		--predict-work-dir '$(LABEL_S3_EC2_PREDICT_WORK_DIR)' $(EC2_EXECUTE_ARG)
+
 label-s3-ec2-download-predict-results: ## 下载 EC2 批量推理 S3 结果记录、结果文件和原始图片到本地标准目录
 	$(VENV_BIN)/python scripts/s3/download_predict_results.py \
 		--output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
@@ -554,4 +563,7 @@ label-s3-ec2-download-predict-results: ## 下载 EC2 批量推理 S3 结果记�
 		--report-json '$(LABEL_S3_EC2_PREDICT_REPORT_JSON)' \
 		--report-csv '$(LABEL_S3_EC2_PREDICT_REPORT_CSV)' \
 		--profile '$(S3_PROFILE)' --region '$(S3_REGION)' --endpoint-url '$(S3_ENDPOINT_URL)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' \
+		--source-download-timeout $(EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT) \
+		--workers $(EC2_PREDICT_DOWNLOAD_WORKERS) \
 		$(EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES_ARG)
