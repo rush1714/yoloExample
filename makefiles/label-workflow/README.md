@@ -123,7 +123,25 @@ make label-yolo-s3-to-ec2-manifest \
 
 第二个命令会基于已有 YOLO `images/labels` 和 `s3/metadata/s3_images.json` 生成 `s3/metadata/ec2_image_manifest.json|csv`，不再读取 LS export，也不会重写训练集。
 
-EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
+训练完成后，如果要用 EC2 上的模型批量验证一批 S3 图片，可传入 S3 上的 txt/csv/json/xlsx 清单，并指定结果上传目录：
+
+```bash
+make label-s3-ec2-predict-manifest \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-18 \
+  LABEL_SET=general \
+  LABELS=allround_purple \
+  EC2_HOST=<host> \
+  EC2_KEY=/path/key.pem \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_PREDICT_MANIFEST_SOURCE=s3://<bucket>/predict-inputs/images.xlsx \
+  EC2_PREDICT_INPUT_COLUMN=整改后图片URL \
+  EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-18/run1 \
+  EC2_PREDICT_LIMIT=20 \
+  EC2_EXECUTE=1
+```
+
+推理结果会上传 `summary.json`、`summary.csv`、`json/` 单图结果和 `annotated/` 带框图片。EC2 命令默认 dry-run；确认命令无误后再加 `EC2_EXECUTE=1`。
 
 ## 兼容说明
 

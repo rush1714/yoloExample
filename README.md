@@ -367,6 +367,26 @@ make label-yolo-s3-to-ec2-manifest \
 
 随后可继续执行 `3-label-s3-workflow-ec2-train`。
 
+训练完成后，可以直接在 EC2 上读取 S3/Excel/JSON/TXT 图片清单做批量推理，并把结果上传到指定 S3 目录：
+
+```bash
+make label-s3-ec2-predict-manifest \
+  COUNTRY=GH \
+  DATA_VERSION=v2026-09-20 \
+  LABEL_SET=general \
+  LABELS=kleesoft_purple,allround_purple \
+  EC2_HOST=<EC2地址> \
+  EC2_KEY=/path/key.pem \
+  EC2_RUN_NAME=yolo26m_img960_e100 \
+  EC2_PREDICT_MANIFEST_SOURCE=s3://<bucket>/predict-inputs/images.xlsx \
+  EC2_PREDICT_INPUT_COLUMN=整改后图片URL \
+  EC2_PREDICT_OUTPUT_S3_URI=s3://<bucket>/predict-results/GH/v2026-09-20/run1 \
+  EC2_PREDICT_LIMIT=20 \
+  EC2_EXECUTE=1
+```
+
+推理输出会包含 `summary.json`、`summary.csv`、`json/` 单图检测结果和 `annotated/` 带框图片，并统一上传到 `EC2_PREDICT_OUTPUT_S3_URI`。
+
 历史 `1-local-dir-workflow-to-ls` / `2-local-dir-workflow-after-ls` 仍保留兼容，但推荐逐步切换到 `label-*` 通用命令。
 
 1. 启动 Label Studio：

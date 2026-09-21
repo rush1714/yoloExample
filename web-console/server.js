@@ -453,6 +453,12 @@ const COMMAND_GROUPS = [
                         description: '下载 S3 数据集训练得到的 best.pt。',
                         params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_RUN_NAME', 'LABEL_S3_FINAL_MODEL', 'EC2_EXECUTE']
                     },
+                    {
+                        target: 'label-s3-ec2-predict-manifest',
+                        title: 'EC2 S3 批量推理验证',
+                        description: 'EC2 读取 S3/Excel/JSON/TXT 图片清单，下载图片推理，并把 JSON、CSV 和带框图上传到指定 S3 目录。',
+                        params: ['COUNTRY', 'DATA_VERSION', 'LABEL_SET', 'LABELS', 'LABEL_DATASET_NAME', 'EC2_HOST', 'EC2_USER', 'EC2_KEY', 'EC2_PROJECT_ROOT', 'EC2_RUN_NAME', 'EC2_PREDICT_MANIFEST_SOURCE', 'EC2_PREDICT_OUTPUT_S3_URI', 'EC2_PREDICT_MODEL', 'EC2_PREDICT_INPUT_COLUMN', 'EC2_PREDICT_CONF', 'EC2_PREDICT_IMGSZ', 'EC2_PREDICT_LIMIT', 'EC2_PREDICT_WORK_DIR', 'S3_PUBLIC_BASE_URL', 'S3_EC2_DOWNLOAD_MODE', 'EC2_TRAIN_DEVICE', 'EC2_EXECUTE']
+                    },
                 ],
             },
         ],
@@ -913,6 +919,34 @@ const PARAM_DEFINITIONS = {
         help: '只用于模型、归档和报告目录；训练规模由模型参数决定。'
     },
     EC2_PREDICT_SOURCE: {label: 'EC2 推理图片路径', defaultValue: 'data/samples/multibrand-shelf.webp', type: 'text'},
+    EC2_PREDICT_MANIFEST_SOURCE: {
+        label: 'EC2 批量推理清单',
+        defaultValue: '',
+        type: 'text',
+        help: '支持 s3://、http(s):// 或 EC2 本地 txt/csv/json/xlsx 清单。'
+    },
+    EC2_PREDICT_OUTPUT_S3_URI: {
+        label: '推理结果 S3 目录',
+        defaultValue: '',
+        type: 'text',
+        help: '必填，格式 s3://bucket/prefix；结果会上传 summary、单图 JSON 和带框图片。'
+    },
+    EC2_PREDICT_MODEL: {
+        label: 'EC2 推理模型',
+        defaultValue: '',
+        type: 'text',
+        help: '留空时使用当前数据集和 EC2_RUN_NAME 对应的远端 best.pt。'
+    },
+    EC2_PREDICT_INPUT_COLUMN: {
+        label: '清单图片地址列',
+        defaultValue: '',
+        type: 'text',
+        help: 'CSV/Excel/JSON 可指定列名；留空时自动扫描图片地址。'
+    },
+    EC2_PREDICT_WORK_DIR: {label: 'EC2 推理工作目录', defaultValue: '', type: 'text'},
+    EC2_PREDICT_CONF: {label: 'EC2 推理置信度', defaultValue: '0.35', type: 'number'},
+    EC2_PREDICT_IMGSZ: {label: 'EC2 推理图片尺寸', defaultValue: '960', type: 'number'},
+    EC2_PREDICT_LIMIT: {label: 'EC2 推理数量上限', defaultValue: '0', type: 'number', help: '0 表示全量。'},
     LABEL_S3_LS_TO_YOLO_REPORT: {label: '通用 S3 转换报告', defaultValue: '', type: 'text'},
     LABEL_S3_DATA_YAML: {label: '通用 S3 YOLO YAML', defaultValue: '', type: 'text'},
 };

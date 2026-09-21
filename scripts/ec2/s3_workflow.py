@@ -138,11 +138,11 @@ def upload_manifest(args: argparse.Namespace) -> None:
     )
 
 
-def upload_download_script(args: argparse.Namespace) -> None:
-    """上传远端图片下载脚本，避免 dry-run 打印大段内联 Python 源码。"""
+def upload_remote_script(args: argparse.Namespace, script_name: str) -> None:
+    """上传 EC2 远端辅助脚本，避免 dry-run 打印大段内联 Python 源码。"""
     target = ssh_target(args.user, args.host)
-    local_script = Path(__file__).resolve().with_name("download_s3_manifest_images.py")
-    remote_script = remote_project_path(args, "scripts/ec2/download_s3_manifest_images.py")
+    local_script = Path(__file__).resolve().with_name(script_name)
+    remote_script = remote_project_path(args, f"scripts/ec2/{script_name}")
     run_or_print(
         [
             "ssh",
@@ -156,6 +156,16 @@ def upload_download_script(args: argparse.Namespace) -> None:
         ["rsync", "-avz", "-e", rsync_ssh_arg(args.port, args.key), str(local_script), f"{target}:{remote_script}"],
         args.execute,
     )
+
+
+def upload_download_script(args: argparse.Namespace) -> None:
+    """上传远端图片下载脚本。"""
+    upload_remote_script(args, "download_s3_manifest_images.py")
+
+
+def upload_predict_script(args: argparse.Namespace) -> None:
+    """上传远端 S3 批量推理脚本。"""
+    upload_remote_script(args, "s3_batch_predict.py")
 
 
 def download_images_command(args: argparse.Namespace) -> str:
@@ -315,12 +325,53 @@ def download_artifacts(args: argparse.Namespace) -> None:
     )
 
 
+def predict_s3_manifest(args: argparse.Namespace) -> None:
+    """在 EC2 上读取 S3/Excel/JSON/TXT 图片清单，推理并上传结果到 S3。"""
+    upload_predict_script(args)
+    model_path = args.predict_model or args.remote_final_model
+    command_parts = [
+        *args.python_cmd.split(),
+        "scripts/ec2/s3_batch_predict.py",
+        "--input",
+        args.predict_manifest_source,
+        "--output-s3-uri",
+        args.predict_output_s3_uri,
+        "--model",
+        model_path,
+        "--work-dir",
+        args.predict_work_dir,
+        "--download-mode",
+        args.download_mode,
+        "--public-base-url",
+        args.public_base_url,
+        "--conf",
+        str(args.predict_conf),
+        "--imgsz",
+        str(args.predict_imgsz),
+        "--device",
+        args.device,
+    ]
+    if args.predict_input_column:
+        command_parts.extend(["--input-column", args.predict_input_column])
+    if args.predict_limit > 0:
+        command_parts.extend(["--limit", str(args.predict_limit)])
+    run_or_print(remote_command(args, shell_join(command_parts)), args.execute)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """构造命令行解析器。"""
     parser = argparse.ArgumentParser(description="S3 训练图 EC2 工作流工具。")
     parser.add_argument(
         "action",
-        choices=["upload-manifest", "download-images", "train", "evaluate", "download-model", "download-artifacts"],
+        choices=[
+            "upload-manifest",
+            "download-images",
+            "train",
+            "evaluate",
+            "download-model",
+            "download-artifacts",
+            "predict-s3-manifest",
+        ],
     )
     parser.add_argument("--host", required=True, help="EC2 公网地址或 SSH Host 别名")
     parser.add_argument("--user", default="ubuntu", help="SSH 用户")
@@ -367,6 +418,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-generate-yaml", action="store_true",
                         help="不在 EC2 重新生成单类别 YAML，直接使用已上传 YAML")
     parser.add_argument("--notes", default="", help="写入 evaluation-summary.md 的备注")
+    parser.add_argument("--predict-manifest-source", default="", help="S3/HTTP/EC2 本地图片清单路径，支持 txt/csv/json/xlsx")
+    parser.add_argument("--predict-output-s3-uri", default="", help="推理结果上传目标目录，格式 s3://bucket/prefix")
+    parser.add_argument("--predict-model", default="", help="EC2 上推理模型路径；留空时使用 remote-final-model")
+    parser.add_argument("--predict-work-dir", default="outputs/ec2_predict/dataset/default", help="EC2 本地推理工作目录")
+    parser.add_argument("--predict-input-column", default="", help="CSV/Excel/JSON 中指定图片地址列名")
+    parser.add_argument("--predict-conf", type=float, default=0.35, help="推理置信度阈值")
+    parser.add_argument("--predict-imgsz", type=int, default=960, help="推理图片尺寸")
+    parser.add_argument("--predict-limit", type=int, default=0, help="只处理前 N 张图片；0 表示全量")
     return parser
 
 
@@ -380,7 +439,12 @@ def main() -> None:
         "evaluate": evaluate,
         "download-model": download_model,
         "download-artifacts": download_artifacts,
+        "predict-s3-manifest": predict_s3_manifest,
     }
+    if args.action == "predict-s3-manifest" and not args.predict_manifest_source:
+        raise SystemExit("请传入 --predict-manifest-source，指向 S3/HTTP/EC2 本地图片清单。")
+    if args.action == "predict-s3-manifest" and not args.predict_output_s3_uri:
+        raise SystemExit("请传入 --predict-output-s3-uri，格式为 s3://bucket/prefix。")
     actions[args.action](args)
 
 

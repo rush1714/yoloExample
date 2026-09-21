@@ -68,6 +68,8 @@ S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)/best
 S3_EC2_ARTIFACT_ROOT ?= artifacts/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
 S3_EC2_LATEST_RUN_FILE ?= $(S3_EC2_ARTIFACT_ROOT)/latest-run.txt
 S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(S3_DATASET_NAME)/$(EC2_RUN_NAME)
+S3_EC2_PREDICT_WORK_DIR ?= $(if $(EC2_PREDICT_WORK_DIR),$(EC2_PREDICT_WORK_DIR),outputs/ec2_predict/$(S3_DATASET_NAME)/$(EC2_RUN_NAME))
+S3_EC2_PREDICT_MODEL ?= $(if $(EC2_PREDICT_MODEL),$(EC2_PREDICT_MODEL),$(S3_EC2_REMOTE_FINAL_MODEL))
 # EC2 下载 S3 图片的模式：auto 优先公共 URL，public 强制公共 URL，boto3 使用 AWS SDK/IAM。
 S3_EC2_DOWNLOAD_MODE ?= auto
 # 多项目合并可传 LS_PROJECT_IDS=21,20，也兼容控制台常用的 LS_PROJECT_ID=21,20。
@@ -78,7 +80,7 @@ LS_PROJECT_IDS ?= $(LS_PROJECT_ID)
 	1-brand-s3-workflow-to-ls brand-s3-ls-export brand-s3-ls-to-yolo 2-brand-s3-workflow-after-ls \
 	local-ls-s3-to-yolo local-ls-s3-merge-projects 2-local-ls-s3-workflow-after-ls 2-local-ls-s3-merge-workflow-after-ls \
 	brand-s3-ec2-upload-manifest brand-s3-ec2-download-images brand-s3-ec2-train brand-s3-ec2-evaluate brand-s3-ec2-download-artifacts \
-	brand-s3-ec2-download-model 3-brand-s3-workflow-ec2-train
+	brand-s3-ec2-download-model brand-s3-ec2-predict-manifest 3-brand-s3-workflow-ec2-train
 
 brand-s3-check-config: ## 检查 S3 工作流关键参数
 	@printf "BRAND_S3_CONFIG=%s\n" "$(BRAND_S3_CONFIG)"
@@ -385,3 +387,18 @@ brand-s3-ec2-download-model: ## 下载 EC2 S3 数据集 best.pt，默认 dry-run
 		--remote-final-model '$(S3_EC2_REMOTE_FINAL_MODEL)' --local-model '$(S3_FINAL_MODEL)' \
 		--run-name '$(EC2_RUN_NAME)' --artifact-root '$(S3_EC2_ARTIFACT_ROOT)' \
 		$(EC2_EXECUTE_ARG)
+
+brand-s3-ec2-predict-manifest: ## 在 EC2 读取 S3/Excel/JSON/TXT 图片清单，批量推理并上传结果到 S3，默认 dry-run
+	$(VENV_BIN)/python scripts/ec2/s3_workflow.py predict-s3-manifest \
+		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
+		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
+		--dataset-name '$(S3_DATASET_NAME)' --label-name '$(S3_LABEL_NAME)' \
+		--remote-final-model '$(S3_EC2_REMOTE_FINAL_MODEL)' --run-name '$(EC2_RUN_NAME)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' --download-mode '$(S3_EC2_DOWNLOAD_MODE)' \
+		--predict-manifest-source '$(EC2_PREDICT_MANIFEST_SOURCE)' \
+		--predict-output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
+		--predict-model '$(S3_EC2_PREDICT_MODEL)' \
+		--predict-work-dir '$(S3_EC2_PREDICT_WORK_DIR)' \
+		--predict-input-column '$(EC2_PREDICT_INPUT_COLUMN)' \
+		--predict-conf $(EC2_PREDICT_CONF) --predict-imgsz $(EC2_PREDICT_IMGSZ) \
+		--predict-limit $(EC2_PREDICT_LIMIT) --device $(EC2_TRAIN_DEVICE) $(EC2_EXECUTE_ARG)

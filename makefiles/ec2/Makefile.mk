@@ -29,6 +29,22 @@ EC2_TRAIN_DEVICE ?= 0
 EC2_RUN_NAME ?= $(basename $(notdir $(EC2_BASE_MODEL)))_img$(EC2_TRAIN_IMGSZ)_e$(EC2_TRAIN_EPOCHS)
 # 评估摘要备注。
 EC2_EVAL_NOTES ?= training start
+# EC2 批量推理输入清单，支持 s3://、http(s):// 或 EC2 本地 txt/csv/json/xlsx 文件。
+EC2_PREDICT_MANIFEST_SOURCE ?=
+# EC2 批量推理结果上传目录，必须是 s3://bucket/prefix。
+EC2_PREDICT_OUTPUT_S3_URI ?=
+# EC2 推理使用的模型；留空时各流程默认使用对应训练产物 best.pt。
+EC2_PREDICT_MODEL ?=
+# CSV/Excel/JSON 清单中的图片地址列名；留空时自动扫描。
+EC2_PREDICT_INPUT_COLUMN ?=
+# EC2 本地推理工作目录；留空时由具体流程按数据集和运行名分层。
+EC2_PREDICT_WORK_DIR ?=
+# EC2 推理置信度阈值。
+EC2_PREDICT_CONF ?= 0.35
+# EC2 推理图片尺寸。
+EC2_PREDICT_IMGSZ ?= $(EC2_TRAIN_IMGSZ)
+# EC2 推理数量上限；0 表示全量。
+EC2_PREDICT_LIMIT ?= 0
 # 真实执行开关：默认只打印 SSH/rsync 命令，传 EC2_EXECUTE=1 才连接远端。
 EC2_EXECUTE ?= 0
 EC2_EXECUTE_ARG := $(if $(filter 1 true yes,$(EC2_EXECUTE)),--execute,)
@@ -48,4 +64,10 @@ ec2-print-params: ## 显示 EC2 公共连接与训练参数
 	@printf "EC2_TRAIN_BATCH=%s\n" "$(EC2_TRAIN_BATCH)"
 	@printf "EC2_TRAIN_DEVICE=%s\n" "$(EC2_TRAIN_DEVICE)"
 	@printf "EC2_RUN_NAME=%s\n" "$(EC2_RUN_NAME)"
+	@printf "EC2_PREDICT_MANIFEST_SOURCE=%s\n" "$(EC2_PREDICT_MANIFEST_SOURCE)"
+	@printf "EC2_PREDICT_OUTPUT_S3_URI=%s\n" "$(EC2_PREDICT_OUTPUT_S3_URI)"
+	@printf "EC2_PREDICT_MODEL=%s\n" "$(EC2_PREDICT_MODEL)"
+	@printf "EC2_PREDICT_CONF=%s\n" "$(EC2_PREDICT_CONF)"
+	@printf "EC2_PREDICT_IMGSZ=%s\n" "$(EC2_PREDICT_IMGSZ)"
+	@printf "EC2_PREDICT_LIMIT=%s\n" "$(EC2_PREDICT_LIMIT)"
 	@printf "EC2_EXECUTE=%s\n" "$(EC2_EXECUTE)"

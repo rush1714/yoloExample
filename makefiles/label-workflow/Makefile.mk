@@ -83,6 +83,8 @@ LABEL_S3_FINAL_MODEL ?= $(PROJECT_ROOT)/models/$(COUNTRY)/$(DATA_VERSION)/$(LABE
 LABEL_S3_EC2_ARTIFACT_ROOT ?= artifacts/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
 LABEL_S3_EC2_LATEST_RUN_FILE ?= $(LABEL_S3_EC2_ARTIFACT_ROOT)/latest-run.txt
 LABEL_S3_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME)
+LABEL_S3_EC2_PREDICT_WORK_DIR ?= $(if $(EC2_PREDICT_WORK_DIR),$(EC2_PREDICT_WORK_DIR),outputs/ec2_predict/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)/$(EC2_RUN_NAME))
+LABEL_S3_EC2_PREDICT_MODEL ?= $(if $(EC2_PREDICT_MODEL),$(EC2_PREDICT_MODEL),$(LABEL_S3_EC2_REMOTE_FINAL_MODEL))
 
 LABEL_EC2_REMOTE_DATASET_ROOT ?= datasets/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_DATASET_NAME)
 LABEL_EC2_REMOTE_DATA_YAML ?= config/generated/$(COUNTRY)_$(DATA_VERSION)_$(LABEL_DATASET_NAME).yaml
@@ -97,7 +99,7 @@ LABEL_EC2_LOCAL_ARTIFACT_ROOT ?= outputs/ec2/$(COUNTRY)/$(DATA_VERSION)/$(LABEL_
 	label-ls-apply label-ls-export label-to-yolo label-s3-to-yolo label-local-s3-to-yolo label-yolo-s3-to-ec2-manifest label-merge-ls-projects label-merge-ls-projects-to-yolo \
 	1-label-excel-workflow-to-ls 1-label-excel-ocr-yoloworld-workflow-to-ls 1-label-local-workflow-to-ls 1-label-s3-workflow-to-ls 2-label-workflow-after-ls 2-label-s3-workflow-after-ls 2-label-local-s3-workflow-after-ls \
 	label-ec2-upload-data label-ec2-train label-ec2-evaluate label-ec2-download-artifacts label-ec2-download-model \
-	label-s3-ec2-upload-manifest label-s3-ec2-download-images label-s3-ec2-train label-s3-ec2-evaluate label-s3-ec2-download-artifacts label-s3-ec2-download-model 3-label-s3-workflow-ec2-train
+	label-s3-ec2-upload-manifest label-s3-ec2-download-images label-s3-ec2-train label-s3-ec2-evaluate label-s3-ec2-download-artifacts label-s3-ec2-download-model label-s3-ec2-predict-manifest 3-label-s3-workflow-ec2-train
 
 label-list: ## 显示通用类别列表和当前 LABEL_SET 下可选类别
 	@printf "类别配置=%s\n" "$(LABEL_CATALOG)"
@@ -520,3 +522,18 @@ label-s3-ec2-download-model: ## 下载通用 S3 数据集 EC2 best.pt，默认 d
 		--remote-manifest-json '$(LABEL_S3_EC2_REMOTE_MANIFEST_JSON)' --train-name '$(LABEL_S3_EC2_TRAIN_NAME)' \
 		--remote-final-model '$(LABEL_S3_EC2_REMOTE_FINAL_MODEL)' --local-model '$(LABEL_S3_FINAL_MODEL)' \
 		--run-name '$(EC2_RUN_NAME)' --artifact-root '$(LABEL_S3_EC2_ARTIFACT_ROOT)' $(EC2_EXECUTE_ARG)
+
+label-s3-ec2-predict-manifest: ## 在 EC2 读取 S3/Excel/JSON/TXT 图片清单，批量推理并上传结果到 S3，默认 dry-run
+	$(VENV_BIN)/python scripts/ec2/s3_workflow.py predict-s3-manifest \
+		--host '$(EC2_HOST)' --user '$(EC2_USER)' --port $(EC2_PORT) $(EC2_KEY_ARG) \
+		--ec2-project-root '$(EC2_PROJECT_ROOT)' --activate-cmd '$(EC2_ACTIVATE_CMD)' --python-cmd '$(EC2_PYTHON_CMD)' \
+		--dataset-name '$(LABEL_DATASET_NAME)' --label-name '$(LABEL_DISPLAY_NAME)' \
+		--remote-final-model '$(LABEL_S3_EC2_REMOTE_FINAL_MODEL)' --run-name '$(EC2_RUN_NAME)' \
+		--public-base-url '$(S3_PUBLIC_BASE_URL)' --download-mode '$(S3_EC2_DOWNLOAD_MODE)' \
+		--predict-manifest-source '$(EC2_PREDICT_MANIFEST_SOURCE)' \
+		--predict-output-s3-uri '$(EC2_PREDICT_OUTPUT_S3_URI)' \
+		--predict-model '$(LABEL_S3_EC2_PREDICT_MODEL)' \
+		--predict-work-dir '$(LABEL_S3_EC2_PREDICT_WORK_DIR)' \
+		--predict-input-column '$(EC2_PREDICT_INPUT_COLUMN)' \
+		--predict-conf $(EC2_PREDICT_CONF) --predict-imgsz $(EC2_PREDICT_IMGSZ) \
+		--predict-limit $(EC2_PREDICT_LIMIT) --device $(EC2_TRAIN_DEVICE) $(EC2_EXECUTE_ARG)
