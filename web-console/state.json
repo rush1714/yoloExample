@@ -1,7 +1,7 @@
 {
   "paramCache": {
     "COUNTRY": "GH",
-    "DATA_VERSION": "v2026-09-20",
+    "DATA_VERSION": "v2026-09-22",
     "LABEL_SET": "general",
     "LS_PROJECT_ID": "29",
     "S3_DATASET_ROOT": "datasets/allround_purple/v2026-09-17/",
@@ -18,20 +18,22 @@
     "S3_DRY_RUN": "0",
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
-    "EC2_HOST": "3.238.16.79",
+    "EC2_HOST": "3.238.0.151",
     "EC2_EXECUTE": "1",
     "LABELS": "kleesoft_purple,allround_purple",
     "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
     "EXCEL_COLUMN": "整改后图片URL",
-    "LABEL_LOCAL_IMAGES_DIR": "datasets/GH/v2026-09-20/general_kleesoft_purple_allround_purple/images",
+    "LABEL_LOCAL_IMAGES_DIR": "datasets/GH/v2026-09-22/general_kleesoft_purple_allround_purple/images",
     "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1",
     "LABEL_LS_PROJECT_IDS": "21",
     "S3_PUBLIC_BASE_URL": "https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com",
-    "EC2_RUN_NAME": "yolo26m_img960_e100",
+    "EC2_RUN_NAME": "yolo26s_img640_e100",
     "EC2_PREDICT_INPUT_COLUMN": "整改后图片URL",
     "EC2_PREDICT_LOCAL_MANIFEST": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/推理/97278fde971288c276262a09192a68de.xlsx",
     "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/",
-    "EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT": "60"
+    "EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT": "60",
+    "EC2_TRAIN_IMGSZ": "640",
+    "EC2_BASE_MODEL": "yolo26s.pt"
   },
   "favorites": [
     {
@@ -224,6 +226,21 @@
         "EC2_PREDICT_DOWNLOAD_SOURCE_IMAGES": "1",
         "S3_PROFILE": "smdp-yolo",
         "S3_REGION": "af-south-1"
+      }
+    },
+    {
+      "id": "fav_1790047773160_yfdr0v",
+      "group": "准备",
+      "title": "3.一键导出并转 YOLO",
+      "target": "2-label-workflow-after-ls",
+      "params": {
+        "COUNTRY": "GH",
+        "DATA_VERSION": "v2026-09-20",
+        "LABEL_SET": "general",
+        "LABELS": "kleesoft_purple,allround_purple",
+        "LS_PROJECT_ID": "29",
+        "LABEL_LS_TO_YOLO_CLEAR": "0",
+        "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1"
       }
     }
   ]

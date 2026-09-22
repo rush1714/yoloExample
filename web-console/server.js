@@ -81,6 +81,13 @@ const DATA_ROOTS = [
         relativePath: 'data/samples',
         recursive: true,
     },
+    {
+        id: 'general_kleesoft_purple_allround_purple',
+        label: 'v2026-09-20',
+        description: 'outputs/ec2_predict/GH/v2026-09-20/general_kleesoft_purple_allround_purple/yolo26m_img960_e100/annotated',
+        relativePath: 'outputs/ec2_predict/GH/v2026-09-20/general_kleesoft_purple_allround_purple/yolo26m_img960_e100/annotated',
+        recursive: true,
+    },
 ];
 /**
  * 文件服务白名单目录。
