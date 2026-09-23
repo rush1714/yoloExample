@@ -88,6 +88,40 @@ PREDICT_CONF     ?= 0.35
 PREDICT_IMGSZ    ?= 960
 PREDICT_OUTPUT_DIR ?= $(PROJECT_ROOT)/outputs/predict
 
+# ── 模型导出 (移动端 / 通用) 参数 ──────────────────────────
+EXPORT_MODEL_PATH ?= $(FINAL_MODEL)
+EXPORT_FORMAT     ?= onnx
+EXPORT_IMGSZ      ?= 640
+EXPORT_NMS        ?= 1
+EXPORT_HALF       ?= 0
+EXPORT_INT8       ?= 0
+EXPORT_DEVICE     ?= cpu
+EXPORT_DATA_YAML  ?=
+EXPORT_OUTPUT_DIR ?=
+EXPORT_NMS_ARG    := $(if $(filter 1 true yes,$(EXPORT_NMS)),--nms,)
+EXPORT_HALF_ARG   := $(if $(filter 1 true yes,$(EXPORT_HALF)),--half,)
+EXPORT_INT8_ARG   := $(if $(filter 1 true yes,$(EXPORT_INT8)),--int8,)
+EXPORT_DATA_ARG   := $(if $(EXPORT_DATA_YAML),--data $(EXPORT_DATA_YAML),)
+EXPORT_OUTPUT_ARG := $(if $(EXPORT_OUTPUT_DIR),--output-dir $(EXPORT_OUTPUT_DIR),)
+EXPORT_DEVICE_ARG := $(if $(EXPORT_DEVICE),--device $(EXPORT_DEVICE),)
+
+# ── 模型导出 (移动端 / 通用) 参数 ──────────────────────────
+EXPORT_MODEL_PATH ?= $(FINAL_MODEL)
+EXPORT_FORMAT     ?= onnx
+EXPORT_IMGSZ      ?= 640
+EXPORT_NMS        ?= 1
+EXPORT_HALF       ?= 0
+EXPORT_INT8       ?= 0
+EXPORT_DEVICE     ?= cpu
+EXPORT_DATA_YAML  ?=
+EXPORT_OUTPUT_DIR ?=
+EXPORT_NMS_ARG    := $(if $(filter 1 true yes,$(EXPORT_NMS)),--nms,)
+EXPORT_HALF_ARG   := $(if $(filter 1 true yes,$(EXPORT_HALF)),--half,)
+EXPORT_INT8_ARG   := $(if $(filter 1 true yes,$(EXPORT_INT8)),--int8,)
+EXPORT_DATA_ARG   := $(if $(EXPORT_DATA_YAML),--data $(EXPORT_DATA_YAML),)
+EXPORT_OUTPUT_ARG := $(if $(EXPORT_OUTPUT_DIR),--output-dir $(EXPORT_OUTPUT_DIR),)
+EXPORT_DEVICE_ARG := $(if $(EXPORT_DEVICE),--device $(EXPORT_DEVICE),)
+
 export LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED := true
 export LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT := /
 export LABEL_STUDIO_BROWSER_OPEN := false
@@ -110,7 +144,7 @@ export MODELS_BAK_DIR
 
 .PHONY: help help-params web-console prepare-dirs brand-check brand-list \
 	ls-setup ls-start ls-migrate ls-shell ls-stop ls-apply ls-export ls-clone-annotated-project \
-	data-validate train predict datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check bak-data
+	data-validate train predict export-model datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check bak-data
 help: ## 显示命令帮助和常用参数说明
 	@printf "\033[1m可用命令\033[0m\n"
 	@grep -h -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -138,7 +172,7 @@ help-params: ## 显示公共 Make 参数默认值；流程专属参数详见 mak
 	@printf "  BRAND=%s\n" "$(BRAND)"
 	@printf "  DATASET_ROOT=%s\n" "$(DATASET_ROOT)"
 	@printf "  TRAIN_DATA_YAML=%s\n" "$(TRAIN_DATA_YAML)"
-	@printf "\n[本地训练 / 推理]\n"
+	@printf "\n[本地训练 / 推理 / 导出]\n"
 	@printf "  TRAIN_BASE_MODEL=%s\n" "$(TRAIN_BASE_MODEL)"
 	@printf "  TRAIN_EPOCHS=%s\n" "$(TRAIN_EPOCHS)"
 	@printf "  TRAIN_IMGSZ=%s\n" "$(TRAIN_IMGSZ)"
@@ -146,6 +180,15 @@ help-params: ## 显示公共 Make 参数默认值；流程专属参数详见 mak
 	@printf "  TRAIN_DEVICE=%s\n" "$(TRAIN_DEVICE)"
 	@printf "  TRAIN_NAME=%s\n" "$(TRAIN_NAME)"
 	@printf "  PREDICT_SOURCE=%s\n" "$(PREDICT_SOURCE)"
+	@printf "  EXPORT_MODEL_PATH=%s\n" "$(EXPORT_MODEL_PATH)"
+	@printf "  EXPORT_FORMAT=%s\n" "$(EXPORT_FORMAT)"
+	@printf "  EXPORT_IMGSZ=%s\n" "$(EXPORT_IMGSZ)"
+	@printf "  EXPORT_NMS=%s\n" "$(EXPORT_NMS)"
+	@printf "  EXPORT_HALF=%s\n" "$(EXPORT_HALF)"
+	@printf "  EXPORT_INT8=%s\n" "$(EXPORT_INT8)"
+	@printf "  EXPORT_DEVICE=%s\n" "$(EXPORT_DEVICE)"
+	@printf "  EXPORT_DATA_YAML=%s\n" "$(EXPORT_DATA_YAML)"
+	@printf "  EXPORT_OUTPUT_DIR=%s\n" "$(EXPORT_OUTPUT_DIR)"
 	@printf "\n[Label Studio]\n"
 	@printf "  LS_PORT=%s\n" "$(LS_PORT)"
 	@printf "  LS_PROJECT_ID=%s\n" "$(LS_PROJECT_ID)"
@@ -266,6 +309,18 @@ predict: ## 使用训练后的模型对 PREDICT_SOURCE 做推理验证
 		--conf $(PREDICT_CONF) \
 		--imgsz $(PREDICT_IMGSZ) \
 		--output-dir $(PREDICT_OUTPUT_DIR)
+
+export-model: ## 导出 YOLO 模型为移动端 (CoreML/TFLite/NCNN) 或通用 ONNX/TensorRT 格式
+	$(VENV_BIN)/python scripts/export/export_model.py \
+		--model '$(EXPORT_MODEL_PATH)' \
+		--format '$(EXPORT_FORMAT)' \
+		--imgsz $(EXPORT_IMGSZ) \
+		$(EXPORT_NMS_ARG) \
+		$(EXPORT_HALF_ARG) \
+		$(EXPORT_INT8_ARG) \
+		$(EXPORT_DATA_ARG) \
+		$(EXPORT_DEVICE_ARG) \
+		$(EXPORT_OUTPUT_ARG)
 
 ls-db-create: ## 如果 PostgreSQL 数据库不存在则创建
 	@if PGPASSWORD="$(POSTGRE_PASSWORD)" psql -U $(POSTGRE_USER) -h $(POSTGRE_HOST) -p $(POSTGRE_PORT) -d $(POSTGRE_NAME) -c 'SELECT 1' >/dev/null 2>&1; then \

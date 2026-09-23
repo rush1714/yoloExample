@@ -33,7 +33,9 @@
     "EC2_PREDICT_OUTPUT_S3_URI": "s3://uat-smdp4cust-bak/yolo-training/predict-results/",
     "EC2_PREDICT_SOURCE_DOWNLOAD_TIMEOUT": "60",
     "EC2_TRAIN_IMGSZ": "640",
-    "EC2_BASE_MODEL": "yolo26s.pt"
+    "EC2_BASE_MODEL": "yolo26s.pt",
+    "EXPORT_MODEL_PATH": "outputs/ec2/GH/v2026-09-22/general_kleesoft_purple_allround_purple/yolo26s_img640_e100/weights/exported-best.pt",
+    "EXPORT_FORMAT": "coreml"
   },
   "favorites": [
     {

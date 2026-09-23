@@ -366,6 +366,12 @@ const COMMAND_GROUPS = [
                 description: '用指定模型对图片或 URL 推理，输出 JSON 和带框图片。',
                 params: ['PREDICT_SOURCE', 'PREDICT_MODEL', 'PREDICT_CONF', 'PREDICT_IMGSZ', 'PREDICT_OUTPUT_DIR']
             },
+            {
+                target: 'export-model',
+                title: '模型导出 (移动端 / ONNX)',
+                description: '将 YOLO 模型导出为 iOS CoreML、Android TFLite、NCNN 或 ONNX/TensorRT 格式。',
+                params: ['EXPORT_MODEL_PATH', 'EXPORT_FORMAT', 'EXPORT_IMGSZ', 'EXPORT_NMS', 'EXPORT_HALF', 'EXPORT_INT8', 'EXPORT_DEVICE', 'EXPORT_DATA_YAML', 'EXPORT_OUTPUT_DIR']
+            },
         ],
     },
     {
@@ -629,6 +635,64 @@ const PARAM_DEFINITIONS = {
         help: '本地训练/校验要读取的 YOLO 数据集 YAML。'
     },
     FINAL_MODEL: {label: '导出模型路径', defaultValue: '', type: 'text'},
+    EXPORT_MODEL_PATH: {
+        label: '待导出模型路径',
+        defaultValue: 'models/yolo26s.pt',
+        type: 'text',
+        help: '待导出的 .pt 模型权重路径，支持 models/ 下的文件名或相对/绝对路径。'
+    },
+    EXPORT_FORMAT: {
+        label: '导出格式',
+        defaultValue: 'onnx',
+        type: 'select',
+        options: ['coreml', 'tflite', 'ncnn', 'onnx', 'openvino', 'engine', 'torchscript'],
+        help: 'coreml: iOS 首选; tflite: Android 首选; ncnn: 移动端极速推理; onnx: 通用跨平台。'
+    },
+    EXPORT_IMGSZ: {
+        label: '导出图片尺寸',
+        defaultValue: '640',
+        type: 'number',
+        help: '导出输入边长，移动端推荐 320、480 或 640。'
+    },
+    EXPORT_NMS: {
+        label: '集成 NMS 后处理',
+        defaultValue: '1',
+        type: 'select',
+        options: ['1', '0'],
+        help: '强烈推荐 1（开启），将非极大值抑制打包进模型，极大幅度简化移动端解析代码。'
+    },
+    EXPORT_HALF: {
+        label: 'FP16 半精度',
+        defaultValue: '0',
+        type: 'select',
+        options: ['0', '1'],
+        help: '开启后模型体积减半，加速 GPU/NPU 推理；iOS CoreML 推荐开启。'
+    },
+    EXPORT_INT8: {
+        label: 'INT8 量化',
+        defaultValue: '0',
+        type: 'select',
+        options: ['0', '1'],
+        help: '开启后为 INT8 量化模型（Android 低端机推荐，需指定校准数据集）。'
+    },
+    EXPORT_DEVICE: {
+        label: '导出设备',
+        defaultValue: 'cpu',
+        type: 'select',
+        options: ['cpu', 'mps', 'cuda:0', '0']
+    },
+    EXPORT_DATA_YAML: {
+        label: 'INT8 校准数据集 YAML',
+        defaultValue: '',
+        type: 'text',
+        help: '仅在 EXPORT_INT8=1 时使用。'
+    },
+    EXPORT_OUTPUT_DIR: {
+        label: '导出产物目标目录',
+        defaultValue: '',
+        type: 'text',
+        help: '可选；留空时保存在原权重同级或 Ultralytics 默认目录。'
+    },
     BRAND: {label: '品牌', defaultValue: 'all', type: 'select', help: 'all 表示多品牌；也可选择单品牌。'},
     EXCEL: {
         label: 'Excel 路径',
