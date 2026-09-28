@@ -88,22 +88,10 @@ PREDICT_CONF     ?= 0.35
 PREDICT_IMGSZ    ?= 960
 PREDICT_OUTPUT_DIR ?= $(PROJECT_ROOT)/outputs/predict
 
-# ── 模型导出 (移动端 / 通用) 参数 ──────────────────────────
-EXPORT_MODEL_PATH ?= $(FINAL_MODEL)
-EXPORT_FORMAT     ?= onnx
-EXPORT_IMGSZ      ?= 640
-EXPORT_NMS        ?= 1
-EXPORT_HALF       ?= 0
-EXPORT_INT8       ?= 0
-EXPORT_DEVICE     ?= cpu
-EXPORT_DATA_YAML  ?=
-EXPORT_OUTPUT_DIR ?=
-EXPORT_NMS_ARG    := $(if $(filter 1 true yes,$(EXPORT_NMS)),--nms,)
-EXPORT_HALF_ARG   := $(if $(filter 1 true yes,$(EXPORT_HALF)),--half,)
-EXPORT_INT8_ARG   := $(if $(filter 1 true yes,$(EXPORT_INT8)),--int8,)
-EXPORT_DATA_ARG   := $(if $(EXPORT_DATA_YAML),--data $(EXPORT_DATA_YAML),)
-EXPORT_OUTPUT_ARG := $(if $(EXPORT_OUTPUT_DIR),--output-dir $(EXPORT_OUTPUT_DIR),)
-EXPORT_DEVICE_ARG := $(if $(EXPORT_DEVICE),--device $(EXPORT_DEVICE),)
+# ── 本地 Web 控制台参数 ─────────────────────────────────────
+WEB_CONSOLE_PORT     ?= 3000
+WEB_CONSOLE_LOG_FILE ?= $(LOG_DIR)/web-console.log
+WEB_CONSOLE_PID_FILE ?= $(LOG_DIR)/web-console.pid
 
 # ── 模型导出 (移动端 / 通用) 参数 ──────────────────────────
 EXPORT_MODEL_PATH ?= $(FINAL_MODEL)
@@ -142,7 +130,7 @@ export LS_COMPACT_CLASS_IDS
 export LS_LABEL_CONFIG_XML
 export MODELS_BAK_DIR
 
-.PHONY: help help-params web-console prepare-dirs brand-check brand-list \
+.PHONY: help help-params web-console web-console-stop prepare-dirs brand-check brand-list \
 	ls-setup ls-start ls-migrate ls-shell ls-stop ls-apply ls-export ls-clone-annotated-project \
 	data-validate train predict export-model datasets-clean-preview datasets-clean-ignored datasets-clean-untracked-except-raw-preview datasets-clean-untracked-except-raw ls-db-create ls-db-check bak-data
 help: ## 显示命令帮助和常用参数说明
@@ -189,6 +177,10 @@ help-params: ## 显示公共 Make 参数默认值；流程专属参数详见 mak
 	@printf "  EXPORT_DEVICE=%s\n" "$(EXPORT_DEVICE)"
 	@printf "  EXPORT_DATA_YAML=%s\n" "$(EXPORT_DATA_YAML)"
 	@printf "  EXPORT_OUTPUT_DIR=%s\n" "$(EXPORT_OUTPUT_DIR)"
+	@printf "\n[本地 Web 控制台]\n"
+	@printf "  WEB_CONSOLE_PORT=%s\n" "$(WEB_CONSOLE_PORT)"
+	@printf "  WEB_CONSOLE_LOG_FILE=%s\n" "$(WEB_CONSOLE_LOG_FILE)"
+	@printf "  WEB_CONSOLE_PID_FILE=%s\n" "$(WEB_CONSOLE_PID_FILE)"
 	@printf "\n[Label Studio]\n"
 	@printf "  LS_PORT=%s\n" "$(LS_PORT)"
 	@printf "  LS_PROJECT_ID=%s\n" "$(LS_PROJECT_ID)"
@@ -210,8 +202,21 @@ help-params: ## 显示公共 Make 参数默认值；流程专属参数详见 mak
 	@printf "  makefiles/brand-yoloe-visual/README.md\n"
 	@printf "  makefiles/diaper-category-ec2/README.md\n"
 	@printf "  makefiles/brand-s3-ec2/README.md\n"
-web-console: ## 启动本地 Make 命令与数据可视化页面
-	node web-console/server.js
+web-console: prepare-dirs ## 后台启动本地 Make 命令与数据可视化页面
+	@if [ -n "$$(lsof -ti :$(WEB_CONSOLE_PORT) 2>/dev/null)" ]; then \
+		echo "Web 控制台已在端口 $(WEB_CONSOLE_PORT) 运行，PID: $$(lsof -ti :$(WEB_CONSOLE_PORT) 2>/dev/null | tr '\n' ' ')"; \
+		echo "访问地址：http://localhost:$(WEB_CONSOLE_PORT)"; \
+		echo "日志文件：$(WEB_CONSOLE_LOG_FILE)"; \
+	else \
+		echo "===== $$(date '+%Y-%m-%d %H:%M:%S') start Web Console port $(WEB_CONSOLE_PORT) =====" >> $(WEB_CONSOLE_LOG_FILE); \
+		( PORT=$(WEB_CONSOLE_PORT) node web-console/server.js ) >> $(WEB_CONSOLE_LOG_FILE) 2>&1 & \
+		pid=$$!; echo $$pid > $(WEB_CONSOLE_PID_FILE); sleep 1; \
+		if kill -0 $$pid 2>/dev/null; then echo "Web 控制台已后台启动，PID: $$pid"; echo "访问地址：http://localhost:$(WEB_CONSOLE_PORT)"; echo "日志文件：$(WEB_CONSOLE_LOG_FILE)"; else echo "Web 控制台启动失败，请查看日志：$(WEB_CONSOLE_LOG_FILE)"; rm -f $(WEB_CONSOLE_PID_FILE); exit 1; fi; \
+	fi
+
+web-console-stop: ## 停止本地 Web 控制台
+	@pids="$$(lsof -ti :$(WEB_CONSOLE_PORT) 2>/dev/null | sort -u | tr '\n' ' ')"; \
+	if [ -n "$$pids" ]; then kill $$pids && rm -f $(WEB_CONSOLE_PID_FILE) && echo "已停止 Web 控制台 PID $$pids"; else rm -f $(WEB_CONSOLE_PID_FILE); echo "端口 $(WEB_CONSOLE_PORT) 没有运行中的 Web 控制台进程"; fi
 
 prepare-dirs: ## 创建项目内临时目录和日志目录
 	@mkdir -p $(TMP_DIR) $(LS_WORK_DIR) $(LOG_DIR) $(LS_EXPORT_DIR)

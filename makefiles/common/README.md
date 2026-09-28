@@ -77,7 +77,8 @@ python3 scripts/training/train.py \
 |---|---|---|
 | `help` | 显示命令帮助和常用参数说明 | `make help` |
 | `help-params` | 显示公共 Make 参数默认值；流程专属参数详见 makefiles/*/README.md | `make help-params` |
-| `web-console` | 启动本地 Make 命令与数据可视化页面 | `make web-console` |
+| `web-console` | 后台启动本地 Make 命令与数据可视化页面 | `make web-console WEB_CONSOLE_PORT=3000` |
+| `web-console-stop` | 停止本地 Web 控制台 | `make web-console-stop WEB_CONSOLE_PORT=3000` |
 | `prepare-dirs` | 创建项目内临时目录和日志目录 | `make prepare-dirs` |
 | `datasets-clean-preview` | 预览 datasets/ 下会被 git clean 删除的 ignored 文件 | `make datasets-clean-preview` |
 | `datasets-clean-ignored` | 删除 datasets/ 下所有被 .gitignore 忽略的文件；先执行 datasets-clean-preview 确认 | `make datasets-clean-ignored` |

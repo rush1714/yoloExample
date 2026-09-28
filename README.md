@@ -272,12 +272,14 @@ http://localhost:9001
 
 ### 本地 Make 可视化控制台
 
-如果不想手写复杂 Make 命令，可以启动一个本地 Node 页面：
+如果不想手写复杂 Make 命令，可以启动一个本地 Node 页面（后台守护进程运行）：
 
 ```bash
-npm start
-# 或
 make web-console
+# 停止控制台
+make web-console-stop
+# 或前台直接启动
+npm start
 ```
 
 默认访问地址：
