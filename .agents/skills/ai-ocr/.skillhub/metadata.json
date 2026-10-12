@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "registry": "http://skillhub.sublevelops.com",
+  "namespace": "global",
+  "slug": "ai-ocr",
+  "version": "20260722.040429",
+  "versionId": 27,
+  "fingerprint": "sha256:b94959bf7e3515b0ec4df39556168fcb1ccbe4ef40742d9742d55e07f5695683",
+  "files": {
+    "SKILL.md": "585b2d1d0161fda528f27103d9f110ed4f4d82067c297689c7965a21fd537622"
+  },
+  "source": "skillhub",
+  "agent": "generic",
+  "installedAt": "2026-09-29T02:05:07.059Z"
+}

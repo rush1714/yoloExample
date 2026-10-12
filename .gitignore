@@ -82,3 +82,4 @@ models/**/*.pth
 !/config/generated/.gitkeep
 
 /datasets_bak/
+/datasets/**/llm/
