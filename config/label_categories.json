@@ -36,6 +36,16 @@
           ],
           "enabled": true,
           "description": "allround_purple 示例类别，可按实际业务重命名或删除。"
+        },
+        {
+          "class_id": 3,
+          "name": "softcare",
+          "class_name": "softcare",
+          "aliases": [
+            "softcare"
+          ],
+          "enabled": true,
+          "description": "softcare 示例类别，可按实际业务重命名或删除。"
         }
       ]
     }

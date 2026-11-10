@@ -1,7 +1,7 @@
 {
   "paramCache": {
-    "COUNTRY": "GH",
-    "DATA_VERSION": "v2026-09-22",
+    "COUNTRY": "UG",
+    "DATA_VERSION": "v2026-11-10",
     "LABEL_SET": "general",
     "LS_PROJECT_ID": "29",
     "S3_DATASET_ROOT": "datasets/allround_purple/v2026-09-17/",
@@ -19,11 +19,10 @@
     "S3_LS_TO_YOLO_SKIP_EMPTY": "1",
     "S3_LS_TO_YOLO_CLEAR": "1",
     "EC2_HOST": "3.238.0.151",
-    "EC2_EXECUTE": "1",
-    "LABELS": "kleesoft_purple,allround_purple",
+    "EC2_EXECUTE": "0",
+    "LABELS": "softcare",
     "EXCEL": "/Users/guobiao/DOC/森大2.0/18.陈列数据/GH/7196c8f7e25821740da2bea0f50f7cfb.xlsx",
     "EXCEL_COLUMN": "整改后图片URL",
-    "LABEL_LOCAL_IMAGES_DIR": "datasets/GH/v2026-09-22/general_kleesoft_purple_allround_purple/images",
     "LABEL_LS_TO_YOLO_SKIP_EMPTY": "1",
     "LABEL_LS_PROJECT_IDS": "21",
     "S3_PUBLIC_BASE_URL": "https://uat-smdp4cust-bak.s3.af-south-1.amazonaws.com",
@@ -35,7 +34,8 @@
     "EC2_TRAIN_IMGSZ": "640",
     "EC2_BASE_MODEL": "yolo26s.pt",
     "EXPORT_MODEL_PATH": "outputs/ec2/GH/v2026-09-22/general_kleesoft_purple_allround_purple/yolo26s_img640_e100/weights/exported-best.pt",
-    "EXPORT_FORMAT": "coreml"
+    "EXPORT_FORMAT": "coreml",
+    "LABEL_LOCAL_IMAGES_DIR": "/Users/guobiao/DOC/森大2.0/18.陈列数据/UG/Softcare产品图片"
   },
   "favorites": [
     {
