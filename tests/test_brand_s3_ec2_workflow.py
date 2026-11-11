@@ -1,6 +1,6 @@
 """S3 图片上传、Label Studio 导入和 EC2 训练图管理测试。"""
 
-# pylint: disable=import-error,wrong-import-position,line-too-long
+# pylint: disable=import-error,wrong-import-position,line-too-long,too-many-public-methods
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -19,14 +20,23 @@ from scripts.label_studio.export_local_s3_to_yolo import convert_local_tasks_wit
 from scripts.label_studio.export_s3_single_class_to_yolo import convert_tasks as convert_s3_tasks
 from scripts.label_studio.generate_s3_import import build_tasks as build_s3_import_tasks
 from scripts.s3.brand_s3_config import (
+    guess_content_type,
     https_url_for_object,
     load_config,
     nginx_url_for_object,
     normalize_training_prefix,
+    resolve_s3_extra_args,
     s3_key_for_relative_path,
+    upload_file_to_s3,
 )
 from scripts.s3.render_nginx_image_proxy import render_config, render_map, upstream_url_for_record, write_nginx_files
-from scripts.s3.upload_images_to_s3 import build_manifest_record, record_from_s3_object, upload_images, write_manifest
+from scripts.s3.upload_images_to_s3 import (
+    build_manifest_record,
+    record_from_s3_object,
+    upload_images,
+    upload_one_image,
+    write_manifest,
+)
 from scripts.s3.yolo_dataset_to_ec2_manifest import build_ec2_manifest_items, write_outputs as write_yolo_s3_manifest
 
 
@@ -531,6 +541,161 @@ class BrandS3Ec2WorkflowTest(unittest.TestCase):
         self.assertIn("label-s3-ec2-download-predict-results", console)
         self.assertIn("label-s3-ec2-upload-existing-predict-results", console)
         self.assertIn("S3_PUBLIC_BASE_URL", console)
+
+    def test_guess_content_type_supports_images_and_data_files(self) -> None:
+        """根据文件扩展名推断 MIME，图片和数据格式应准确返回。"""
+        self.assertEqual(guess_content_type("images/photo.jpg"), "image/jpeg")
+        self.assertEqual(guess_content_type("images/photo.jpeg"), "image/jpeg")
+        self.assertEqual(guess_content_type("images/photo.png"), "image/png")
+        self.assertEqual(guess_content_type("images/photo.webp"), "image/webp")
+        self.assertEqual(guess_content_type("images/photo.bmp"), "image/bmp")
+        self.assertEqual(guess_content_type("images/photo.gif"), "image/gif")
+        self.assertEqual(guess_content_type("metadata/data.json"), "application/json")
+        self.assertEqual(guess_content_type("metadata/data.csv"), "text/csv")
+        self.assertEqual(guess_content_type("metadata/urls.txt"), "text/plain")
+        self.assertEqual(guess_content_type("config/model.yaml"), "text/yaml")
+        self.assertEqual(guess_content_type("config/model.yml"), "text/yaml")
+        self.assertEqual(guess_content_type("unknown.bin"), "application/octet-stream")
+        self.assertEqual(guess_content_type("custom.unknownext", fallback="application/custom"), "application/custom")
+
+    def test_resolve_s3_extra_args_auto_fills_content_type(self) -> None:
+        """未显式传 ContentType 时自动填充；显式指定时保留用户传值。"""
+        # 未传 extra_args
+        resolved_jpg = resolve_s3_extra_args("shelf.jpg")
+        self.assertEqual(resolved_jpg, {"ContentType": "image/jpeg"})
+
+        # extra_args 为 None
+        resolved_png = resolve_s3_extra_args("shelf.png", None)
+        self.assertEqual(resolved_png, {"ContentType": "image/png"})
+
+        # extra_args 有其他参数但未传 ContentType
+        resolved_json = resolve_s3_extra_args("summary.json", {"ACL": "public-read", "ServerSideEncryption": "AES256"})
+        self.assertEqual(
+            resolved_json,
+            {"ACL": "public-read", "ServerSideEncryption": "AES256", "ContentType": "application/json"},
+        )
+
+        # 显式传递 ContentType（大写）
+        explicit = resolve_s3_extra_args("pic.jpg", {"ContentType": "image/custom"})
+        self.assertEqual(explicit, {"ContentType": "image/custom"})
+
+        # 显式传递 content_type（小写，自动规范化为 ContentType）
+        explicit_lower = resolve_s3_extra_args("pic.jpg", {"content_type": "image/custom-lower"})
+        self.assertEqual(explicit_lower, {"ContentType": "image/custom-lower"})
+
+    def test_upload_file_to_s3_passes_inferred_content_type_in_extra_args(self) -> None:
+        """upload_file_to_s3 应自动将推断的 ContentType 组装进 ExtraArgs 透传。"""
+        calls: list[dict[str, Any]] = []
+
+        class MockS3Client:  # pylint: disable=too-few-public-methods
+            """用于记录 upload_file 调用参数的 Mock S3 client。"""
+
+            def upload_file(self, filename: str, bucket: str, key: str, **kwargs: Any) -> None:
+                """记录调用参数。"""
+                calls.append({"filename": filename, "bucket": bucket, "key": key, **kwargs})
+
+        client = MockS3Client()
+        upload_file_to_s3(client, "test.png", "my-bucket", "yolo-training/test.png")
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["filename"], "test.png")
+        self.assertEqual(calls[0]["bucket"], "my-bucket")
+        self.assertEqual(calls[0]["key"], "yolo-training/test.png")
+        self.assertEqual(calls[0]["ExtraArgs"], {"ContentType": "image/png"})
+
+    def test_upload_one_image_auto_fills_content_type_and_records_metadata(self) -> None:
+        """upload_one_image 应使用推断的 ContentType 上传并记录在清单中。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            image_path = root / "shelf.jpg"
+            image_path.write_bytes(b"dummy-jpg")
+
+            config = load_config(
+                None,
+                dataset_name="demo",
+                local_images_dir=root,
+                dataset_root=root / "dataset",
+                bucket="test-bucket",
+                prefix="test-prefix",
+                region="ap-southeast-1",
+            )
+
+            recorded_extra_args: list[dict[str, Any]] = []
+
+            class MockS3Client:
+                """Mock S3 客户端，模拟 upload_file 与 head_object。"""
+
+                def upload_file(self, _filename: str, _bucket: str, _key: str, **kwargs: Any) -> None:
+                    """捕获 upload_file 调用参数。"""
+                    recorded_extra_args.append(kwargs.get("ExtraArgs", {}))
+
+                def head_object(self, **_kwargs: Any) -> dict[str, Any]:
+                    """模拟根据上传时的 ContentType 返回 head_object 结果。"""
+                    last_args = recorded_extra_args[-1] if recorded_extra_args else {}
+                    return {
+                        "ETag": '"etag-123"',
+                        "LastModified": "2026-11-11T00:00:00Z",
+                        "ContentType": last_args.get("ContentType", "binary/octet-stream"),
+                    }
+
+            client = MockS3Client()
+            record = upload_one_image(client, config, image_path, "shelf.jpg")
+
+            self.assertEqual(len(recorded_extra_args), 1)
+            self.assertEqual(recorded_extra_args[0], {"ContentType": "image/jpeg"})
+            self.assertTrue(record["uploaded"])
+            self.assertEqual(record["content_type"], "image/jpeg")
+
+    def test_upload_one_image_respects_explicit_content_type(self) -> None:
+        """upload_one_image 显式传入 extra_args 时应尊重调用方的指定设置。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            image_path = root / "shelf.png"
+            image_path.write_bytes(b"dummy-png")
+
+            config = load_config(
+                None,
+                dataset_name="demo",
+                local_images_dir=root,
+                dataset_root=root / "dataset",
+                bucket="test-bucket",
+                prefix="test-prefix",
+                region="ap-southeast-1",
+            )
+
+            recorded_extra_args: list[dict[str, Any]] = []
+
+            class MockS3Client:
+                """Mock S3 客户端。"""
+
+                def upload_file(self, _filename: str, _bucket: str, _key: str, **kwargs: Any) -> None:
+                    """捕获 upload_file 调用参数。"""
+                    recorded_extra_args.append(kwargs.get("ExtraArgs", {}))
+
+                def head_object(self, **_kwargs: Any) -> dict[str, Any]:
+                    """模拟 head_object。"""
+                    last_args = recorded_extra_args[-1] if recorded_extra_args else {}
+                    return {
+                        "ETag": '"etag-456"',
+                        "LastModified": "2026-11-11T00:00:00Z",
+                        "ContentType": last_args.get("ContentType", "binary/octet-stream"),
+                    }
+
+            client = MockS3Client()
+            record = upload_one_image(
+                client,
+                config,
+                image_path,
+                "shelf.png",
+                extra_args={"ContentType": "image/x-custom", "StorageClass": "STANDARD_IA"},
+            )
+
+            self.assertEqual(len(recorded_extra_args), 1)
+            self.assertEqual(
+                recorded_extra_args[0],
+                {"ContentType": "image/x-custom", "StorageClass": "STANDARD_IA"},
+            )
+            self.assertEqual(record["content_type"], "image/x-custom")
 
 
 if __name__ == "__main__":

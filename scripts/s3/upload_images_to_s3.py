@@ -1,6 +1,6 @@
 """将本地训练图片目录上传到 S3，并生成后续 LS/EC2 可复用的图片清单。"""
 
-# pylint: disable=line-too-long,import-error,duplicate-code,too-many-arguments,too-many-locals
+# pylint: disable=line-too-long,import-error,duplicate-code,too-many-arguments,too-many-locals,too-many-positional-arguments
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from scripts.s3.brand_s3_config import (  # pylint: disable=wrong-import-positio
     nginx_url_for_object,
     proxy_url_for_object,
     s3_key_for_relative_path,
+    upload_file_to_s3,
 )
 
 
@@ -121,10 +122,15 @@ def upload_one_image(
     config: BrandS3Config,
     image_path: Path,
     relative_path: str,
+    extra_args: dict[str, Any] | None = None,
 ) -> dict[str, object]:
-    """上传单张图片并返回清单记录；供线程池调用。"""
+    """上传单张图片并返回清单记录；供线程池调用。
+
+    当调用方未显式传递 ContentType 时，自动依据文件后缀推断填充（如 image/jpeg、
+    image/png 等），彻底杜绝 S3 默认将其落成 binary/octet-stream。
+    """
     key = s3_key_for_relative_path(config.prefix, relative_path)
-    client.upload_file(str(image_path), config.bucket, key)
+    upload_file_to_s3(client, image_path, config.bucket, key, extra_args=extra_args)
     head = client.head_object(Bucket=config.bucket, Key=key)
     extra = {
         "status": "uploaded",
@@ -188,6 +194,7 @@ def upload_images(
     limit: int | None,
     dry_run: bool,
     workers: int,
+    extra_args: dict[str, Any] | None = None,
 ) -> list[dict[str, object]]:
     """扫描图片、并发上传到 S3，并返回统一清单记录。"""
     if not config.bucket:
@@ -219,7 +226,9 @@ def upload_images(
         worker_count = max(1, workers)
         with ThreadPoolExecutor(max_workers=worker_count) as executor:
             futures = {
-                executor.submit(upload_one_image, client, config, image_path, relative_path): (image_path, relative_path)
+                executor.submit(
+                    upload_one_image, client, config, image_path, relative_path, extra_args
+                ): (image_path, relative_path)
                 for image_path, relative_path in pending
             }
             for future in as_completed(futures):

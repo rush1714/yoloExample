@@ -31,6 +31,7 @@ if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
 from common.ultralytics_config import configure_ultralytics_weights_dir  # pylint: disable=wrong-import-position
+from s3.brand_s3_config import upload_file_to_s3  # pylint: disable=wrong-import-position
 
 IMAGE_SUFFIXES = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 URL_PATTERN = re.compile(r"(?:s3|https?)://[^\s,;\"'<>]+", re.IGNORECASE)
@@ -519,13 +520,13 @@ def upload_results_to_s3(paths: PredictionPaths, output_s3_uri: str) -> list[str
     uploaded_uris = []
     for file_path in iter_result_files(paths):
         key = s3_key_for_output(location.key, paths.root, file_path)
-        client.upload_file(str(file_path), location.bucket, key)
+        upload_file_to_s3(client, file_path, location.bucket, key)
         uploaded_uris.append(f"s3://{location.bucket}/{key}")
         print(f"upload {file_path} -> s3://{location.bucket}/{key}")
     uri_list_path = paths.root / "uploaded_s3_uris.txt"
     uri_list_path.write_text("\n".join(uploaded_uris) + "\n", encoding="utf-8")
     key = s3_key_for_output(location.key, paths.root, uri_list_path)
-    client.upload_file(str(uri_list_path), location.bucket, key)
+    upload_file_to_s3(client, uri_list_path, location.bucket, key)
     uploaded_uris.append(f"s3://{location.bucket}/{key}")
     print(f"upload {uri_list_path} -> s3://{location.bucket}/{key}")
     return uploaded_uris

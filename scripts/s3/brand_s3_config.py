@@ -10,6 +10,7 @@ Studio 导入、图片代理和 EC2 编排脚本可以复用同一套路径规�
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 from dataclasses import dataclass
 from hashlib import sha256
@@ -283,3 +284,77 @@ def load_config(config_path: Path | None = DEFAULT_CONFIG_PATH, **overrides: obj
             overrides.get("data_yaml") or "", PROJECT_ROOT / "config" / "generated" / f"{dataset_name}.yaml"
         ),
     )
+
+
+# 常见文件扩展名到标准 MIME Content-Type 的映射表。
+# 优先使用内置映射，规避不同运行系统（如最小化 Linux/Docker/EC2）因缺少 /etc/mime.types
+# 或注册表缺失而导致推断为 None 的环境差异。
+KNOWN_CONTENT_TYPES: dict[str, str] = {
+    ".bmp": "image/bmp",
+    ".csv": "text/csv",
+    ".gif": "image/gif",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".json": "application/json",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+    ".txt": "text/plain",
+    ".webp": "image/webp",
+    ".xml": "application/xml",
+    ".yaml": "text/yaml",
+    ".yml": "text/yaml",
+}
+
+
+def guess_content_type(file_path: str | Path, fallback: str = "application/octet-stream") -> str:
+    """根据文件路径或扩展名推断 MIME Content-Type。
+
+    1. 优先从 KNOWN_CONTENT_TYPES 内置映射表查找（不区分大小写）；
+    2. 未命中时调用 Python 标准库 mimetypes.guess_type；
+    3. 仍未识别时返回兜底 fallback（默认 application/octet-stream）。
+    """
+    suffix = Path(file_path).suffix.lower()
+    if suffix in KNOWN_CONTENT_TYPES:
+        return KNOWN_CONTENT_TYPES[suffix]
+    guessed, _ = mimetypes.guess_type(str(file_path))
+    if guessed:
+        return guessed
+    return fallback
+
+
+def resolve_s3_extra_args(
+    file_path: str | Path,
+    extra_args: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """解析并补全 S3 上传所需的 ExtraArgs。
+
+    当调用方未显式传递 ExtraArgs 或未指定 ContentType 时，自动依据文件扩展名
+    推断并填充 ContentType（如 image/jpeg、image/png、application/json 等），
+    彻底杜绝 S3 默认将其落成 binary/octet-stream。
+    若调用方已显式传递 ContentType（或小写 content_type），则保留其显式值，
+    并原样保留 ExtraArgs 中的其他参数（如 ACL、ServerSideEncryption 等）。
+    """
+    resolved: dict[str, Any] = dict(extra_args) if extra_args else {}
+    if "ContentType" not in resolved and "content_type" not in resolved:
+        resolved["ContentType"] = guess_content_type(file_path)
+    elif "content_type" in resolved and "ContentType" not in resolved:
+        resolved["ContentType"] = resolved.pop("content_type")
+    return resolved
+
+
+def upload_file_to_s3(
+    client: Any,
+    file_path: str | Path,
+    bucket: str,
+    key: str,
+    extra_args: dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> None:
+    """封装 boto3 upload_file，自动补全 ContentType 杜绝 binary/octet-stream。
+
+    使用 resolve_s3_extra_args 解析 ContentType 并透传给 boto3 的 ExtraArgs。
+    """
+    resolved_extra_args = resolve_s3_extra_args(file_path, extra_args)
+    client.upload_file(str(file_path), bucket, key, ExtraArgs=resolved_extra_args, **kwargs)
